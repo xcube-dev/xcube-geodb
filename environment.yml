@@ -6,6 +6,7 @@ dependencies:
   # Python
   - python >=3.6
   # Required
+  - jupyterlab
   - geopandas >=0.5
   - postgresql >=11.5 
   # Testing
