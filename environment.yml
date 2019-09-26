@@ -1,0 +1,14 @@
+name: dcfs-geodb
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Python
+  - python >=3.6
+  # Required
+  - geopandas >=0.5
+  - postgresql >=11.5 
+  # Testing
+  - pytest >=4.4
+  - pytest-cov >=2.6
+
