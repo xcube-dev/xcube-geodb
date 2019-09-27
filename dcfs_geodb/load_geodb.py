@@ -1,13 +1,12 @@
-from typing import Union
 import psycopg2
 from psycopg2 import extensions
 import geopandas as gpd
 
-from dcfs_geodb import DEFAULT_SQL, PG_DEFAULT_CONNECTION_PARAMETERS
-from dcfs_geodb.write_to_geodb import validate_dataframe
+from dcfs_geodb import DEFAULT_LOAD_SQL, PG_DEFAULT_CONNECTION_PARAMETERS
+from dcfs_geodb.manage_geodb import validate_dataframe
 
 
-def load_geodb(sql: str = DEFAULT_SQL, con: Union[dict, extensions.connection, type(None)] = None) -> gpd.GeoDataFrame:
+def load_geodb(con: extensions.connection, sql: str = DEFAULT_LOAD_SQL) -> gpd.GeoDataFrame:
     """
     Return the content of the geodb. default connection is located in config.py
     :param sql: sql to the geodb. Default loads everything

@@ -6,8 +6,8 @@ requirements = [
     #
     # dcfs_geodb requirements are given in file ./environment.yml.
     #
-    'geopandas',
-    'postgresql',
+    #'geopandas',
+    #'postgresql',
 ]
 
 packages = find_packages(exclude=["tests", "tests.*"])

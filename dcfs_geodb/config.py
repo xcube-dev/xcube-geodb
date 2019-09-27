@@ -7,4 +7,6 @@ PG_DEFAULT_CONNECTION_PARAMETERS = {
     'password': os.environ.get("PG_GEODB_PASSWORD")
 }
 
-DEFAULT_SQL = "select RABA_PID, RABA_ID, D_OD, geometry from land_use"
+DEFAULT_LOAD_SQL = "SELECT raba_pid, raba_id, d_od, geometry FROM land_use"
+
+DEFAULT_DELETE_SQL = "DELETE FROM land_use"
