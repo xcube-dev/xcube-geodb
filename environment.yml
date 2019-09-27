@@ -8,6 +8,8 @@ dependencies:
   # Required
   - jupyterlab
   - geopandas >=0.5
+  - matplotlib-base
+  - descartes
   - postgresql >=11.5 
   # Testing
   - pytest >=4.4

@@ -1,0 +1,35 @@
+class CursorMock(object):
+    def execute(self, sql: str):
+        pass
+
+    def close(self):
+        pass
+
+    def commit(self):
+        pass
+
+    def fetchall(self):
+        var = [["141",
+                '4770326',
+                '2019-03-26',
+                '0103000020E610000001000000110000007593188402B51B41B6F3FDD4423FF6405839B4C802B51B412B8716D9EC3EF6406F1283C0EBB41B41A8C64B37C53EF640B6F3FDD4E4B41B419A999999A33EF6400E2DB29DCFB41B41EE7C3F35B63EF6407F6ABC74C0B41B41EE7C3F35B63EF6407B14AE47BDB41B41AAF1D24D043FF6408B6CE77B64B41B413F355EBA8F3FF6402B8716D970B41B41986E1283EC3FF640A4703D0A76B41B4179E92631AE3FF6404260E5D08AB41B4123DBF97E923FF6409EEFA7C69CB41B4100000000AC3FF6405839B448B3B41B411D5A643B973FF6408195438BC6B41B41666666666C3FF640D122DBF9E3B41B4139B4C876383FF640E9263188F8B41B41333333333D3FF6407593188402B51B41B6F3FDD4423FF640',
+                ]]
+
+        return var
+
+    @property
+    def description(self):
+        return [["RABA_PID"], ['RABA_ID'], ['D_OD'], ['geometry']]
+
+
+class ConnectionMock(object):
+    def cursor(self):
+        return CursorMock()
+
+    def commit(self):
+        pass
+
+
+def connect(dsn: str):
+    print(f"Mocking connection to {dsn}")
+    return ConnectionMock()
