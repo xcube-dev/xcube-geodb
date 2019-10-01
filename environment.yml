@@ -7,6 +7,7 @@ dependencies:
   - python >=3.6
   # Required
   - jupyterlab
+  - psycopg2
   - geopandas >=0.5
   - matplotlib-base
   - descartes
