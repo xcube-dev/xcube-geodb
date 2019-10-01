@@ -14,7 +14,7 @@ The PostGreSQL GeoDB is an Amazon AWS RDS instance.
 ## Schema
 
 ```sql
-    CREATE TABLE "public"."land_use" (
+CREATE TABLE "public"."land_use" (
     "id" integer DEFAULT nextval('land_user_id_seq') NOT NULL,
     "raba_id" integer NOT NULL,
     "d_od" date NOT NULL,
