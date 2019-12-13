@@ -1,3 +1,1 @@
-from .config import DEFAULT_LOAD_SQL, PG_DEFAULT_CONNECTION_PARAMETERS, DEFAULT_DELETE_SQL
-from .geo_db import GeoDB
 

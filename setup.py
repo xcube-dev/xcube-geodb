@@ -6,8 +6,6 @@ requirements = [
     #
     # dcfs_geodb requirements are given in file ./environment.yml.
     #
-    #'geopandas',
-    #'postgresql',
 ]
 
 packages = find_packages(exclude=["tests", "tests.*"])
@@ -20,13 +18,13 @@ with open('dcfs_geodb/version.py') as f:
 setup(
     name="dcfs_geodb",
     version=version,
-    description=('Geo DB for DCFS'),
+    description='Geo DB for DCFS',
     license='MIT',
     author='DCFS Development Team',
     packages=packages,
     entry_points={
         'console_scripts': [
-            # 'geodb = dcfs_geodb.cli:main',
+            'geodb = dcfs_geodb.cli.main:main',
         ],
     },
     install_requires=requirements,
