@@ -80,12 +80,38 @@ class GeoDB(object):
         return f"/rpc/{stored_procedure}" in self._capabilities['paths']
 
     def post(self, path: str, body: Dict, params: Optional[Dict] = None) -> requests.models.Response:
-        print(f"Connecting to {self._get_full_url(path=path)}")
+        """
+
+        Args:
+            path: API path
+            body: Post body as Dict. Will be dumped to JSON
+            params: Request parameters
+
+        Returns:
+            A Request object
+        Examples:
+            >>> api = GeoDB()
+            >>> api.post(path='/rpc/my_function', body={'name': 'MyName'})
+        """
         r = requests.post(self._get_full_url(path=path), json=body, params=params)
         r.raise_for_status()
         return r
 
     def get(self, path: str, params: Optional[Dict] = None) -> requests.models.Response:
+        """
+
+        Args:
+            path: API path
+            params: Request parameters
+
+        Returns:
+            A Request object
+
+        Examples:
+            >>> api = GeoDB()
+            >>> api.get(path='/my_table', params={"limit": 1})
+
+        """
         r = requests.get(self._get_full_url(path=path), params=params)
         r.raise_for_status()
         return r
@@ -94,18 +120,23 @@ class GeoDB(object):
                     limit: int = 0, offset: int = 0) \
             -> gpd.GeoDataFrame:
         """
+
         Args:
-            offset:
-            limit:
-            bbox_crs:
-            dataset: name of the table to be queried
-            minx: left side of bbox
-            miny: bottom side of bbox
-            maxx: right side of bbox
-            maxy: top side of bbox
-            bbox_mode: selection mode. 'within': the geometry A is completely hmhmhm in B,
+            dataset: Table to filter
+            minx: BBox minx (e.g. lon)
+            miny: BBox miny (e.g. lat)
+            maxx: BBox maxx
+            maxy: BBox maxy
+            bbox_mode: Filter mode. Can be 'contains' or 'within' ['contains']
+            bbox_crs: Projection code. [4326]
+            limit: Limit for paging
+            offset: Offset (start) of rows to return. Used in combination with lmt.
+
         Returns:
-            A GeopandasDataFrame containing the query result
+            A GeoPandas Dataframe
+        Examples:
+            >>> api = GeoDB()
+            >>> api.get_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299, bbox_mode="contains", bbox_crs=3794, lmt=1000, offst=10)
         """
         r = self.post('/rpc/get_by_bbox', body={
             "table_name": dataset,
@@ -131,6 +162,11 @@ class GeoDB(object):
             raise ValueError("Result is empty")
 
     def get_capabilities(self) -> json:
+        """
+            Get a list of WebAPI endpoints.
+            Returns:
+                A json object containing all endpoints and capability information about the server.
+        """
         r = self.get('/')
         return r.json()
 

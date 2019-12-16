@@ -7,12 +7,10 @@ dependencies:
   - python >=3.6
   # Required
   - jupyterlab
-  - psycopg2
   - geopandas >=0.5
   - matplotlib-base
   - descartes
-  - postgresql >=11.5
-  - pip
+  - requests
   # Testing
   - pytest >=4.4
   - pytest-cov >=2.6
