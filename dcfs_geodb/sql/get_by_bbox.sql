@@ -5,8 +5,8 @@ CREATE OR REPLACE FUNCTION public.get_by_bbox(IN "table_name" text,
 											  IN maxy double precision,
 											  IN bbox_mode VARCHAR(255) DEFAULT 'within',
 											  IN bbox_crs int DEFAULT 4326,
-											  IN lmt int DEFAULT 0,
-											  IN offst int DEFAULT 0)
+											  IN "limit" int DEFAULT 0,
+											  IN "offset" int DEFAULT 0)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 
@@ -22,17 +22,17 @@ BEGIN
 		WHEN 'contains' THEN
 			bbox_func := 'ST_Contains';
 		ELSE
-			RAISE EXCEPTION 'bbox mode % does not exist. Use within | contains', bbox_mode USING ERRCODE = 'data_exception';
+			RAISE EXCEPTION 'bbox mode % does not exist. Use ''within'' | ''contains''', bbox_mode USING ERRCODE = 'data_exception';
 	END CASE;
 
 	lmt_str := '';
 
-	IF lmt > 0 THEN
-		lmt_str := ' GROUP BY id ORDER BY id LIMIT ' || lmt;
+	IF "limit" > 0 THEN
+		lmt_str := ' GROUP BY id ORDER BY id LIMIT ' || "limit";
 	END IF;
 
-	IF offst > 0 THEN
-		lmt_str := lmt_str || ' OFFSET ' || offst;
+	IF "offset" > 0 THEN
+		lmt_str := lmt_str || ' OFFSET ' || "offset";
 	END IF;
 
 	RETURN QUERY EXECUTE format(

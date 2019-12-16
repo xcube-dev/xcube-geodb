@@ -1,5 +1,6 @@
 from typing import Dict, Optional
 
+import fastjsonschema
 import geopandas as gpd
 from shapely import wkb
 import requests
@@ -7,6 +8,20 @@ import json
 
 
 from dcfs_geodb.config import GEODB_API_DEFAULT_CONNECTION_PARAMETERS
+
+
+VALIDATIONS = {
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "type": {"type": "column_type"}
+    }
+}
+
+FORMATS = {
+    "column_type": lambda value: value in ("int", "float", "string", "date", "datetime", "bool"),
+}
 
 
 class GeoDB(object):
@@ -17,6 +32,8 @@ class GeoDB(object):
             self._server_url = server_url
         if server_port:
             self._server_port = server_port
+
+        self._capabilities = {'paths': {}}
 
     def _set_defaults(self):
         if 'server_url' in GEODB_API_DEFAULT_CONNECTION_PARAMETERS:
@@ -35,23 +52,35 @@ class GeoDB(object):
             bool whether validation succeeds
         """
         cols = set([x.lower() for x in df.columns])
-        valid_columns = {"raba_pid", 'raba_id', 'd_od', 'geometry'}
+        valid_columns = {'id', 'name', 'geometry'}
 
         return len(list(valid_columns - cols)) == 0
 
-    def _table_exists(self, table: str) -> bool:
+    def _dataset_exists(self, dataset: str) -> bool:
         """
 
         Args:
-            table: A table name to check
+            dataset: A table name to check
 
         Returns:
-            bool whether table exists in DB
+            bool whether the table exists
 
         """
-        return True
+        return f"/{dataset}" in self._capabilities['paths']
+
+    def _stored_procedure_exists(self, stored_procedure: str) -> bool:
+        """
+
+        Args:
+            stored_procedure: Name of stored pg procedure
+
+        Returns:
+            bool whether the stored procedure exists in DB
+        """
+        return f"/rpc/{stored_procedure}" in self._capabilities['paths']
 
     def post(self, path: str, body: Dict, params: Optional[Dict] = None) -> requests.models.Response:
+        print(f"Connecting to {self._get_full_url(path=path)}")
         r = requests.post(self._get_full_url(path=path), json=body, params=params)
         r.raise_for_status()
         return r
@@ -61,15 +90,15 @@ class GeoDB(object):
         r.raise_for_status()
         return r
 
-    def get_by_bbox(self, table: str, minx, miny, maxx, maxy, bbox_mode: str = 'contains', bbox_crs: int = 4326,
-                    lmt: int = 0, offst: int = 0) \
+    def get_by_bbox(self, dataset: str, minx, miny, maxx, maxy, bbox_mode: str = 'contains', bbox_crs: int = 4326,
+                    limit: int = 0, offset: int = 0) \
             -> gpd.GeoDataFrame:
         """
         Args:
-            offst:
-            lmt:
+            offset:
+            limit:
             bbox_crs:
-            table: name of the table to be queried
+            dataset: name of the table to be queried
             minx: left side of bbox
             miny: bottom side of bbox
             maxx: right side of bbox
@@ -79,15 +108,15 @@ class GeoDB(object):
             A GeopandasDataFrame containing the query result
         """
         r = self.post('/rpc/get_by_bbox', body={
-            "table_name": table,
+            "table_name": dataset,
             "minx": minx,
             "miny": miny,
             "maxx": maxx,
             "maxy": maxy,
             "bbox_mode": bbox_mode,
             "bbox_crs": bbox_crs,
-            "lmt": lmt,
-            "offst": offst
+            "lmt": limit,
+            "offst": offset
             })
 
         js = r.json()[0]['src']
@@ -102,19 +131,30 @@ class GeoDB(object):
             raise ValueError("Result is empty")
 
     def get_capabilities(self) -> json:
-        self.get('/')
+        r = self.get('/')
+        return r.json()
 
     def _get_full_url(self, path: str) -> str:
-        return f"{self._server_url}:{self._server_port}{path}"
+        if self._server_port:
+            return f"{self._server_url}:{self._server_port}{path}"
+        else:
+            return f"{self._server_url}{path}"
 
     def _load_geo(self, d):
         d['geometry'] = wkb.loads(d['geometry'], hex=True)
         return d
 
+    def create_dataset(self, name: str, properties: json) -> bool:
+        validate = fastjsonschema.compile(VALIDATIONS, formats=FORMATS)
+        validate(properties)
+        self.post(path='/rpc/geodb_create_dataset', body={'name': name, 'properties': properties})
+
+        return True
+
 
 if __name__ == "__main__":
     api = GeoDB()
-    api.get_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299,
-                    bbox_mode="contains", bbox_crs=3794, lmt=1000)
+    api.get_by_bbox(dataset="land_use", minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299,
+                    bbox_mode="contains", bbox_crs=3794, limit=1000)
     print('Finished')
 

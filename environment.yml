@@ -11,8 +11,12 @@ dependencies:
   - geopandas >=0.5
   - matplotlib-base
   - descartes
-  - postgresql >=11.5 
+  - postgresql >=11.5
+  - pip
   # Testing
   - pytest >=4.4
   - pytest-cov >=2.6
+  - httpretty
+  - pip:
+    - fastjsonschema
 
