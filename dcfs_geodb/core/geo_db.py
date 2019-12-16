@@ -25,7 +25,7 @@ FORMATS = {
 
 
 class GeoDB(object):
-    def __init__(self, server_url: str = None, server_port: int = None):
+    def __init__(self, server_url: Optional[str] = None, server_port: Optional[int] = None):
         self._set_defaults()
 
         if server_url:
@@ -52,7 +52,7 @@ class GeoDB(object):
             bool whether validation succeeds
         """
         cols = set([x.lower() for x in df.columns])
-        valid_columns = {'id', 'name', 'geometry'}
+        valid_columns = {'id', 'geometry'}
 
         return len(list(valid_columns - cols)) == 0
 
@@ -177,7 +177,8 @@ class GeoDB(object):
             return f"{self._server_url}{path}"
 
     def _load_geo(self, d):
-        d['geometry'] = wkb.loads(d['geometry'], hex=True)
+        if 'geometry' in d:
+            d['geometry'] = wkb.loads(d['geometry'], hex=True)
         return d
 
     def create_dataset(self, name: str, properties: json) -> bool:
@@ -189,7 +190,7 @@ class GeoDB(object):
 
 
 if __name__ == "__main__":
-    api = GeoDB()
+    api = GeoDB(server_port=3000)
     api.get_by_bbox(dataset="land_use", minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299,
                     bbox_mode="contains", bbox_crs=3794, limit=1000)
     print('Finished')
