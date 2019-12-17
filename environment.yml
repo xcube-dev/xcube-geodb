@@ -11,10 +11,15 @@ dependencies:
   - matplotlib-base
   - descartes
   - requests
+  - pip:
+      - fastjsonschema
   # Testing
   - pytest >=4.4
   - pytest-cov >=2.6
-  - httpretty
+  - psycopg2
   - pip:
-    - fastjsonschema
+    - testing.postgresql
+  - httpretty
+
+
 
