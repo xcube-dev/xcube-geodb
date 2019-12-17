@@ -8,10 +8,40 @@ from dcfs_geodb.core.geo_db import GeoDB
 
 class GeoDBTest(unittest.TestCase):
     def setUp(self) -> None:
-        pass
+        self._server_test_url = "http://test"
+        self._server_test_port = 3000
+
+        self._api = GeoDB(server_url=self._server_test_url, server_port=self._server_test_port)
 
     def tearDown(self) -> None:
         pass
+
+    @requests_mock.mock()
+    def test_create_dataset(self, m):
+        expected_response = 'Success'
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_dataset"
+        m.post(url, text=json.dumps(expected_response))
+
+        res = self._api.create_dataset('test', {'columns': [{'name': 'test_col', 'type': 'inger'}]})
+        self.assertTrue(res)
+
+    @requests_mock.mock()
+    def test_drop_dataset(self, m):
+        expected_response = 'Success'
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_drop_dataset"
+        m.post(url, text=json.dumps(expected_response))
+
+        res = self._api.drop_dataset('test', {'columns': [{'name': 'test_col', 'type': 'integer'}]})
+        self.assertTrue(res)
+
+    @requests_mock.mock()
+    def test_add_properties(self, m):
+        expected_response = 'Success'
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_add_properties"
+        m.post(url, text=json.dumps(expected_response))
+
+        res = self._api.add_properties('test', {'columns': [{'name': 'test_col', 'type': 'integer'}]})
+        self.assertTrue(res)
 
     @requests_mock.mock()
     def test_query_by_bbox(self, m):
@@ -20,9 +50,7 @@ class GeoDBTest(unittest.TestCase):
         url = "http://test:3000/rpc/get_by_bbox"
         m.post(url, text=json.dumps(expected_response))
 
-        api = GeoDB(server_url="http://test", server_port=3000)
-
-        gdf = api.get_by_bbox(dataset='dataset', minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299)
+        gdf = self._api.get_by_bbox(dataset='dataset', minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299)
 
         res = gdf.to_dict()
         id = res['id'][0]
@@ -31,6 +59,8 @@ class GeoDBTest(unittest.TestCase):
         self.assertIsInstance(gdf, GeoDataFrame)
         self.assertEqual(id, 'dd')
         self.assertEqual(str(geo), exp_geo)
+
+
 
 
 

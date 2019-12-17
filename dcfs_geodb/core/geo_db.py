@@ -7,21 +7,7 @@ import requests
 import json
 
 
-from dcfs_geodb.config import GEODB_API_DEFAULT_CONNECTION_PARAMETERS
-
-
-VALIDATIONS = {
-    "$schema": "http://json-schema.org/draft-04/schema",
-    "type": "object",
-    "properties": {
-        "name": {"type": "string"},
-        "type": {"type": "column_type"}
-    }
-}
-
-FORMATS = {
-    "column_type": lambda value: value in ("int", "float", "string", "date", "datetime", "bool"),
-}
+from dcfs_geodb.config import GEODB_API_DEFAULT_CONNECTION_PARAMETERS, JSON_API_VALIDATIONS_CREATE_DATASET
 
 
 class GeoDB(object):
@@ -182,9 +168,35 @@ class GeoDB(object):
         return d
 
     def create_dataset(self, name: str, properties: json) -> bool:
-        validate = fastjsonschema.compile(VALIDATIONS, formats=FORMATS)
+        validate = fastjsonschema.compile(
+            JSON_API_VALIDATIONS_CREATE_DATASET['validation'],
+            formats=JSON_API_VALIDATIONS_CREATE_DATASET['formats']
+        )
+
         validate(properties)
         self.post(path='/rpc/geodb_create_dataset', body={'name': name, 'properties': properties})
+
+        return True
+
+    def drop_dataset(self, name: str, properties: json) -> bool:
+        validate = fastjsonschema.compile(
+            JSON_API_VALIDATIONS_CREATE_DATASET['validation'],
+            formats=JSON_API_VALIDATIONS_CREATE_DATASET['formats']
+        )
+
+        validate(properties)
+        self.post(path='/rpc/geodb_drop_dataset', body={'name': name, 'properties': properties})
+
+        return True
+
+    def add_properties(self, dataset: str, properties: json) -> bool:
+        validate = fastjsonschema.compile(
+            JSON_API_VALIDATIONS_CREATE_DATASET['validation'],
+            formats=JSON_API_VALIDATIONS_CREATE_DATASET['formats']
+        )
+
+        validate(properties)
+        self.post(path='/rpc/geodb_add_properties', body={'dataset': dataset, 'properties': properties})
 
         return True
 

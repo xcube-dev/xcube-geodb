@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.get_by_bbox(IN "table_name" text,
+CREATE OR REPLACE FUNCTION public.geodb_get_by_bbox(IN "table_name" text,
 											  IN minx double precision,
 											  IN miny double precision,
 											  IN maxx double precision,

@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 requirements = [
-    #
+    'testing', 'fastjsonschema', 'geopandas', 'shapely', 'requests'  #
     # dcfs_geodb requirements are given in file ./environment.yml.
     #
 ]
