@@ -50,7 +50,7 @@ class GeoDBTest(unittest.TestCase):
         url = "http://test:3000/rpc/get_by_bbox"
         m.post(url, text=json.dumps(expected_response))
 
-        gdf = self._api.get_by_bbox(dataset='dataset', minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299)
+        gdf = self._api.filter_by_bbox(dataset='dataset', minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299)
 
         res = gdf.to_dict()
         id = res['id'][0]

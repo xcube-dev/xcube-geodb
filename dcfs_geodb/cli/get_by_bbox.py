@@ -38,8 +38,8 @@ def get_by_bbox(dataset, bbox, limit, offset, bbox_mode, bbox_crs):
     bbox = bbox.split(',')
 
     api = GeoDB()
-    api.get_by_bbox(dataset=dataset, minx=bbox[0], miny=bbox[1], maxx=bbox[2], maxy=bbox[3], limit=limit, offset=offset,
-                    bbox_mode=bbox_mode, bbox_crs=bbox_crs)
+    api.filter_by_bbox(dataset=dataset, minx=bbox[0], miny=bbox[1], maxx=bbox[2], maxy=bbox[3], limit=limit, offset=offset,
+                       bbox_mode=bbox_mode, bbox_crs=bbox_crs)
 
 
 

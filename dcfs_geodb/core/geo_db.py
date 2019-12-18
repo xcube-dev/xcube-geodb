@@ -2,6 +2,7 @@ from typing import Dict, Optional
 
 import fastjsonschema
 import geopandas as gpd
+from geopandas import GeoDataFrame
 from shapely import wkb
 import requests
 import json
@@ -102,8 +103,57 @@ class GeoDB(object):
         r.raise_for_status()
         return r
 
-    def get_by_bbox(self, dataset: str, minx, miny, maxx, maxy, bbox_mode: str = 'contains', bbox_crs: int = 4326,
-                    limit: int = 0, offset: int = 0) \
+    def delete(self, path: str, params: Optional[Dict] = None):
+        """
+
+        Args:
+            path: API path
+            params: Request parameters
+
+        Returns:
+            A Request object
+
+        Examples:
+            >>> api = GeoDB()
+            >>> api.delete(path='/my_table', params={"limit": 1})
+
+        """
+
+        r = requests.delete(self._get_full_url(path=path), params=params)
+        r.raise_for_status()
+        return r
+
+    def patch(self, path: str, body: Dict, params: Optional[Dict] = None):
+        """
+
+        Args:
+            path: API path
+            params: Request parameters
+
+        Returns:
+            A Request object
+
+        Examples:
+            >>> api = GeoDB()
+            >>> api.patch(path='/my_table', params={"limit": 1})
+
+        """
+
+        r = requests.patch(self._get_full_url(path=path), json=body, params=params)
+        r.raise_for_status()
+        return r
+
+    def delete_from_dataset(self, dataset: str, query: str):
+        self.delete(f'/{dataset}?{query}')
+
+    def update_dataset(self, dataset: str, query: str, values: Dict):
+        self.patch(f'/{dataset}?{query}', body=values)
+
+    def insert_into_dataset(self, dataset: str, query: str, values: Dict):
+        self.patch(f'/{dataset}?{query}', body=values)
+
+    def filter_by_bbox(self, dataset: str, minx, miny, maxx, maxy, bbox_mode: str = 'contains', bbox_crs: int = 4326,
+                       limit: int = 0, offset: int = 0) \
             -> gpd.GeoDataFrame:
         """
 
@@ -122,7 +172,7 @@ class GeoDB(object):
             A GeoPandas Dataframe
         Examples:
             >>> api = GeoDB()
-            >>> api.get_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299, bbox_mode="contains", bbox_crs=3794, lmt=1000, offst=10)
+            >>> api.filter_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299, bbox_mode="contains", bbox_crs=3794, lmt=1000, offst=10)
         """
         r = self.post('/rpc/get_by_bbox', body={
             "table_name": dataset,
@@ -147,6 +197,25 @@ class GeoDB(object):
         else:
             raise ValueError("Result is empty")
 
+    def filter(self, dataset: str, query: str) -> GeoDataFrame:
+        r = self.get(f"/{dataset}?{query}")
+        js = r.json()
+
+        if js:
+            return self._gpdf_from_json(js)
+        else:
+            raise ValueError("Result is empty")
+
+    def _gpdf_from_json(self, js: str):
+        data = [self._load_geo(d) for d in js]
+
+        gpdf = gpd.GeoDataFrame(data).set_geometry('geometry')
+
+        if not self._validate(gpdf):
+            raise ValueError("Geometry field is missing")
+
+        return gpdf
+
     def get_capabilities(self) -> json:
         """
             Get a list of WebAPI endpoints.
@@ -160,7 +229,7 @@ class GeoDB(object):
         if self._server_port:
             return f"{self._server_url}:{self._server_port}{path}"
         else:
-            return f"{self._server_url}{path}"
+                return f"{self._server_url}{path}"
 
     def _load_geo(self, d):
         if 'geometry' in d:
@@ -202,8 +271,10 @@ class GeoDB(object):
 
 
 if __name__ == "__main__":
-    api = GeoDB(server_port=3000)
-    api.get_by_bbox(dataset="land_use", minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299,
-                    bbox_mode="contains", bbox_crs=3794, limit=1000)
+    api = GeoDB()
+    api.filter_by_bbox(dataset="land_use", minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299,
+                       bbox_mode="contains", bbox_crs=3794, limit=1000)
+
+    print(api.filter('land_use', 'id=gt.100'))
     print('Finished')
 
