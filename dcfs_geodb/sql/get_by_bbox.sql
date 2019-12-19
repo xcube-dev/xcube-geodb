@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.geodb_get_by_bbox(IN "table_name" text,
+CREATE OR REPLACE FUNCTION public.geodb_get_by_bbox(IN dataset text,
 											  IN minx double precision,
 											  IN miny double precision,
 											  IN maxx double precision,
@@ -49,7 +49,7 @@ BEGIN
 		                                           || ', ' || minx
 		                                           || ' ' || miny
 		                                           || '))'', geometry)'
-		                                           || ' ' || lmt_str, table_name, bbox_func, bbox_crs
+		                                           || ' ' || lmt_str, dataset, bbox_func, bbox_crs
 	);
 
 	GET DIAGNOSTICS row_ct = ROW_COUNT;

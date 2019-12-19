@@ -1,33 +1,23 @@
-CREATE OR REPLACE FUNCTION public.geodb_get_column_info_from_json(IN columns json)
+CREATE OR REPLACE FUNCTION public.geodb_get_column_info_from_json(IN properties json)
     RETURNS TABLE("name" VARCHAR(255), "type"  VARCHAR(255))
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
     RETURN QUERY EXECUTE 'SELECT ("column"->>''name'')::VARCHAR(255) , ("column"->>''type'')::VARCHAR(255) ' ||
-                         'FROM json_array_elements(''' || "columns" || '''::json->''columns'' ) AS "column"';
+                         'FROM json_array_elements(''' || properties || '''::json) AS "column"';
 END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_get_columns_from_json(IN columns json)
-    RETURNS TABLE("name" VARCHAR(255))
-    LANGUAGE 'plpgsql'
-AS $BODY$
-BEGIN
-    RETURN QUERY EXECUTE 'SELECT ("column"->>''name'')::VARCHAR(255) ' ||
-                         'FROM json_array_elements(''' || "columns" || '''::json->''columns'' ) AS "column"';
-END
-$BODY$;
-
-CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN "table_name" text, IN "columns" json)
+CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN dataset text, IN properties json)
     RETURNS character varying(255)
     LANGUAGE 'plpgsql'
     AS $BODY$
     DECLARE
-        "cols_row" record;
+        props_row record;
     BEGIN
-        FOR cols_row IN SELECT * FROM geodb_get_column_info_from_json("columns") LOOP
-            EXECUTE format('ALTER TABLE %s ADD COLUMN "%s" %s', "table_name", cols_row.name, cols_row.type);
+        FOR props_row IN SELECT * FROM geodb_get_column_info_from_json(properties) LOOP
+            EXECUTE format('ALTER TABLE %s ADD COLUMN "%s" %s', dataset, props_row.name, props_row.type);
         END LOOP;
 
         RETURN 'success';
@@ -35,28 +25,16 @@ CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN "table_name" text, IN 
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_drop_properties(IN "table_name" text, IN columns json)
+CREATE OR REPLACE FUNCTION public.geodb_drop_properties(IN dataset text, IN properties json)
     RETURNS character varying(255)
     LANGUAGE 'plpgsql'
 AS $BODY$
 DECLARE
-        "cols_row" record;
+        props_row record;
     BEGIN
-        FOR cols_row IN SELECT * FROM geodb_get_column_info_from_json("columns") LOOP
-        EXECUTE format('ALTER TABLE %s DROP COLUMN "%s"', "table_name", cols_row.name);
+        FOR props_row IN SELECT * FROM geodb_get_column_info_from_json(properties) LOOP
+        EXECUTE format('ALTER TABLE %s DROP COLUMN "%s"', dataset, props_row.name);
     END LOOP;
-    RETURN 'success';
-END
-$BODY$;
-
-
-CREATE OR REPLACE FUNCTION public.geodb_drop_property(IN "table_name" character varying, IN "column_name" character varying)
-    RETURNS character varying(255)
-    LANGUAGE 'plpgsql'
-AS $BODY$
-BEGIN
-    EXECUTE format('ALTER TABLE %s DROP COLUMN %s', "table_name", "column_name");
-
     RETURN 'success';
 END
 $BODY$;

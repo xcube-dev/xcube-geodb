@@ -1,36 +1,48 @@
+import os
 import unittest
 import psycopg2
 import json
 import testing.postgresql
 
 
-Postgresql = testing.postgresql.PostgresqlFactory(cache_initialized_db=True)
-
-
+@unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', False), 'DB Tests skipped')
 class GeoDBSqlTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self._postgresql = Postgresql()
-        conn = psycopg2.connect(**self._postgresql.dsn())
-        self._cursor = conn.cursor()
+
+    @classmethod
+    def setUp(cls) -> None:
+        if os.environ.get('SKIP_PSQL_TESTS', False):
+            return
+
+        postgresql = testing.postgresql.PostgresqlFactory(cache_initialized_db=True)
+
+        cls._postgresql = postgresql()
+        conn = psycopg2.connect(**cls._postgresql.dsn())
+        cls._cursor = conn.cursor()
         with open('tests/sql/setup.sql') as sql_file:
-            self._cursor.execute(sql_file.read())
+            cls._cursor.execute(sql_file.read())
 
         with open('dcfs_geodb/sql/get_by_bbox.sql') as sql_file:
             sql_create = sql_file.read()
-            self._cursor.execute(sql_create)
+            cls._cursor.execute(sql_create)
 
         with open('dcfs_geodb/sql/manage_table.sql') as sql_file:
             sql_create = sql_file.read()
-            self._cursor.execute(sql_create)
+            cls._cursor.execute(sql_create)
 
         with open('dcfs_geodb/sql/manage_properties.sql') as sql_file:
             sql_create = sql_file.read()
-            self._cursor.execute(sql_create)
+            cls._cursor.execute(sql_create)
 
     def tearDown(self) -> None:
+        if os.environ.get('SKIP_PSQL_TESTS', False):
+            return
+
         self._postgresql.stop()
 
     def tearDownModule(self):
+        if os.environ.get('SKIP_PSQL_TESTS', False):
+            return
+
         # clear cached database at end of tests
         self._postgresql.clear_cache()
 
