@@ -32,8 +32,8 @@ AS $BODY$
 DECLARE
         props_row record;
     BEGIN
-        FOR props_row IN SELECT * FROM geodb_get_column_info_from_json(properties) LOOP
-        EXECUTE format('ALTER TABLE %s DROP COLUMN "%s"', dataset, props_row.name);
+        FOR props_row IN SELECT property FROM json_array_elements(properties::json) AS property LOOP
+        EXECUTE format('ALTER TABLE %s DROP COLUMN %s', dataset, props_row.property);
     END LOOP;
     RETURN 'success';
 END

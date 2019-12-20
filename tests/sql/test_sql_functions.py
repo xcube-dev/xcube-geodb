@@ -93,7 +93,8 @@ class GeoDBSqlTest(unittest.TestCase):
         return self._cursor.fetchone()[0]
 
     def test_manage_table(self):
-        sql = f"SELECT geodb_create_dataset('test', 4326)"
+        props = [{'name': 'tt', 'type': 'integer'}]
+        sql = f"SELECT geodb_create_dataset('test', '{json.dumps(props)}', '4326')"
         self._cursor.execute(sql)
 
         self.assertTrue(self.table_exists('test'))
@@ -101,14 +102,25 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertTrue(self.column_exists('test', 'id', 'integer'))
         self.assertTrue(self.column_exists('test', 'geometry', 'USER-DEFINED'))
 
-        sql = f"SELECT geodb_drop_dataset('test')"
+        datasets = [{'name': 'tt1', 'crs': '4326', 'properties': [{'name': 'tt', 'type': 'integer'}]},
+                    {'name': 'tt2', 'crs': '4326', 'properties': [{'name': 'tt', 'type': 'integer'}]}]
+        sql = f"SELECT geodb_create_datasets('{json.dumps(datasets)}')"
+        self._cursor.execute(sql)
+
+        self.assertTrue(self.table_exists('test'))
+
+        self.assertTrue(self.column_exists('test', 'id', 'integer'))
+        self.assertTrue(self.column_exists('test', 'geometry', 'USER-DEFINED'))
+
+        datasets = ['test', 'tt1', 'tt2']
+        sql = f"SELECT geodb_drop_datasets('{json.dumps(datasets)}')"
         self._cursor.execute(sql)
         self.assertFalse(self.table_exists('test'))
 
     def test_manage_properties(self):
         # geodb_add_properties
 
-        cols = {'columns': [{'name': 'test_col', 'type': 'integer'}]}
+        cols = [{'name': 'test_col', 'type': 'integer'}, {'name': 'test_col2', 'type': 'integer'}]
 
         sql = f"SELECT public.geodb_add_properties('land_use', '{json.dumps(cols)}')"
         self._cursor.execute(sql)
@@ -119,8 +131,3 @@ class GeoDBSqlTest(unittest.TestCase):
         self._cursor.execute(sql)
         self.assertFalse(self.column_exists('land_use', 'test_col', 'integer'))
 
-        sql = f"SELECT public.geodb_add_properties('land_use', '{json.dumps(cols)}')"
-        self._cursor.execute(sql)
-        sql = f"SELECT public.geodb_drop_property('land_use', 'test_col')"
-        self._cursor.execute(sql)
-        self.assertFalse(self.column_exists('land_use', 'test_col', 'integer'))

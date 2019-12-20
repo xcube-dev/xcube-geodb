@@ -1,3 +1,12 @@
+CREATE OR REPLACE FUNCTION update_modified_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.modified_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+
 CREATE OR REPLACE FUNCTION public.geodb_get_table_infos_from_json(IN datasets json)
     RETURNS TABLE("name" VARCHAR(255), "properties"  json, "crs" text)
     LANGUAGE 'plpgsql'
@@ -18,11 +27,17 @@ AS $BODY$
 BEGIN
     EXECUTE format('CREATE TABLE %s(
 								    id SERIAL PRIMARY KEY,
-									created_date date NOT NULL,
-									last_updated_date date NOT NULL,
+									created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+									modified_at TIMESTAMP WITH TIME ZONE,
 									geometry geometry(Geometry,' || crs || ') NOT NULL
 							   )', dataset);
-    SELECT geodb_add_properties(dataset, properties);
+
+    PERFORM geodb_add_properties(dataset, properties);
+
+    EXECUTE format('CREATE TRIGGER update_%s_modtime
+                    BEFORE UPDATE ON %s
+                    FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', dataset, dataset);
+
     RETURN 'success';
 END
 $BODY$;
@@ -57,5 +72,6 @@ BEGIN
         EXECUTE format('DROP TABLE %s', dataset_row.dataset);
     END LOOP;
 
-    RETURN 'success';END
+    RETURN 'success';
+END
 $BODY$;

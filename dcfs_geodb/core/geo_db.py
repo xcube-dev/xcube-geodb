@@ -83,7 +83,10 @@ class GeoDB(object):
 
         r = None
         try:
-            r = requests.post(self._get_full_url(path=path), json=payload, params=params, headers=common_headers)
+            if common_headers['Content-type'] == 'text/csv':
+                r = requests.post(self._get_full_url(path=path), data=payload, params=params, headers=common_headers)
+            else:
+                r = requests.post(self._get_full_url(path=path), json=payload, params=params, headers=common_headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError:
             raise GeoDBError(r.json()['message'])
@@ -302,7 +305,7 @@ class GeoDB(object):
         )
         # validate(properties)
 
-        return self.post(path='/rpc/geodb_drop_properties', payload={'dataset': dataset, 'properties    ': properties})
+        return self.post(path='/rpc/geodb_drop_properties', payload={'dataset': dataset, 'properties': properties})
 
     def delete_from_dataset(self, dataset: str, query: str) -> requests.models.Response:
         """
@@ -332,9 +335,29 @@ class GeoDB(object):
         if not self._dataset_exists(dataset=dataset):
             raise ValueError(f"Dataset {dataset} does not exist")
 
+        if isinstance(values, Dict):
+            if 'id' in values.keys():
+                del values['id']
+        else:
+            raise ValueError(f'Format {type(values)} not supported.')
+
         return self.patch(f'/{dataset}?{query}', payload=values)
 
-    def insert_into_dataset(self, dataset: str, values: Union[Dict, GeoDataFrame, str], upsert: bool = False) \
+    def _pdf_to_csv(self, gpdf: GeoDataFrame, crs: int = None) -> str:
+        if crs is None:
+            try:
+                crs = gpdf.crs["init"].replace("epsg:", "")
+            except Exception:
+                raise ValueError("Could not guess the dataframe's crs. Please specify.")
+
+        add_srid = lambda point: f'SRID={str(crs)};' + str(point)
+        # return shapely.wkb.dumps(line, include_srid=True)
+
+        gpdf['geometry'] = gpdf['geometry'].apply(add_srid)
+
+        return gpdf.to_csv(header=True, index=False).lstrip()
+
+    def insert_into_dataset(self, dataset: str, values: GeoDataFrame, upsert: bool = False, crs: int = None) \
             -> requests.models.Response:
         """
 
@@ -342,6 +365,11 @@ class GeoDB(object):
             dataset: Dataset to be inserted to
             values: Values to be inserted
             upsert: Whether the insert shall replace existing rows (by PK)
+            crs: crs (in the form of an SRID) of the geometries. If not present, thsi methid will attempt to guess it
+            from the geodataframe input. Must be in sync with the target dataset in the GeoDatabase.
+
+        Raises:
+            ValueError: When crs is not given and cannot be guessed from dataframe
 
         Returns:
             requests.models.Response
@@ -351,27 +379,19 @@ class GeoDB(object):
             raise ValueError(f"Dataset {dataset} does not exist")
 
         if isinstance(values, GeoDataFrame):
-            headers = {'Content-Type': 'text/csv'}
-
-            def wkb_hexer(line):
-                return line.wkb_hex
-            values['geometry'] = values['geometry'].apply(wkb_hexer)
+            headers = {'Content-type': 'text/csv'}
 
             if 'id' in values.columns and not upsert:
                 values.drop(columns=['id'])
 
-            values = values.to_csv()
-        elif isinstance(values, str):
-            headers = {'Content-Type': 'text/csv'}
-        elif isinstance(values, Dict):
-            headers = {'Content-Type': 'application/json'}
+            values = self._pdf_to_csv(values, crs)
         else:
             raise ValueError(f'Format {type(values)} not supported.')
 
         if upsert:
             headers['Prefer'] = 'resolution=merge-duplicates'
 
-        return self.post(f'/{dataset}?', payload=values, headers=headers)
+        return self.post(f'/{dataset}', payload=values, headers=headers)
 
     def filter_by_bbox(self, dataset: str, minx, miny, maxx, maxy, bbox_mode: str = 'contains', bbox_crs: int = 4326,
                        limit: int = 0, offset: int = 0) \
@@ -403,7 +423,7 @@ class GeoDB(object):
         if not self._dataset_exists(dataset=dataset):
             raise ValueError(f"Dataset {dataset} does not exist")
 
-        if not self._stored_procedure_exists('get_by_bbox'):
+        if not self._stored_procedure_exists('geodb_get_by_bbox'):
             raise ValueError(f"Stored procedure get_by_bbox does not exist")
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
