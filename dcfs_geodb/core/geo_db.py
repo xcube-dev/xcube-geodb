@@ -47,6 +47,13 @@ class GeoDB(object):
 
         return self._capabilities
 
+    def get_dataset_info(self, dataset: str):
+        capabilities = self.capabilities
+        if dataset in capabilities['definitions']:
+            return capabilities['definitions'][dataset]
+        else:
+            raise ValueError(f"Table {dataset} does not exist.")
+
     @property
     def common_headers(self):
         return {
@@ -72,8 +79,8 @@ class GeoDB(object):
             PostgrestException: if request fails
 
         Examples:
-            >>> api = GeoDB()
-            >>> api.post(path='/rpc/my_function', payload={'name': 'MyName'})
+            >>> geodb = GeoDB()
+            >>> geodb.post(path='/rpc/my_function', payload={'name': 'MyName'})
         """
 
         common_headers = self.common_headers
@@ -108,8 +115,8 @@ class GeoDB(object):
             PostgrestException: if request fails
 
         Examples:
-            >>> api = GeoDB()
-            >>> api.get(path='/my_table', params={"limit": 1})
+            >>> geodb = GeoDB()
+            >>> geodb.get(path='/my_table', params={"limit": 1})
 
         """
         headers = self.common_headers.update(headers) if headers else self.common_headers
@@ -139,8 +146,8 @@ class GeoDB(object):
             PostgrestException: if request fails
 
         Examples:
-            >>> api = GeoDB()
-            >>> api.delete(path='/my_table', params={"limit": 1})
+            >>> geodb = GeoDB()
+            >>> geodb.delete(path='/my_table', params={"limit": 1})
 
         """
 
@@ -170,8 +177,8 @@ class GeoDB(object):
             GeoDBError: if request fails
 
         Examples:
-            >>> api = GeoDB()
-            >>> api.patch(path='/my_table', params={"limit": 1})
+            >>> geodb = GeoDB()
+            >>> geodb.patch(path='/my_table', params={"limit": 1})
 
         """
 
@@ -192,6 +199,10 @@ class GeoDB(object):
 
         Returns:
             requests.models.Response:
+
+        Examples:
+            >>> geodb = GeoDB()
+            >>> geodb.create_dataset(datasets=['myDataset1', 'myDataset2'])
         """
         validate = fastjsonschema.compile(
             JSON_API_VALIDATIONS_CREATE_DATASET['validation'],
@@ -212,6 +223,10 @@ class GeoDB(object):
 
         Returns:
             requests.models.Response:
+
+        Examples:
+            >>> geodb = GeoDB()
+            >>> geodb.create_dataset(dataset='myDataset')
         """
         datasets = {'name': dataset, 'properties': properties, 'crs': crs}
         return self.create_datasets([datasets])
@@ -224,6 +239,10 @@ class GeoDB(object):
 
         Returns:
             requests.models.Response:
+
+        Examples:
+            >>> geodb = GeoDB()
+            >>> geodb.drop_dataset(dataset='myDataset')
         """
         return self.post(path='/rpc/geodb_drop_datasets', payload={'datasets': [dataset]})
 
@@ -235,16 +254,25 @@ class GeoDB(object):
 
         Returns:
             requests.models.Response:
+
+        Examples:
+            >>> geodb = GeoDB()
+            >>> geodb.drop_datasets(datasets=['myDataset1', 'myDaraset2'])
         """
         return self.post(path='/rpc/geodb_drop_datasets', payload={'datasets': datasets})
 
     def add_property(self, dataset: str, prop: str, typ: str) -> requests.models.Response:
         """
-
+        Add a property to an existing dataset
         Args:
             dataset: Dataset to add a property to
             prop: Property name
             typ: Type of property
+
+        Examples:
+            >>> prop = {}
+            >>> geodb = GeoDB()
+            >>> geodb.add_property(dataset='myDataset', prop=prop)
         """
 
         prop = {'name': prop, 'type': typ}
@@ -259,6 +287,11 @@ class GeoDB(object):
 
         Returns:
             requests.models.Response:
+
+        Examples:
+            >>> prop = {}
+            >>> geodb = GeoDB()
+            >>> geodb.add_property(dataset='myDataset', prop=[prop])
         """
         validate = fastjsonschema.compile(
             JSON_API_VALIDATIONS_CREATE_DATASET['validation'],
@@ -277,6 +310,10 @@ class GeoDB(object):
 
         Returns:
             requests.models.Response:
+
+        Examples:
+            >>> geodb = GeoDB()
+            >>> geodb.drop_property(dataset='myDataset', prop='myProperty')
         """
 
         return self.drop_properties(dataset=dataset, properties=[prop])
@@ -291,6 +328,10 @@ class GeoDB(object):
 
         Returns:
             requests.models.Response:
+
+        Examples:
+            >>> geodb = GeoDB()
+            >>> geodb.drop_properties(dataset='myDataset', properties=['myProperty1', 'myProperty2'])
         """
 
         if not self._stored_procedure_exists('geodb_drop_properties'):
@@ -343,7 +384,7 @@ class GeoDB(object):
 
         return self.patch(f'/{dataset}?{query}', payload=values)
 
-    def _pdf_to_csv(self, gpdf: GeoDataFrame, crs: int = None) -> str:
+    def _gdf_to_csv(self, gpdf: GeoDataFrame, crs: int = None) -> str:
         if crs is None:
             try:
                 crs = gpdf.crs["init"].replace("epsg:", "")
@@ -384,7 +425,7 @@ class GeoDB(object):
             if 'id' in values.columns and not upsert:
                 values.drop(columns=['id'])
 
-            values = self._pdf_to_csv(values, crs)
+            values = self._gdf_to_csv(values, crs)
         else:
             raise ValueError(f'Format {type(values)} not supported.')
 
@@ -415,15 +456,15 @@ class GeoDB(object):
         Raises:
             ValueError: When either the column ID or geometry or both are missing. Or the result is empty.
         Examples:
-            >>> api = GeoDB()
-            >>> api.filter_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299, \
+            >>> geodb = GeoDB()
+            >>> geodb.filter_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299, \
                 bbox_mode="contains", bbox_crs=3794, lmt=1000, offst=10)
         """
 
         if not self._dataset_exists(dataset=dataset):
             raise ValueError(f"Dataset {dataset} does not exist")
 
-        if not self._stored_procedure_exists('geodb_get_by_bbox'):
+        if not self._stored_procedure_exists('geodb_filter_by_bbox'):
             raise ValueError(f"Stored procedure get_by_bbox does not exist")
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
@@ -436,8 +477,8 @@ class GeoDB(object):
             "maxy": maxy,
             "bbox_mode": bbox_mode,
             "bbox_crs": bbox_crs,
-            "lmt": limit,
-            "offst": offset
+            "limit": limit,
+            "offset": offset
         })
 
         js = r.json()['src']
@@ -451,7 +492,7 @@ class GeoDB(object):
         else:
             raise ValueError("Result is empty")
 
-    def filter(self, dataset: str, query: str) -> GeoDataFrame:
+    def filter(self, dataset: str, query: str, fmt='postgrest') -> GeoDataFrame:
         """
 
         Args:
@@ -462,15 +503,22 @@ class GeoDB(object):
             GeoDataFrame of results
 
         Examples:
-            >>> api = GeoDB()
-            >>> api.filter('land_use', 'id=ge.1000')
+            >>> geodb = GeoDB()
+            >>> geodb.filter('land_use', 'id=ge.1000')
 
         """
 
         if not self._dataset_exists(dataset=dataset):
             raise ValueError(f"Dataset {dataset} does not exist")
 
-        r = self.get(f"/{dataset}?{query}")
+        if fmt == "postgrest":
+            r = self.get(f"/{dataset}?{query}")
+        elif fmt == "raw":
+            headers = {'Accept': 'application/vnd.pgrst.object+json'}
+            r = self.post("/rpc/geodb_filter_raw", headers=headers, payload={'dataset': dataset, 'qry': query})
+        else:
+            raise ValueError("Error: Query format not known.")
+
         js = r.json()
 
         if js:
@@ -559,7 +607,7 @@ class GeoDB(object):
             bool whether the table exists
 
         """
-        return f"/{dataset}" in self.capabilities['paths']
+        return dataset in self.capabilities['definitions']
 
     def _stored_procedure_exists(self, stored_procedure: str) -> bool:
         """

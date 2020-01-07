@@ -1,4 +1,23 @@
-CREATE OR REPLACE FUNCTION public.geodb_get_by_bbox(IN dataset text,
+CREATE OR REPLACE FUNCTION public.geodb_filter_raw(IN dataset text, IN qry text)
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+
+AS $BODY$
+DECLARE
+    row_ct int;
+BEGIN
+    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js FROM (SELECT * FROM "%s" WHERE %s) as src ', dataset, qry);
+
+    GET DIAGNOSTICS row_ct = ROW_COUNT;
+
+    IF row_ct < 1 THEN
+        RAISE EXCEPTION 'Empty result';
+    END IF;
+END
+$BODY$;
+
+
+CREATE OR REPLACE FUNCTION public.geodb_filter_by_bbox(IN dataset text,
 											  IN minx double precision,
 											  IN miny double precision,
 											  IN maxx double precision,

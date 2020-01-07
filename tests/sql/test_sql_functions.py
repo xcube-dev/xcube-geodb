@@ -33,6 +33,10 @@ class GeoDBSqlTest(unittest.TestCase):
             sql_create = sql_file.read()
             cls._cursor.execute(sql_create)
 
+        with open('dcfs_geodb/sql/manage_users.sql') as sql_file:
+            sql_create = sql_file.read()
+            cls._cursor.execute(sql_create)
+
     def tearDown(self) -> None:
         if os.environ.get('SKIP_PSQL_TESTS', False):
             return
@@ -131,3 +135,15 @@ class GeoDBSqlTest(unittest.TestCase):
         self._cursor.execute(sql)
         self.assertFalse(self.column_exists('land_use', 'test_col', 'integer'))
 
+
+    def test_manage_users(self):
+        sql = f"SELECT public.geodb_register_user('test')"
+        r = self._cursor.execute(sql)
+
+        sql = f"SELECT public.geodb_user_exists('test')"
+        r = self._cursor.execute(sql)
+
+        sql = f"SELECT public.geodb_drop_user('test')"
+        r = self._cursor.execute(sql)
+
+        print(r)
