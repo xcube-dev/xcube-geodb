@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN dataset text, IN prope
         props_row record;
     BEGIN
         FOR props_row IN SELECT * FROM geodb_get_column_info_from_json(properties) LOOP
-            EXECUTE format('ALTER TABLE %s ADD COLUMN "%s" %s', dataset, props_row.name, props_row.type);
+            PERFORM format('ALTER TABLE %s ADD COLUMN "%s" %s', dataset, props_row.name, props_row.type);
         END LOOP;
 
         RETURN 'success';
@@ -33,7 +33,7 @@ DECLARE
         props_row record;
     BEGIN
         FOR props_row IN SELECT property FROM json_array_elements(properties::json) AS property LOOP
-        EXECUTE format('ALTER TABLE %s DROP COLUMN %s', dataset, props_row.property);
+        PERFORM format('ALTER TABLE %s DROP COLUMN %s', dataset, props_row.property);
     END LOOP;
     RETURN 'success';
 END

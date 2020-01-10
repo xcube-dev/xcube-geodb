@@ -1,11 +1,15 @@
+import http.client
+import os
 from typing import Dict, Optional, Union, Sequence
 
 import fastjsonschema
 import geopandas as gpd
+import psycopg2
 from geopandas import GeoDataFrame
 from shapely import wkb
 import requests
 import json
+from dotenv import load_dotenv, find_dotenv
 
 from dcfs_geodb.config import GEODB_API_DEFAULT_CONNECTION_PARAMETERS, JSON_API_VALIDATIONS_CREATE_DATASET
 
@@ -15,21 +19,30 @@ class GeoDBError(ValueError):
 
 
 class GeoDB(object):
-    def __init__(self, server_url: Optional[str] = None, server_port: Optional[int] = None):
+    def __init__(self, server_url: Optional[str] = None,
+                 server_port: Optional[int] = None,
+                 client_id: Optional[str] = None,
+                 client_secret: Optional[str] = None):
         """
 
         Args:
             server_url: The URL of the server
             server_port: The server port
         """
-        self._set_defaults()
+        self._dotenv_file = find_dotenv()
+        if self._dotenv_file:
+            load_dotenv(self._dotenv_file)
 
-        if server_url:
-            self._server_url = server_url
-        if server_port:
-            self._server_port = server_port
+        self._set_defaults()
+        self._set_from_env()
+
+        self._server_url = server_url or self._server_url
+        self._server_port = server_port or self._server_port
+        self._auth_client_id = client_id or self._auth_client_id
+        self._auth_client_secret = client_secret or self._auth_client_secret
 
         self._capabilities = None
+        self._geodb_api_access_token = self._get_geodb_api_access_token()
 
     @property
     def capabilities(self) -> json:
@@ -58,7 +71,8 @@ class GeoDB(object):
     def common_headers(self):
         return {
             'Prefer': 'return=representation',
-            'Content-type': 'application/json'
+            'Content-type': 'application/json',
+            'Authorization': f"Bearer {self._geodb_api_access_token}"
         }
 
     def post(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
@@ -465,11 +479,11 @@ class GeoDB(object):
             raise ValueError(f"Dataset {dataset} does not exist")
 
         if not self._stored_procedure_exists('geodb_filter_by_bbox'):
-            raise ValueError(f"Stored procedure get_by_bbox does not exist")
+            raise ValueError(f"Stored procedure geodb_filter_by_bbox does not exist")
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
-        r = self.post('/rpc/geodb_get_by_bbox', headers=headers, payload={
+        r = self.post('/rpc/geodb_filter_by_bbox', headers=headers, payload={
             "dataset": dataset,
             "minx": minx,
             "miny": miny,
@@ -541,7 +555,9 @@ class GeoDB(object):
         """
         data = [self._load_geo(d) for d in js]
 
-        gpdf = gpd.GeoDataFrame(data).set_geometry('geometry')
+        gpdf = gpd.GeoDataFrame(data)
+        if 'geometry' in gpdf:
+            gpdf = gpdf.set_geometry('geometry')
 
         if not self._validate(gpdf):
             raise ValueError("Geometry field is missing")
@@ -577,10 +593,35 @@ class GeoDB(object):
         return d
 
     def _set_defaults(self):
-        if 'server_url' in GEODB_API_DEFAULT_CONNECTION_PARAMETERS:
-            self._server_url = GEODB_API_DEFAULT_CONNECTION_PARAMETERS['server_url']
-        if 'server_port' in GEODB_API_DEFAULT_CONNECTION_PARAMETERS:
-            self._server_port = GEODB_API_DEFAULT_CONNECTION_PARAMETERS['server_port']
+        self._server_url = GEODB_API_DEFAULT_CONNECTION_PARAMETERS.get('server_url') or self._server_url
+        self._server_port = GEODB_API_DEFAULT_CONNECTION_PARAMETERS.get('server_port') or self._server_port
+        self._auth_domain = GEODB_API_DEFAULT_CONNECTION_PARAMETERS.get('auth_domain') or self._auth_domain
+        self._auth_aud = GEODB_API_DEFAULT_CONNECTION_PARAMETERS.get('auth_aud') or self._auth_aud
+
+    def _set_from_env(self):
+        self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url
+        self._server_port = os.getenv('GEODB_API_SERVER_PORT') or self._server_port
+        self._auth_client_id = os.getenv('GEODB_AUTH_CLIENT_ID') or self._auth_client_id
+        self._auth_client_secret = os.getenv('GEODB_AUTH_CLIENT_SECRET') or self._auth_client_secret
+        self._auth_domain = os.getenv('GEODB_AUTH_DOMAIN') or self._auth_domain
+        self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
+
+    def _get_geodb_api_access_token(self):
+        conn = http.client.HTTPSConnection(self._auth_domain)
+        payload = {
+            "client_id": self._auth_client_id,
+            "client_secret": self._auth_client_secret,
+            "audience": self._auth_aud,
+            "grant_type": "client_credentials"
+        }
+
+        headers = {'content-type': "application/json"}
+
+        conn.request("POST", "/oauth/token", json.dumps(payload), headers)
+
+        res = conn.getresponse()
+        data = json.loads(res.read().decode("utf-8"))
+        return data['access_token']
 
     # noinspection PyMethodMayBeStatic
     def _validate(self, df: gpd.GeoDataFrame) -> bool:
@@ -619,3 +660,29 @@ class GeoDB(object):
             bool whether the stored procedure exists in DB
         """
         return f"/rpc/{stored_procedure}" in self.capabilities['paths']
+
+    def setup(self):
+        host = os.getenv('GEODB_DB_HOST')
+        port = os.getenv('GEODB_DB_PORT')
+        user = os.getenv('GEODB_DB_USER')
+        passwd = os.getenv('GEODB_DB_PASSWD')
+        dbname = os.getenv('GEODB_DB_DBNAME')
+        conn = psycopg2.connect(host=host, port=port, user=user, password=passwd, dbname=dbname)
+        cursor = conn.cursor()
+        with open('dcfs_geodb/sql/get_by_bbox.sql') as sql_file:
+            sql_create = sql_file.read()
+            cursor.execute(sql_create)
+
+        with open('dcfs_geodb/sql/manage_table.sql') as sql_file:
+            sql_create = sql_file.read()
+            cursor.execute(sql_create)
+
+        with open('dcfs_geodb/sql/manage_properties.sql') as sql_file:
+            sql_create = sql_file.read()
+            cursor.execute(sql_create)
+
+        with open('dcfs_geodb/sql/manage_users.sql') as sql_file:
+            sql_create = sql_file.read()
+            cursor.execute(sql_create)
+
+        conn.commit()

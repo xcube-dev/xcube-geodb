@@ -1,7 +1,9 @@
 GEODB_API_DEFAULT_CONNECTION_PARAMETERS = {
     # 'server_url': "http://ec2-3-120-53-215.eu-central-1.compute.amazonaws.com",
     'server_url': "http://10.3.0.63",
-    'server_port': 3000
+    'server_port': 3000,
+    'auth_domain': "dev-d26kocnh.eu.auth0.com",
+    'auth_aud': "hh"
 }
 
 JSON_API_VALIDATIONS_CREATE_DATASET = {

@@ -1,3 +1,5 @@
+CREATE EXTENSION postgis;
+
 CREATE OR REPLACE FUNCTION update_modified_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -21,7 +23,7 @@ $BODY$;
 
 
 CREATE OR REPLACE FUNCTION public.geodb_create_dataset(IN dataset text, IN properties json, IN crs text)
-    RETURNS character varying(255)
+    RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
@@ -38,31 +40,28 @@ BEGIN
                     BEFORE UPDATE ON %s
                     FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', dataset, dataset);
 
-    RETURN 'success';
 END
 $BODY$;
 
 
 CREATE OR REPLACE FUNCTION public.geodb_create_datasets(IN "datasets" json)
-    RETURNS character varying(255)
+    RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
 DECLARE
     "dataset_row" record;
 BEGIN
     FOR dataset_row IN SELECT * FROM geodb_get_table_infos_from_json("datasets") LOOP
-        EXECUTE format('SELECT geodb_create_dataset(''%s'', ''%s''::json, ''%s'')',
+            EXECUTE format('SELECT geodb_create_dataset(''%s'', ''%s''::json, ''%s'')',
             dataset_row.name,
             dataset_row.properties,
             dataset_row.crs);
     END LOOP;
-
-    RETURN 'success';
 END
 $BODY$;
 
 CREATE OR REPLACE FUNCTION public.geodb_drop_datasets(IN datasets json)
-    RETURNS character varying(255)
+    RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
 DECLARE
@@ -71,7 +70,5 @@ BEGIN
     FOR dataset_row IN SELECT dataset FROM json_array_elements("datasets"::json) AS dataset LOOP
         EXECUTE format('DROP TABLE %s', dataset_row.dataset);
     END LOOP;
-
-    RETURN 'success';
 END
 $BODY$;

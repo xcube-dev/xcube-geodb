@@ -1,3 +1,5 @@
+-- noinspection SqlSignatureForFile
+
 CREATE OR REPLACE FUNCTION public.geodb_register_user(IN user_name text)
     RETURNS character varying(255)
     LANGUAGE 'plpgsql'
@@ -26,5 +28,22 @@ AS $BODY$
 BEGIN
     EXECUTE format('DROP ROLE IF EXISTS %s', user_name);
     RETURN true;
+END
+$BODY$;
+
+
+DROP FUNCTION public.geodb_whoami();
+
+CREATE OR REPLACE FUNCTION public.geodb_whoami()
+    RETURNS text
+    LANGUAGE 'plpgsql'
+AS $BODY$
+DECLARE
+    usr text;
+    scp text;
+BEGIN
+    scp := current_setting('request.jwt.claim.scope', true);
+    usr := (SELECT src[ 2 ] FROM string_to_array(scp, ':') as src);
+    RETURN usr;
 END
 $BODY$;

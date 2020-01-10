@@ -34,6 +34,7 @@ DECLARE
 	bbox_func VARCHAR;
     row_ct int;
 	lmt_str text;
+    qry text;
 BEGIN
 	CASE bbox_mode
 		WHEN 'within' THEN
@@ -47,16 +48,16 @@ BEGIN
 	lmt_str := '';
 
 	IF "limit" > 0 THEN
-		lmt_str := ' GROUP BY id ORDER BY id LIMIT ' || "limit";
+		lmt_str := ' LIMIT ' || "limit";
 	END IF;
 
 	IF "offset" > 0 THEN
 		lmt_str := lmt_str || ' OFFSET ' || "offset";
 	END IF;
 
-	RETURN QUERY EXECUTE format(
+	qry := format(
 		'SELECT JSON_AGG(src) as js
-		 FROM (SELECT * FROM "%s") as src
+		 FROM (SELECT * FROM "%s"
 		 WHERE %s(''SRID=%s;POLYGON((' || minx
 		                                           || ' ' || miny
 		                                           || ', ' || minx
@@ -68,13 +69,15 @@ BEGIN
 		                                           || ', ' || minx
 		                                           || ' ' || miny
 		                                           || '))'', geometry)'
-		                                           || ' ' || lmt_str, dataset, bbox_func, bbox_crs
+		                                           || ' ' || lmt_str || ') as src', dataset, bbox_func, bbox_crs
 	);
+
+    RETURN QUERY EXECUTE qry;
 
 	GET DIAGNOSTICS row_ct = ROW_COUNT;
 
     IF row_ct < 1 THEN
-	   RAISE EXCEPTION 'Only % rows! Requested minimum was %.', row_ct, min_ct;
+	   RAISE EXCEPTION 'Only % rows!', row_ct;
     END IF;
 END
 $BODY$;
