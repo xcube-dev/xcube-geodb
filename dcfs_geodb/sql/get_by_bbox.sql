@@ -5,8 +5,12 @@ CREATE OR REPLACE FUNCTION public.geodb_filter_raw(IN dataset text, IN qry text)
 AS $BODY$
 DECLARE
     row_ct int;
+    usr text;
 BEGIN
-    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js FROM (SELECT * FROM "%s" WHERE %s) as src ', dataset, qry);
+    usr := (SELECT geodb_whoami());
+
+    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js FROM (SELECT * FROM %I.%I WHERE %s) as src ', usr,
+        dataset, qry);
 
     GET DIAGNOSTICS row_ct = ROW_COUNT;
 
@@ -35,6 +39,7 @@ DECLARE
     row_ct int;
 	lmt_str text;
     qry text;
+    usr text;
 BEGIN
 	CASE bbox_mode
 		WHEN 'within' THEN
@@ -55,21 +60,24 @@ BEGIN
 		lmt_str := lmt_str || ' OFFSET ' || "offset";
 	END IF;
 
+    usr := (SELECT geodb_whoami());
+
 	qry := format(
 		'SELECT JSON_AGG(src) as js
-		 FROM (SELECT * FROM "%s"
+		 FROM (SELECT * FROM %I.%I
 		 WHERE %s(''SRID=%s;POLYGON((' || minx
-		                                           || ' ' || miny
-		                                           || ', ' || minx
-		                                           || ' ' || maxy
-		                                           || ', ' || maxx
-		                                           || ' ' || maxy
-		                                           || ', ' || maxx
-		                                           || ' ' ||  miny
-		                                           || ', ' || minx
-		                                           || ' ' || miny
-		                                           || '))'', geometry)'
-		                                           || ' ' || lmt_str || ') as src', dataset, bbox_func, bbox_crs
+                                       || ' ' || miny
+                                       || ', ' || minx
+                                       || ' ' || maxy
+                                       || ', ' || maxx
+                                       || ' ' || maxy
+                                       || ', ' || maxx
+                                       || ' ' ||  miny
+                                       || ', ' || minx
+                                       || ' ' || miny
+                                       || '))'', geometry)'
+                                       || ' ' || lmt_str || ') as src',
+	    usr, dataset, bbox_func, bbox_crs
 	);
 
     RETURN QUERY EXECUTE qry;

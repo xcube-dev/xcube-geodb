@@ -11,7 +11,7 @@ import requests
 import json
 from dotenv import load_dotenv, find_dotenv
 
-from dcfs_geodb.config import GEODB_API_DEFAULT_CONNECTION_PARAMETERS, JSON_API_VALIDATIONS_CREATE_DATASET
+from dcfs_geodb.defaults import GEODB_API_DEFAULT_CONNECTION_PARAMETERS, JSON_API_VALIDATIONS_CREATE_DATASET
 
 
 class GeoDBError(ValueError):
@@ -44,6 +44,8 @@ class GeoDB(object):
         self._capabilities = None
         self._geodb_api_access_token = self._get_geodb_api_access_token()
 
+        self._whoami = None
+
     @property
     def capabilities(self) -> json:
         """
@@ -74,6 +76,13 @@ class GeoDB(object):
             'Content-type': 'application/json',
             'Authorization': f"Bearer {self._geodb_api_access_token}"
         }
+
+    @property
+    def whoami(self):
+        if self._whoami is None:
+            self._whoami = self.get(path='/rpc/geodb_whoami')
+
+        return self._whoami
 
     def post(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
              headers: Optional[Dict] = None) -> requests.models.Response:
@@ -224,7 +233,14 @@ class GeoDB(object):
         )
 
         # validate(datasets)
-        datasets = {"datasets": datasets}
+
+        dss = []
+        for dataset in datasets:
+            ds = dataset
+            ds['name'] = f"{self._whoami}_{dataset['name']}"
+            dss.append(ds)
+
+        datasets = {"datasets": dss}
         return self.post(path='/rpc/geodb_create_datasets', payload=datasets)
 
     def create_dataset(self, dataset: str, properties: Sequence[Dict], crs: str = "4326") -> requests.models.Response:
@@ -242,6 +258,9 @@ class GeoDB(object):
             >>> geodb = GeoDB()
             >>> geodb.create_dataset(dataset='myDataset')
         """
+
+        dataset = f"{self._whoami}_{dataset}"
+
         datasets = {'name': dataset, 'properties': properties, 'crs': crs}
         return self.create_datasets([datasets])
 
@@ -258,6 +277,9 @@ class GeoDB(object):
             >>> geodb = GeoDB()
             >>> geodb.drop_dataset(dataset='myDataset')
         """
+
+        dataset = f"{self._whoami}_{dataset}"
+
         return self.post(path='/rpc/geodb_drop_datasets', payload={'datasets': [dataset]})
 
     def drop_datasets(self, datasets: Sequence[str]) -> requests.models.Response:
@@ -273,6 +295,9 @@ class GeoDB(object):
             >>> geodb = GeoDB()
             >>> geodb.drop_datasets(datasets=['myDataset1', 'myDaraset2'])
         """
+
+        datasets = [f"{self._whoami}_{dataset}" for dataset in datasets]
+
         return self.post(path='/rpc/geodb_drop_datasets', payload={'datasets': datasets})
 
     def add_property(self, dataset: str, prop: str, typ: str) -> requests.models.Response:
@@ -290,6 +315,9 @@ class GeoDB(object):
         """
 
         prop = {'name': prop, 'type': typ}
+
+        dataset = f"{self._whoami}_{dataset}"
+
         return self.add_properties(dataset=dataset, properties=[prop])
 
     def add_properties(self, dataset: str, properties: Sequence[Dict]) -> requests.models.Response:
@@ -307,6 +335,9 @@ class GeoDB(object):
             >>> geodb = GeoDB()
             >>> geodb.add_property(dataset='myDataset', prop=[prop])
         """
+
+        dataset = f"{self._whoami}_{dataset}"
+
         validate = fastjsonschema.compile(
             JSON_API_VALIDATIONS_CREATE_DATASET['validation'],
             formats=JSON_API_VALIDATIONS_CREATE_DATASET['formats']
@@ -330,6 +361,8 @@ class GeoDB(object):
             >>> geodb.drop_property(dataset='myDataset', prop='myProperty')
         """
 
+        dataset = f"{self._whoami}_{dataset}"
+
         return self.drop_properties(dataset=dataset, properties=[prop])
 
     def drop_properties(self, dataset: str, properties: Union[Sequence[Dict], Sequence[str]]) \
@@ -347,6 +380,8 @@ class GeoDB(object):
             >>> geodb = GeoDB()
             >>> geodb.drop_properties(dataset='myDataset', properties=['myProperty1', 'myProperty2'])
         """
+
+        dataset = f"{self._whoami}_{dataset}"
 
         if not self._stored_procedure_exists('geodb_drop_properties'):
             raise ValueError(f"Stored procedure geodb_drop_properties does not exist")
@@ -373,6 +408,8 @@ class GeoDB(object):
             requests.models.Response
         """
 
+        dataset = f"{self._whoami}_{dataset}"
+
         return self.delete(f'/{dataset}?{query}')
 
     def update_dataset(self, dataset: str, values: Dict, query: str) -> requests.models.Response:
@@ -386,6 +423,8 @@ class GeoDB(object):
         Returns:
             requests.models.Response
         """
+
+        dataset = f"{self._whoami}_{dataset}"
 
         if not self._dataset_exists(dataset=dataset):
             raise ValueError(f"Dataset {dataset} does not exist")
@@ -429,6 +468,8 @@ class GeoDB(object):
         Returns:
             requests.models.Response
         """
+
+        dataset = f"{self._whoami}_{dataset}"
 
         if not self._dataset_exists(dataset=dataset):
             raise ValueError(f"Dataset {dataset} does not exist")
@@ -474,6 +515,8 @@ class GeoDB(object):
             >>> geodb.filter_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299, \
                 bbox_mode="contains", bbox_crs=3794, lmt=1000, offst=10)
         """
+
+        dataset = f"{self._whoami}_{dataset}"
 
         if not self._dataset_exists(dataset=dataset):
             raise ValueError(f"Dataset {dataset} does not exist")
@@ -521,6 +564,8 @@ class GeoDB(object):
             >>> geodb.filter('land_use', 'id=ge.1000')
 
         """
+
+        dataset = f"{self._whoami}_{dataset}"
 
         if not self._dataset_exists(dataset=dataset):
             raise ValueError(f"Dataset {dataset} does not exist")
@@ -669,6 +714,11 @@ class GeoDB(object):
         dbname = os.getenv('GEODB_DB_DBNAME')
         conn = psycopg2.connect(host=host, port=port, user=user, password=passwd, dbname=dbname)
         cursor = conn.cursor()
+
+        with open('dcfs_geodb/sql/manage_users.sql') as sql_file:
+            sql_create = sql_file.read()
+            cursor.execute(sql_create)
+
         with open('dcfs_geodb/sql/get_by_bbox.sql') as sql_file:
             sql_create = sql_file.read()
             cursor.execute(sql_create)
@@ -678,10 +728,6 @@ class GeoDB(object):
             cursor.execute(sql_create)
 
         with open('dcfs_geodb/sql/manage_properties.sql') as sql_file:
-            sql_create = sql_file.read()
-            cursor.execute(sql_create)
-
-        with open('dcfs_geodb/sql/manage_users.sql') as sql_file:
             sql_create = sql_file.read()
             cursor.execute(sql_create)
 

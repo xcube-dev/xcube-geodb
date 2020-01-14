@@ -1,4 +1,4 @@
-CREATE EXTENSION postgis;
+--CREATE EXTENSION postgis;
 
 CREATE OR REPLACE FUNCTION update_modified_column()
 RETURNS TRIGGER AS $$
@@ -26,19 +26,26 @@ CREATE OR REPLACE FUNCTION public.geodb_create_dataset(IN dataset text, IN prope
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
+DECLARE
+    usr text;
+    tab text;
 BEGIN
-    EXECUTE format('CREATE TABLE %s(
+    usr := (SELECT geodb_whoami());
+
+    tab := usr || '_' ||  dataset;
+
+    EXECUTE format('CREATE TABLE %I(
 								    id SERIAL PRIMARY KEY,
 									created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 									modified_at TIMESTAMP WITH TIME ZONE,
 									geometry geometry(Geometry,' || crs || ') NOT NULL
-							   )', dataset);
+							   )', tab);
 
     PERFORM geodb_add_properties(dataset, properties);
 
     EXECUTE format('CREATE TRIGGER update_%s_modtime
-                    BEFORE UPDATE ON %s
-                    FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', dataset, dataset);
+                    BEFORE UPDATE ON %I_%I
+                    FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', dataset, usr, dataset);
 
 END
 $BODY$;
@@ -66,9 +73,14 @@ CREATE OR REPLACE FUNCTION public.geodb_drop_datasets(IN datasets json)
 AS $BODY$
 DECLARE
     "dataset_row" record;
+    usr text;
+    tab text;
 BEGIN
-    FOR dataset_row IN SELECT dataset FROM json_array_elements("datasets"::json) AS dataset LOOP
-        EXECUTE format('DROP TABLE %s', dataset_row.dataset);
+    usr := (SELECT geodb_whoami());
+
+    FOR dataset_row IN SELECT dataset FROM json_array_elements_text(datasets) as dataset LOOP
+            tab := usr || '_' ||  dataset_row.dataset;
+            EXECUTE format('DROP TABLE %I', tab);
     END LOOP;
 END
 $BODY$;
