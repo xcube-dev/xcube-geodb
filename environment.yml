@@ -15,6 +15,7 @@ dependencies:
   - pip:
       - fastjsonschema
       - python-dotenv
+      - gsconfig-py3
   # Testing
   - pytest >=4.4
   - pytest-cov >=2.6

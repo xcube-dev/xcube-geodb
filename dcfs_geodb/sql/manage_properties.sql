@@ -8,7 +8,6 @@ BEGIN
 END
 $BODY$;
 
-DROP FUNCTION geodb_add_properties(text, json);
 
 CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN dataset text, IN properties json)
     RETURNS void
@@ -28,7 +27,6 @@ CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN dataset text, IN prope
     END
 $BODY$;
 
-DROP FUNCTION geodb_drop_properties(text, json);
 
 CREATE OR REPLACE FUNCTION public.geodb_drop_properties(IN dataset text, IN properties json)
     RETURNS void

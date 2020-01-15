@@ -64,7 +64,7 @@ BEGIN
 
 	qry := format(
 		'SELECT JSON_AGG(src) as js
-		 FROM (SELECT * FROM %I.%I
+		 FROM (SELECT * FROM %I
 		 WHERE %s(''SRID=%s;POLYGON((' || minx
                                        || ' ' || miny
                                        || ', ' || minx
@@ -77,7 +77,7 @@ BEGIN
                                        || ' ' || miny
                                        || '))'', geometry)'
                                        || ' ' || lmt_str || ') as src',
-	    usr, dataset, bbox_func, bbox_crs
+	    dataset, bbox_func, bbox_crs
 	);
 
     RETURN QUERY EXECUTE qry;

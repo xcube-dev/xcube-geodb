@@ -1,4 +1,4 @@
---CREATE EXTENSION postgis;
+-- CREATE EXTENSION postgis;
 
 CREATE OR REPLACE FUNCTION update_modified_column()
 RETURNS TRIGGER AS $$
@@ -47,6 +47,7 @@ BEGIN
                     BEFORE UPDATE ON %I_%I
                     FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', dataset, usr, dataset);
 
+    EXECUTE format('ALTER TABLE %I OWNER to %I;', dataset, usr);
 END
 $BODY$;
 
@@ -82,5 +83,27 @@ BEGIN
             tab := usr || '_' ||  dataset_row.dataset;
             EXECUTE format('DROP TABLE %I', tab);
     END LOOP;
+END
+$BODY$;
+
+
+CREATE OR REPLACE FUNCTION public.geodb_publish_dataset(dataset text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS $BODY$
+BEGIN
+    EXECUTE format('GRANT SELECT ON TABLE %I TO PUBLIC;', dataset);
+
+END
+$BODY$;
+
+
+CREATE OR REPLACE FUNCTION public.geodb_unpublish_dataset(dataset text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS $BODY$
+BEGIN
+    EXECUTE format('REVOKE SELECT ON TABLE %I FROM PUBLIC;', dataset);
+
 END
 $BODY$;
