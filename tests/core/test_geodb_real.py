@@ -5,7 +5,7 @@ import pandas as pd
 from geopandas import GeoDataFrame
 from shapely import wkt
 
-from dcfs_geodb.core.geo_db import GeoDB
+from dcfs_geodb.core.geo_db import GeoDBClient
 
 GEODB_TEST_CONNECTION_PARAMETERS = {
     'server_url': "http://10.3.0.63",
@@ -20,7 +20,7 @@ class MyTestCase(unittest.TestCase):
         if os.environ.get('SKIP_PSQL_TESTS', False):
             return
 
-        cls._geodb = GeoDB(
+        cls._geodb = GeoDBClient(
             server_url=GEODB_TEST_CONNECTION_PARAMETERS['server_url'],
             server_port=GEODB_TEST_CONNECTION_PARAMETERS['server_port']
         )
@@ -70,7 +70,7 @@ class MyTestCase(unittest.TestCase):
 
         self.assertEqual(200, r.status_code)
 
-    def test_drop_property(self):
+    def test_drop_property2(self):
         r = self._geodb.drop_properties('test', ['test_col_int2', 'test_col_varchar2'])
 
         self.assertEqual(200, r.status_code)

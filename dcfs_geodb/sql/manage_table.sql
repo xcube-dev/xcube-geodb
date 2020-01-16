@@ -45,9 +45,9 @@ BEGIN
 
     EXECUTE format('CREATE TRIGGER update_%s_modtime
                     BEFORE UPDATE ON %I_%I
-                    FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', dataset, usr, dataset);
+                    FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', tab, usr, dataset);
 
-    EXECUTE format('ALTER TABLE %I OWNER to %I;', dataset, usr);
+    EXECUTE format('ALTER TABLE %I OWNER to %I;', tab, usr);
 END
 $BODY$;
 
@@ -87,23 +87,40 @@ END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_publish_dataset(dataset text)
+CREATE OR REPLACE FUNCTION public.geodb_grant_access_to_dataset(dataset text, usr text)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-    EXECUTE format('GRANT SELECT ON TABLE %I TO PUBLIC;', dataset);
+    EXECUTE format('GRANT SELECT ON TABLE %I TO %I;', dataset, usr);
 
 END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_unpublish_dataset(dataset text)
+CREATE OR REPLACE FUNCTION public.geodb_revoke_access_to_dataset(dataset text, usr text)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-    EXECUTE format('REVOKE SELECT ON TABLE %I FROM PUBLIC;', dataset);
+    EXECUTE format('REVOKE SELECT ON TABLE %I FROM %I;', dataset, usr);
+
+END
+$BODY$;
+
+
+CREATE OR REPLACE FUNCTION public.geodb_list_grants()
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+AS $BODY$
+DECLARE usr text;
+BEGIN
+    usr := (SELECT geodb_whoami());
+    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js ' ||
+                                'FROM (SELECT table_name, grantee ' ||
+                                'FROM information_schema.role_table_grants ' ||
+                                'WHERE grantor = ''%s'' AND grantee != ''%s'') AS src',
+                                usr, usr);
 
 END
 $BODY$;

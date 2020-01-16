@@ -7,7 +7,7 @@ import requests_mock
 from geopandas import GeoDataFrame
 from shapely import wkt
 
-from dcfs_geodb.core.geo_db import GeoDB
+from dcfs_geodb.core.geo_db import GeoDBClient
 
 
 class GeoDBTest(unittest.TestCase):
@@ -19,7 +19,7 @@ class GeoDBTest(unittest.TestCase):
         if self._server_test_port > 0:
             self._server_full_address += ':' + str(self._server_test_port)
 
-        self._api = GeoDB(server_url=self._server_test_url, server_port=self._server_test_port)
+        self._api = GeoDBClient(server_url=self._server_test_url, server_port=self._server_test_port)
 
     def tearDown(self) -> None:
         pass

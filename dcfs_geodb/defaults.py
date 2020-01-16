@@ -1,12 +1,13 @@
-GEODB_API_DEFAULT_CONNECTION_PARAMETERS = {
-    # 'server_url': "http://ec2-3-120-53-215.eu-central-1.compute.amazonaws.com",
-    'server_url': "http://10.3.0.63",
+GEODB_API_DEFAULT_PARAMETERS = {
+    'server_url': "http://ec2-3-120-53-215.eu-central-1.compute.amazonaws.com",
     'server_port': 3000,
-    'auth_domain': "dev-d26kocnh.eu.auth0.com",
-    'auth_aud': "hh"
+    'auth_domain': "xcube.eu.auth0.com",
+    'auth_aud': "geodb",
+    'auth_pub_client_id': 'QoZa2Vmg36x9NOEqyy4yRVueeITaeZ81',
+    'auth_pub_client_secret': 'd4POTIHcKOor3qbMbs08Ow1NzHCR6UzvT31CkGapMVok-FZ7ScNffYyPBHlH3cPz'
 }
 
-JSON_API_VALIDATIONS_CREATE_DATASET = {
+JSON_VALIDATIONS = {
     'validation': {
         "type": "object",
         "properties": {
@@ -19,12 +20,3 @@ JSON_API_VALIDATIONS_CREATE_DATASET = {
     }
 }
 
-
-TT = {
-    'type': 'array',
-    'properties': {
-        'name': {"type": "string"},
-        'type': {"type": "string"}
-
-    }
-}

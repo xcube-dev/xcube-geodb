@@ -11,18 +11,19 @@ import requests
 import json
 from dotenv import load_dotenv, find_dotenv
 
-from dcfs_geodb.defaults import GEODB_API_DEFAULT_CONNECTION_PARAMETERS, JSON_API_VALIDATIONS_CREATE_DATASET
+from dcfs_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS, JSON_VALIDATIONS
 
 
 class GeoDBError(ValueError):
     pass
 
 
-class GeoDB(object):
+class GeoDBClient(object):
     def __init__(self, server_url: Optional[str] = None,
                  server_port: Optional[int] = None,
                  client_id: Optional[str] = None,
-                 client_secret: Optional[str] = None):
+                 client_secret: Optional[str] = None,
+                 anonymous: bool = False):
         """
 
         Args:
@@ -42,9 +43,11 @@ class GeoDB(object):
         self._auth_client_secret = client_secret or self._auth_client_secret
 
         self._capabilities = None
+        self._is_public_client = anonymous
         self._geodb_api_access_token = self._get_geodb_api_access_token()
 
         self._whoami = None
+        self._geoserver_url = "http://3.120.53.215:5000/geoserver"
 
     @property
     def capabilities(self) -> json:
@@ -108,7 +111,7 @@ class GeoDB(object):
             PostgrestException: if request fails
 
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.post(path='/rpc/my_function', payload={'name': 'MyName'})
         """
 
@@ -144,7 +147,7 @@ class GeoDB(object):
             PostgrestException: if request fails
 
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.get(path='/my_table', params={"limit": 1})
 
         """
@@ -175,7 +178,7 @@ class GeoDB(object):
             PostgrestException: if request fails
 
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.delete(path='/my_table', params={"limit": 1})
 
         """
@@ -206,7 +209,7 @@ class GeoDB(object):
             GeoDBError: if request fails
 
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.patch(path='/my_table', params={"limit": 1})
 
         """
@@ -230,12 +233,12 @@ class GeoDB(object):
             requests.models.Response:
 
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.create_dataset(datasets=['myDataset1', 'myDataset2'])
         """
         validate = fastjsonschema.compile(
-            JSON_API_VALIDATIONS_CREATE_DATASET['validation'],
-            formats=JSON_API_VALIDATIONS_CREATE_DATASET['formats']
+            JSON_VALIDATIONS['validation'],
+            formats=JSON_VALIDATIONS['formats']
         )
 
         # validate(datasets)
@@ -257,7 +260,7 @@ class GeoDB(object):
             requests.models.Response:
 
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.create_dataset(dataset='myDataset')
         """
 
@@ -277,7 +280,7 @@ class GeoDB(object):
             requests.models.Response:
 
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.drop_dataset(dataset='myDataset')
         """
 
@@ -295,7 +298,7 @@ class GeoDB(object):
             requests.models.Response:
 
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.drop_datasets(datasets=['myDataset1', 'myDaraset2'])
         """
 
@@ -303,15 +306,22 @@ class GeoDB(object):
 
         return self.post(path='/rpc/geodb_drop_datasets', payload={'datasets': datasets})
 
-    def publish_dataset(self, dataset: str):
+    def grant_access_to_dataset(self, dataset: str, user: str = "public") -> requests.models.Response:
         dataset = f"{self.whoami}_{dataset}"
 
-        return self.post(path='/rpc/geodb_publish_dataset', payload={'dataset': dataset})
+        return self.post(path='/rpc/geodb_grant_access_to_dataset', payload={'dataset': dataset, 'usr': user})
 
-    def unpublish_dataset(self, dataset: str):
+    def revoke_access_to_dataset(self, dataset: str, user: str = 'public') -> requests.models.Response:
         dataset = f"{self.whoami}_{dataset}"
 
-        return self.post(path='/rpc/geodb_unpublish_dataset', payload={'dataset': dataset})
+        return self.post(path='/rpc/geodb_revoke_access_to_dataset', payload={'dataset': dataset, 'usr': user})
+
+    def list_grants(self) -> Sequence:
+        r = self.post(path='/rpc/geodb_list_grants', payload={})
+        if r.json()[0]['src'] is None:
+            return []
+        else:
+            return r.json()[0]['src']
 
     def add_property(self, dataset: str, prop: str, typ: str) -> requests.models.Response:
         """
@@ -323,7 +333,7 @@ class GeoDB(object):
 
         Examples:
             >>> prop = {}
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.add_property(dataset='myDataset', prop=prop)
         """
 
@@ -345,15 +355,15 @@ class GeoDB(object):
 
         Examples:
             >>> prop = {}
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.add_property(dataset='myDataset', prop=[prop])
         """
 
         dataset = f"{self.whoami}_{dataset}"
 
         validate = fastjsonschema.compile(
-            JSON_API_VALIDATIONS_CREATE_DATASET['validation'],
-            formats=JSON_API_VALIDATIONS_CREATE_DATASET['formats']
+            JSON_VALIDATIONS['validation'],
+            formats=JSON_VALIDATIONS['formats']
         )
         # validate(properties)
 
@@ -370,7 +380,7 @@ class GeoDB(object):
             requests.models.Response:
 
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.drop_property(dataset='myDataset', prop='myProperty')
         """
 
@@ -390,7 +400,7 @@ class GeoDB(object):
             requests.models.Response:
 
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.drop_properties(dataset='myDataset', properties=['myProperty1', 'myProperty2'])
         """
 
@@ -403,8 +413,8 @@ class GeoDB(object):
             raise ValueError(f"Dataset {dataset} does not exist")
 
         validate = fastjsonschema.compile(
-            JSON_API_VALIDATIONS_CREATE_DATASET['validation'],
-            formats=JSON_API_VALIDATIONS_CREATE_DATASET['formats']
+            JSON_VALIDATIONS['validation'],
+            formats=JSON_VALIDATIONS['formats']
         )
         # validate(properties)
 
@@ -457,8 +467,8 @@ class GeoDB(object):
             except Exception:
                 raise ValueError("Could not guess the dataframe's crs. Please specify.")
 
-        add_srid = lambda point: f'SRID={str(crs)};' + str(point)
-        # return shapely.wkb.dumps(line, include_srid=True)
+        def add_srid(point):
+            return f'SRID={str(crs)};' + str(point)
 
         gpdf['geometry'] = gpdf['geometry'].apply(add_srid)
 
@@ -484,7 +494,7 @@ class GeoDB(object):
 
         dataset = f"{self.whoami}_{dataset}"
 
-        #if not self._dataset_exists(dataset=dataset):
+        # if not self._dataset_exists(dataset=dataset):
         #    raise ValueError(f"Dataset {dataset} does not exist")
 
         if isinstance(values, GeoDataFrame):
@@ -525,7 +535,7 @@ class GeoDB(object):
         Raises:
             ValueError: When either the column ID or geometry or both are missing. Or the result is empty.
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.filter_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299, \
                 bbox_mode="contains", bbox_crs=3794, lmt=1000, offst=10)
         """
@@ -577,7 +587,7 @@ class GeoDB(object):
             GeoDataFrame of results
 
         Examples:
-            >>> geodb = GeoDB()
+            >>> geodb = GeoDBClient()
             >>> geodb.filter('land_use', 'id=ge.1000')
 
         """
@@ -602,6 +612,58 @@ class GeoDB(object):
             return self._gpdf_from_json(js)
         else:
             raise ValueError("Result is empty")
+
+    @property
+    def geoserver_url(self):
+        return self._geoserver_url
+
+    def register_user(self, user: str, password: str):
+        user = {
+            "user": user,
+            "password": password
+        }
+
+        r = self.post(f'/rpc/register_user', payload=user)
+
+        geoserver_url = "http://3.120.53.215:5000/geoserver/rest/security/usergroup/users"
+
+        user = {
+            "org.geoserver.rest.security.xml.JaxbUser": {
+                "userName": user,
+                "password": password,
+                "enabled": True
+            }
+        }
+
+        requests.post(geoserver_url, json=user)
+
+        geoserver_url = "http://3.120.53.215:5000/geoserver/rest/workspaces"
+
+        workspace = {
+            "name": user
+        }
+
+        requests.post(geoserver_url, json=workspace)
+
+        geoserver_url = f"http://3.120.53.215:5000/geoserver/rest/workspaces/{user}/datastores"
+
+        db = {
+            "dataStore": {
+                "name": "nyc",
+                "connectionParameters": {
+                    "entry": [
+                        {"@key": "host", "$": "db-dcfs-geodb.cbfjgqxk302m.eu-central-1.rds.amazonaws.com"},
+                        {"@key": "port", "$": "5432"},
+                        {"@key": "database", "$": "geodb"},
+                        {"@key": "user", "$": user},
+                        {"@key": "passwd", "$": password},
+                        {"@key": "dbtype", "$": "postgis"}
+                    ]
+                }
+            }
+        }
+
+        requests.post(geoserver_url, json=db)
 
     def _gpdf_from_json(self, js: json) -> GeoDataFrame:
         """
@@ -656,27 +718,31 @@ class GeoDB(object):
         return d
 
     def _set_defaults(self):
-        self._server_url = GEODB_API_DEFAULT_CONNECTION_PARAMETERS.get('server_url') or self._server_url
-        self._server_port = GEODB_API_DEFAULT_CONNECTION_PARAMETERS.get('server_port') or self._server_port
-        self._auth_domain = GEODB_API_DEFAULT_CONNECTION_PARAMETERS.get('auth_domain') or self._auth_domain
-        self._auth_aud = GEODB_API_DEFAULT_CONNECTION_PARAMETERS.get('auth_aud') or self._auth_aud
+        self._server_url = GEODB_API_DEFAULT_PARAMETERS.get('server_url')
+        self._server_port = GEODB_API_DEFAULT_PARAMETERS.get('server_port')
+        self._auth_domain = GEODB_API_DEFAULT_PARAMETERS.get('auth_domain')
+        self._auth_aud = GEODB_API_DEFAULT_PARAMETERS.get('auth_aud')
+        self._auth_pub_client_id = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_id')
+        self._auth_pub_client_secret = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_secret')
 
     def _set_from_env(self):
         self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url
         self._server_port = os.getenv('GEODB_API_SERVER_PORT') or self._server_port
         self._auth_client_id = os.getenv('GEODB_AUTH_CLIENT_ID') or self._auth_client_id
         self._auth_client_secret = os.getenv('GEODB_AUTH_CLIENT_SECRET') or self._auth_client_secret
+        self._auth_pub_client_id = os.getenv('GEODB_AUTH_PUB_CLIENT_ID') or self._auth_pub_client_id
+        self._auth_pub_client_secret = os.getenv('GEODB_AUTH_PUB_CLIENT_SECRET') or self._auth_pub_client_secret
         self._auth_domain = os.getenv('GEODB_AUTH_DOMAIN') or self._auth_domain
         self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
 
     def _get_geodb_api_access_token(self):
-        if self._auth_client_id == "ANONYMOUS":
-            return None
+        client_id = self._auth_pub_client_id if self._is_public_client else self._auth_client_id
+        client_secret = self._auth_pub_client_secret if self._is_public_client else self._auth_client_secret
 
         conn = http.client.HTTPSConnection(self._auth_domain)
         payload = {
-            "client_id": self._auth_client_id,
-            "client_secret": self._auth_client_secret,
+            "client_id": client_id,
+            "client_secret": client_secret,
             "audience": self._auth_aud,
             "grant_type": "client_credentials"
         }
@@ -687,6 +753,7 @@ class GeoDB(object):
 
         res = conn.getresponse()
         data = json.loads(res.read().decode("utf-8"))
+
         return data['access_token']
 
     # noinspection PyMethodMayBeStatic

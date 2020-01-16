@@ -33,11 +33,11 @@ __author__ = "Helge Dzierzon (Brockmann Consult GmbH)"
 @click.option('--bbox-mode', '-m', 'bbox-mode', metavar='BBOX_MODE', help="Starting point")
 @click.option('--bbox-crs', '-c', 'bbox-crs', metavar='BBOX_CRS', help="Starting point")
 def get_by_bbox(dataset, bbox, limit, offset, bbox_mode, bbox_crs):
-    from dcfs_geodb.core.geo_db import GeoDB
+    from dcfs_geodb.core.geo_db import GeoDBClient
 
     bbox = bbox.split(',')
 
-    api = GeoDB()
+    api = GeoDBClient()
     api.filter_by_bbox(dataset=dataset, minx=bbox[0], miny=bbox[1], maxx=bbox[2], maxy=bbox[3], limit=limit, offset=offset,
                        bbox_mode=bbox_mode, bbox_crs=bbox_crs)
 
