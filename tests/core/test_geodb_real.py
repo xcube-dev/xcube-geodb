@@ -31,8 +31,7 @@ class MyTestCase(unittest.TestCase):
         cls._test_df = pd.read_csv(StringIO(cls._test_csv))
         cls._test_df['geometry'] = cls._test_df['geometry'].apply(wkt.loads)
 
-
-    def test_add_dataset(self):
+    def test_create_dataset(self):
         props = [{'name': 'test_col_int', 'type': 'integer'}, {'name': 'test_col_varchar', 'type': 'VARCHAR(255)'}]
 
         r = self._geodb.create_dataset(dataset='test', properties=props, crs='4326')

@@ -10,48 +10,55 @@ from shapely import wkt
 from dcfs_geodb.core.geo_db import GeoDBClient
 
 
+@requests_mock.mock(real_http=True)
 class GeoDBTest(unittest.TestCase):
     def setUp(self) -> None:
-        self._server_test_url = "http://test"
+        self._server_test_url = "https://test"
+        self._server_test_auth_domain = "https://auth"
         self._server_test_port = 3000
         self._server_full_address = self._server_test_url
 
         if self._server_test_port > 0:
             self._server_full_address += ':' + str(self._server_test_port)
 
-        self._api = GeoDBClient(server_url=self._server_test_url, server_port=self._server_test_port)
+        self._api = GeoDBClient(dot_env_file=".env_test")
 
     def tearDown(self) -> None:
         pass
 
-    @requests_mock.mock()
+    def set_global_mocks(self, m):
+        m.post(self._server_test_auth_domain + "/oauth/token", json={"access_token": "A long lived token"})
+
+        url = f"{self._server_full_address}/rpc/geodb_whoami"
+        m.get(url, text=json.dumps("helge"))
+
     def test_create_dataset(self, m):
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_datasets"
         m.post(url, text=json.dumps(expected_response))
+        self.set_auth_mock(m)
 
         res = self._api.create_dataset(dataset='test', properties=[{'name': 'test_col', 'type': 'inger'}])
         self.assertTrue(res)
 
-    @requests_mock.mock()
     def test_drop_dataset(self, m):
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_drop_datasets"
         m.post(url, text=json.dumps(expected_response))
+        self.set_global_mocks(m)
 
         res = self._api.drop_dataset('test')
         self.assertTrue(res)
 
-    @requests_mock.mock()
     def test_add_properties(self, m):
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_add_properties"
         m.post(url, text=json.dumps(expected_response))
+        self.set_global_mocks(m)
 
         res = self._api.add_properties('test', [{'name': 'test_col', 'type': 'insssssteger'}])
         self.assertTrue(res)
 
-    @requests_mock.mock()
     def test_query_by_bbox(self, m):
         expected_response = {'src': [{'id': 'dd', 'geometry': "0103000020D20E000001000000110000007593188402B51B4"
                                                               "1B6F3FDD4423FF6405839B4C802B51B412B8716D9EC3EF6406"
@@ -66,10 +73,14 @@ class GeoDBTest(unittest.TestCase):
                                                               "139B4C876383FF640E9263188F8B41B41333333333D3FF64075"
                                                               "93188402B51B41B6F3FDD4423FF640"}]}
 
-        url = "http://test:3000"
-        path = "/rpc/geodb_get_by_bbox"
-        m.get(url="http://test:3000/", text=json.dumps({'paths': ['/rpc/geodb_filter_by_bbox'],
-                                                        'definitions': ['dataset']}))
+        url = f"{self._server_test_url}:{self._server_test_port}"
+        path = "/rpc/geodb_filter_by_bbox"
+
+        self.set_global_mocks(m)
+
+        m.get(url=url, text=json.dumps({'paths': ['/rpc/geodb_filter_by_bbox'],
+                                        'definitions': ['helge_dataset']}))
+
         m.post(url + path, text=json.dumps(expected_response))
 
         gdf = self._api.filter_by_bbox(dataset='dataset', minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299)
@@ -87,25 +98,27 @@ class GeoDBTest(unittest.TestCase):
         self.assertEqual(ident, 'dd')
         self.assertEqual(str(geo), exp_geo)
 
-    @requests_mock.mock()
     def test_delete_from_dataset(self, m):
-        path = '/tt?id=eq.1'
+        path = '/helge_tt?id=eq.1'
         expected_response = 'success'
 
-        m.delete(self._server_full_address + path, text=expected_response)
+        self.set_global_mocks(m)
+
+        url = self._server_full_address + path
+        m.delete(url, text=expected_response)
 
         r = self._api.delete_from_dataset('tt', 'id=eq.1')
 
         self.assertEqual(r.status_code, 200)
         self.assertEqual(expected_response, r.text)
 
-    @requests_mock.mock()
     def test_update_dataset(self, m):
-        path = '/tt?id=eq.1'
+        path = '/helge_tt?id=eq.1'
         expected_response = 'success'
 
-        m.get(url="http://test:3000/", text=json.dumps({'definitions': ['tt']}))
+        m.get(url=self._server_full_address + "/", text=json.dumps({'definitions': ['helge_tt']}))
         m.patch(self._server_full_address + path, text=expected_response)
+        self.set_global_mocks(m)
 
         values = {'column': 200}
         r = self._api.update_dataset('tt', values, 'id=eq.1')
@@ -131,13 +144,13 @@ class GeoDBTest(unittest.TestCase):
         df['geometry'] = df['geometry'].apply(wkt.loads)
         return df
 
-    @requests_mock.mock()
     def test_insert_into_dataset(self, m):
-        path = '/tt'
+        path = '/helge_tt'
         expected_response = 'success'
 
-        m.get(url="http://test:3000/", text=json.dumps({'definitions': ['tt']}))
+        m.get(url=self._server_full_address, text=json.dumps({'definitions': ['tt']}))
         m.post(self._server_full_address + path, text=expected_response)
+        self.set_global_mocks(m)
 
         df = self.make_test_df()
         values = GeoDataFrame(df, crs={'init': 'epsg:4326'}, geometry=df['geometry'])
@@ -158,17 +171,6 @@ class GeoDBTest(unittest.TestCase):
             self._api.insert_into_dataset('tt', values)
 
         self.assertEqual(str(e.exception), "Could not guess the dataframe's crs. Please specify.")
-
-    @requests_mock.mock()
-    def test_create_dataset(self, m):
-        props = [{'name': 'tt', 'type': 'VARCHAR(255)'}]
-
-        expected_response = 'Success'
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_datasets"
-        m.post(url, text=json.dumps(expected_response))
-
-        res = self._api.create_dataset('tt3', props)
-        self.assertEqual(expected_response, res.json())
 
     # def test_real(self):
     #     api = GeoDB()

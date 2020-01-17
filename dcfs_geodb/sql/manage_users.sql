@@ -14,7 +14,7 @@ CREATE OR REPLACE FUNCTION public.geodb_register_user(IN user_name text, IN pass
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-    EXECUTE format('CREATE ROLE %s LOGIN; ALTER ROLE %s PASSWORD ''%s'';ALTER ROLE %s SET search_path = public,' ||
+    EXECUTE format('CREATE ROLE %s LOGIN; ALTER ROLE %s PASSWORD ''%s'';ALTER ROLE %s SET search_path = public;' ||
                    'GRANT %s TO authenticator;', user_name, user_name, password, user_name, user_name);
     RETURN 'success';
 END

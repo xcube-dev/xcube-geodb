@@ -1,4 +1,3 @@
-import http.client
 import os
 from typing import Dict, Optional, Union, Sequence
 
@@ -23,14 +22,20 @@ class GeoDBClient(object):
                  server_port: Optional[int] = None,
                  client_id: Optional[str] = None,
                  client_secret: Optional[str] = None,
-                 anonymous: bool = False):
+                 anonymous: bool = False,
+                 dot_env_file: str = ".env"):
         """
 
         Args:
-            server_url: The URL of the server
-            server_port: The server port
+            server_url (str): The URL of the PostGrest Rest API
+            server_port (str): The port to the PostGrest Rest API
+            dot_env_file (str): Name of the dotenv file [.env]
+            anonymous (bool): Whether the client connection is anonymous (without credentials) [False]
+            client_secret (str): Client secret
+            client_id (str): Client ID
         """
-        self._dotenv_file = find_dotenv()
+        # noinspection SpellCheckingInspection
+        self._dotenv_file = find_dotenv(filename=dot_env_file)
         if self._dotenv_file:
             load_dotenv(self._dotenv_file)
 
@@ -44,10 +49,9 @@ class GeoDBClient(object):
 
         self._capabilities = None
         self._is_public_client = anonymous
-        self._geodb_api_access_token = self._get_geodb_api_access_token()
+        self._geodb_api_access_token = None
 
         self._whoami = None
-        self._geoserver_url = "http://3.120.53.215:5000/geoserver"
 
     @property
     def capabilities(self) -> json:
@@ -615,47 +619,49 @@ class GeoDBClient(object):
 
     @property
     def geoserver_url(self):
-        return self._geoserver_url
+        return f"{self._server_url}/geoserver"
 
-    def register_user(self, user: str, password: str):
+    def register_user(self, user_name: str, password: str):
         user = {
-            "user": user,
+            "user_name": user_name,
             "password": password
         }
 
-        r = self.post(f'/rpc/register_user', payload=user)
+        admin_user = os.environ.get("GEOSERVER_ADMIN_USER")
+        admin_pwd = os.environ.get("GEOSERVER_ADMIN_PASSWORD")
 
-        geoserver_url = "http://3.120.53.215:5000/geoserver/rest/security/usergroup/users"
+        # r = self.post(f'/rpc/geodb_register_user', payload=user)
+
+        geoserver_url = f"{self.geoserver_url}/rest/security/usergroup/users"
 
         user = {
             "org.geoserver.rest.security.xml.JaxbUser": {
-                "userName": user,
+                "userName": user_name,
                 "password": password,
                 "enabled": True
             }
         }
 
-        requests.post(geoserver_url, json=user)
+        r = requests.post(geoserver_url, json=user, auth=(admin_user, admin_pwd))
 
-        geoserver_url = "http://3.120.53.215:5000/geoserver/rest/workspaces"
+        from geoserver.catalog import Catalog
 
-        workspace = {
-            "name": user
-        }
+        cat = Catalog(self.geoserver_url + "/rest/", username="admin", password="geoserver")
+        ws = cat.get_workspace(user_name)
+        if not ws:
+            cat.create_workspace(user_name)
 
-        requests.post(geoserver_url, json=workspace)
-
-        geoserver_url = f"http://3.120.53.215:5000/geoserver/rest/workspaces/{user}/datastores"
+        geoserver_url = f"{self.geoserver_url}/rest/workspaces/{user_name}/datastores"
 
         db = {
             "dataStore": {
-                "name": "nyc",
+                "name": user_name + "geodb",
                 "connectionParameters": {
                     "entry": [
                         {"@key": "host", "$": "db-dcfs-geodb.cbfjgqxk302m.eu-central-1.rds.amazonaws.com"},
                         {"@key": "port", "$": "5432"},
                         {"@key": "database", "$": "geodb"},
-                        {"@key": "user", "$": user},
+                        {"@key": "user", "$": user_name},
                         {"@key": "passwd", "$": password},
                         {"@key": "dbtype", "$": "postgis"}
                     ]
@@ -663,7 +669,8 @@ class GeoDBClient(object):
             }
         }
 
-        requests.post(geoserver_url, json=db)
+        r = requests.post(geoserver_url, json=db, auth=(admin_user, admin_pwd))
+        print(r)
 
     def _gpdf_from_json(self, js: json) -> GeoDataFrame:
         """
@@ -739,7 +746,6 @@ class GeoDBClient(object):
         client_id = self._auth_pub_client_id if self._is_public_client else self._auth_client_id
         client_secret = self._auth_pub_client_secret if self._is_public_client else self._auth_client_secret
 
-        conn = http.client.HTTPSConnection(self._auth_domain)
         payload = {
             "client_id": client_id,
             "client_secret": client_secret,
@@ -749,10 +755,9 @@ class GeoDBClient(object):
 
         headers = {'content-type': "application/json"}
 
-        conn.request("POST", "/oauth/token", json.dumps(payload), headers)
+        r = requests.post(self._auth_domain + "/oauth/token", json=payload,  headers=headers)
 
-        res = conn.getresponse()
-        data = json.loads(res.read().decode("utf-8"))
+        data = r.json()
 
         return data['access_token']
 
@@ -820,3 +825,10 @@ class GeoDBClient(object):
             cursor.execute(sql_create)
 
         conn.commit()
+
+
+if __name__ == "__main__":
+    # execute only if run as a script
+    geodb = GeoDBClient(client_id="PechSoVRytCYj6QDQqNRZISvYtFg4qcM",
+                        client_secret="QKEavCtWRn41BTnNx3O45fQzWHe9omPU49Zkg4dK0D2DGS45Z9Y_LZd_ogifxVJF")
+    geodb.register_user('helge', 'inkl67z')
