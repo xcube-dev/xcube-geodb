@@ -100,14 +100,11 @@ class GeoDBClient(object):
             params: Request parameters
 
         Returns:
-            A Request object
+            requests.models.Response: A Request object
 
         Raises:
-            PostgrestException: if request fails
-
-        Examples:
-            >>> geodb = GeoDBClient()
-            >>> geodb.post(path='/rpc/my_function', payload={'name': 'MyName'})
+            GeoDBError: If the database raises an error
+            HttpError: If the request fails
         """
 
         common_headers = self.common_headers
@@ -136,15 +133,11 @@ class GeoDBClient(object):
             params: Request parameters
 
         Returns:
-            A Request object
+            requests.models.Response: A Request object
 
         Raises:
-            PostgrestException: if request fails
-
-        Examples:
-            >>> geodb = GeoDBClient()
-            >>> geodb.get(path='/my_table', params={"limit": 1})
-
+            GeoDBError: If the database raises an error
+            HttpError: If the request fails
         """
         headers = self.common_headers.update(headers) if headers else self.common_headers
 
@@ -167,15 +160,11 @@ class GeoDBClient(object):
             params: Request parameters
 
         Returns:
-            A Request object
+            requests.models.Response: A Request object
 
         Raises:
-            PostgrestException: if request fails
-
-        Examples:
-            >>> geodb = GeoDBClient()
-            >>> geodb.delete(path='/my_table', params={"limit": 1})
-
+            GeoDBError: If the database raises an error
+            HttpError: If the request fails
         """
 
         headers = self.common_headers.update(headers) if headers else self.common_headers
@@ -198,15 +187,11 @@ class GeoDBClient(object):
             params: Request parameters
 
         Returns:
-            A Request object
+            requests.models.Response: A Request object
 
         Raises:
-            GeoDBError: if request fails
-
-        Examples:
-            >>> geodb = GeoDBClient()
-            >>> geodb.patch(path='/my_table', params={"limit": 1})
-
+            GeoDBError: If the database raises an error
+            HttpError: If the request fails
         """
 
         headers = self.common_headers.update(headers) if headers else self.common_headers
@@ -218,26 +203,40 @@ class GeoDBClient(object):
             raise GeoDBError(r.json()['message'])
         return r
 
-    def create_datasets(self, datasets: Sequence[Dict]) -> requests.models.Response:
+    def create_datasets(self, datasets: Sequence[Dict]) -> str:
         """
 
         Args:
             datasets: A json list of datasets
 
         Returns:
-            requests.models.Response:
+            str: Success Message
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.create_dataset(datasets=['myDataset1', 'myDataset2'])
+            >>> datasets = [
+                    {
+                        'name': 'land_use',
+                        'crs': 3794,
+                        'properties':
+                        [
+                            {'name': 'RABA_PID', 'type': 'float'},
+                            {'name': 'RABA_ID', 'type': 'float'},
+                            {'name': 'D_OD', 'type': 'date'}
+                        ]
+                    }
+                ]
+            >>> geodb.create_datasets(datasets)
         """
 
         self._refresh_capabilities()
 
         datasets = {"datasets": datasets}
-        return self.post(path='/rpc/geodb_create_datasets', payload=datasets)
+        self.post(path='/rpc/geodb_create_datasets', payload=datasets)
 
-    def create_dataset(self, dataset: str, properties: Sequence[Dict], crs: str = "4326") -> requests.models.Response:
+        return f"Datasets {str(datasets)} added"
+
+    def create_dataset(self, dataset: str, properties: Sequence[Dict], crs: int = 4326) -> str:
         """
 
         Args:
@@ -246,27 +245,33 @@ class GeoDBClient(object):
             properties: Property definitions for the dataset
 
         Returns:
-            requests.models.Response:
+            str: Success message
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.create_dataset(dataset='myDataset')
+            >>> properties = [
+                        [
+                            {'name': 'RABA_PID', 'type': 'float'},
+                            {'name': 'RABA_ID', 'type': 'float'},
+                            {'name': 'D_OD', 'type': 'date'}
+                        ]
+            >>> geodb.create_dataset(dataset='land_use', crs=3794, properties=properties)
         """
 
-        dataset = {'name': dataset, 'properties': properties, 'crs': crs}
+        dataset = {'name': dataset, 'properties': properties, 'crs': str(crs)}
 
         self._refresh_capabilities()
 
         return self.create_datasets([dataset])
 
-    def drop_dataset(self, dataset: str) -> requests.models.Response:
+    def drop_dataset(self, dataset: str) -> str:
         """
 
         Args:
             dataset: Dataset to be dropped
 
         Returns:
-            requests.models.Response:
+            str: Success message
 
         Examples:
             >>> geodb = GeoDBClient()
@@ -275,16 +280,18 @@ class GeoDBClient(object):
 
         self._refresh_capabilities()
 
-        return self.post(path='/rpc/geodb_drop_datasets', payload={'datasets': [dataset]})
+        self.post(path='/rpc/geodb_drop_datasets', payload={'datasets': [dataset]})
 
-    def drop_datasets(self, datasets: Sequence[str]) -> requests.models.Response:
+        return f"Dataset {dataset} deleted"
+
+    def drop_datasets(self, datasets: Sequence[str]) -> str:
         """
 
         Args:
             datasets: Datasets to be dropped
 
         Returns:
-            requests.models.Response:
+            str: Success message
 
         Examples:
             >>> geodb = GeoDBClient()
@@ -293,26 +300,56 @@ class GeoDBClient(object):
 
         self._refresh_capabilities()
 
-        return self.post(path='/rpc/geodb_drop_datasets', payload={'datasets': datasets})
+        self.post(path='/rpc/geodb_drop_datasets', payload={'datasets': datasets})
 
-    def grant_access_to_dataset(self, dataset: str, user: str = "public") -> requests.models.Response:
-        dataset = f"{self.whoami}_{dataset}"
+        return f"Dataset {str(datasets)} deleted"
 
-        return self.post(path='/rpc/geodb_grant_access_to_dataset', payload={'dataset': dataset, 'usr': user})
+    def grant_access_to_dataset(self, dataset: str, user: str = "public") -> str:
+        """
 
-    def revoke_access_to_dataset(self, dataset: str, user: str = 'public') -> requests.models.Response:
-        dataset = f"{self.whoami}_{dataset}"
+        Args:
+            dataset: Dataset to grant access to
+            user: The user to grant access to [public]. By default the dataset gets public access
 
-        return self.post(path='/rpc/geodb_revoke_access_to_dataset', payload={'dataset': dataset, 'usr': user})
+        Returns:
+            A success message
+        """
+        dn = f"{self.whoami}_{dataset}"
+
+        self.post(path='/rpc/geodb_grant_access_to_dataset', payload={'dataset': dn, 'usr': user})
+
+        return f"Access granted on {dataset} to {user}"
+
+    def revoke_access_to_dataset(self, dataset: str, user: str = 'public') -> str:
+        """
+
+        Args:
+            dataset: Dataset to grant access to
+            user: The user to revoke access from [public].
+
+        Returns:
+            A success message
+        """
+        dn = f"{self.whoami}_{dataset}"
+
+        self.post(path='/rpc/geodb_revoke_access_to_dataset', payload={'dataset': dn, 'usr': user})
+
+        return f"Access revoked from {dataset} of {user}"
 
     def list_grants(self) -> Sequence:
+        """
+
+        Returns:
+            A list of dataset grants
+
+        """
         r = self.post(path='/rpc/geodb_list_grants', payload={})
         if r.json()[0]['src'] is None:
             return []
         else:
             return r.json()[0]['src']
 
-    def add_property(self, dataset: str, prop: str, typ: str) -> requests.models.Response:
+    def add_property(self, dataset: str, prop: str, typ: str) -> str:
         """
         Add a property to an existing dataset
         Args:
@@ -320,17 +357,19 @@ class GeoDBClient(object):
             prop: Property name
             typ: Type of property
 
+        Returns:
+            Success Message
+
         Examples:
-            >>> prop = {}
             >>> geodb = GeoDBClient()
-            >>> geodb.add_property(dataset='myDataset', prop=prop)
+            >>> geodb.add_property(dataset='myDataset', name='myProperty', type='postgresType')
         """
 
         prop = {'name': prop, 'type': typ}
 
         return self.add_properties(dataset=dataset, properties=[prop])
 
-    def add_properties(self, dataset: str, properties: Sequence[Dict]) -> requests.models.Response:
+    def add_properties(self, dataset: str, properties: Sequence[Dict]) -> str:
         """
 
         Args:
@@ -338,19 +377,21 @@ class GeoDBClient(object):
             properties: Property definitions as json array
 
         Returns:
-            requests.models.Response:
+            str: Success message
 
         Examples:
-            >>> prop = {}
+            >>> properties = [{'name': 'myName1', 'type': 'pstgresType1'}, {'name': 'myName2', 'type': 'pstgresType2'},]
             >>> geodb = GeoDBClient()
-            >>> geodb.add_property(dataset='myDataset', prop=[prop])
+            >>> geodb.add_property(dataset='myDataset', properties=properties)
         """
 
         self._refresh_capabilities()
 
-        return self.post(path='/rpc/geodb_add_properties', payload={'dataset': dataset, 'properties': properties})
+        self.post(path='/rpc/geodb_add_properties', payload={'dataset': dataset, 'properties': properties})
 
-    def drop_property(self, dataset: str, prop: str) -> requests.models.Response:
+        return f"Properties added"
+
+    def drop_property(self, dataset: str, prop: str) -> str:
         """
 
         Args:
@@ -358,7 +399,7 @@ class GeoDBClient(object):
             prop: Property to delete
 
         Returns:
-            requests.models.Response:
+            str: Success message
 
         Examples:
             >>> geodb = GeoDBClient()
@@ -367,7 +408,7 @@ class GeoDBClient(object):
 
         return self.drop_properties(dataset=dataset, properties=[prop])
 
-    def drop_properties(self, dataset: str, properties: Sequence[str]) -> requests.models.Response:
+    def drop_properties(self, dataset: str, properties: Sequence[str]) -> str:
         """
 
         Args:
@@ -375,7 +416,7 @@ class GeoDBClient(object):
             properties: A json object containing the property definitions
 
         Returns:
-            requests.models.Response:
+            str: Success message
 
         Examples:
             >>> geodb = GeoDBClient()
@@ -388,7 +429,9 @@ class GeoDBClient(object):
 
         self._raise_for_stored_procedure_exists('geodb_drop_properties')
 
-        return self.post(path='/rpc/geodb_drop_properties', payload={'dataset': dataset, 'properties': properties})
+        self.post(path='/rpc/geodb_drop_properties', payload={'dataset': dataset, 'properties': properties})
+
+        return f"Properties {str(properties)} dropped from {dataset}"
 
     def _raise_for_mandatory_columns(self, properties: Sequence[str]):
         common_props = list(set(properties) & set(self._mandatory_properties))
@@ -396,6 +439,15 @@ class GeoDBClient(object):
             raise ValueError("Don't delete the following columns: " + str(common_props))
 
     def get_properties(self, dataset: str) -> DataFrame:
+        """
+
+        Args:
+            dataset: Dataset to retrieve a list of properties from
+
+        Returns:
+            DataFrame: A list of properties
+
+        """
         r = self.post(path='/rpc/geodb_get_properties', payload={'dataset': dataset})
 
         js = r.json()[0]['src']
@@ -405,10 +457,13 @@ class GeoDBClient(object):
         else:
             return DataFrame(columns=["table_name", "column_name", "data_type"])
 
-        # dataset = f"{self.whoami}_{dataset}"
-        # return self.capabilities['definitions'][dataset]
-
     def get_datasets(self) -> DataFrame:
+        """
+
+        Returns:
+            DataFrame: A list of datasets the user owns
+
+        """
         r = self.post(path='/rpc/geodb_list_datasets', payload={})
 
         js = r.json()[0]['src']
@@ -417,7 +472,7 @@ class GeoDBClient(object):
         else:
             return DataFrame(columns=["table_name"])
 
-    def delete_from_dataset(self, dataset: str, query: str) -> requests.models.Response:
+    def delete_from_dataset(self, dataset: str, query: str) -> str:
         """
 
         Args:
@@ -425,14 +480,20 @@ class GeoDBClient(object):
             query: Filter which records to delete
 
         Returns:
-            requests.models.Response
+            str: A success message
+
+        Examples:
+            >>> geodb = GeoDBClient()
+            >>> geodb.delete_from_dataset('myDataset', 'id=eq.1')
         """
 
-        dataset = f"{self.whoami}_{dataset}"
+        dn = f"{self.whoami}_{dataset}"
 
-        return self.delete(f'/{dataset}?{query}')
+        self.delete(f'/{dn}?{query}')
 
-    def update_dataset(self, dataset: str, values: Dict, query: str) -> requests.models.Response:
+        return f"Data from {dataset} deleted"
+
+    def update_dataset(self, dataset: str, values: Dict, query: str) -> str:
         """
 
         Args:
@@ -441,12 +502,12 @@ class GeoDBClient(object):
             query: Filter which values to be updated
 
         Returns:
-            requests.models.Response
+            str: A success message
         """
 
-        dataset = f"{self.whoami}_{dataset}"
+        dn = f"{self.whoami}_{dataset}"
 
-        self._raise_for_dataset_exists(dataset=dataset)
+        self._raise_for_dataset_exists(dataset=dn)
 
         if isinstance(values, Dict):
             if 'id' in values.keys():
@@ -454,7 +515,9 @@ class GeoDBClient(object):
         else:
             raise ValueError(f'Format {type(values)} not supported.')
 
-        return self.patch(f'/{dataset}?{query}', payload=values)
+        self.patch(f'/{dn}?{query}', payload=values)
+
+        return f"{dataset} updated"
 
     # noinspection PyMethodMayBeStatic
     def _gdf_to_csv(self, gpdf: GeoDataFrame, crs: int = None) -> str:
@@ -472,7 +535,7 @@ class GeoDBClient(object):
         return gpdf.to_csv(header=True, index=False).lstrip()
 
     def insert_into_dataset(self, dataset: str, values: GeoDataFrame, upsert: bool = False, crs: int = None) \
-            -> requests.models.Response:
+            -> str:
         """
 
         Args:
@@ -486,11 +549,11 @@ class GeoDBClient(object):
             ValueError: When crs is not given and cannot be guessed from dataframe
 
         Returns:
-            requests.models.Response
+            str: Success message
         """
 
         values.columns = map(str.lower, values.columns)
-        dataset = f"{self.whoami}_{dataset}"
+        dn = f"{self.whoami}_{dataset}"
 
         # self._dataset_exists(dataset=dataset)
 
@@ -507,7 +570,9 @@ class GeoDBClient(object):
         if upsert:
             headers['Prefer'] = 'resolution=merge-duplicates'
 
-        return self.post(f'/{dataset}', payload=values, headers=headers)
+        self.post(f'/{dn}', payload=values, headers=headers)
+
+        return f"Data inserted into {dataset}"
 
     def filter_by_bbox(self, dataset: str, minx, miny, maxx, maxy, bbox_mode: str = 'contains', bbox_crs: int = 4326,
                        limit: int = 0, offset: int = 0, namespace: Optional[str] = None) \
@@ -515,7 +580,6 @@ class GeoDBClient(object):
         """
 
         Args:
-            namespace:
             dataset: Table to filter
             minx: BBox minx (e.g. lon)
             miny: BBox miny (e.g. lat)
@@ -525,29 +589,32 @@ class GeoDBClient(object):
             bbox_crs: Projection code. [4326]
             limit: Limit for paging
             offset: Offset (start) of rows to return. Used in combination with lmt.
+            namespace: By default the API filters in the user's own namespace. To access
+                       datasets the user has grant set the namespace accordingly.
 
         Returns:
             A GeoPandas Dataframe
 
         Raises:
-            ValueError: When either the column ID or geometry or both are missing. Or the result is empty.
+            HttpError: When the database raises an error
+
         Examples:
             >>> geodb = GeoDBClient()
             >>> geodb.filter_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299, \
-                bbox_mode="contains", bbox_crs=3794, lmt=1000, offst=10)
+                bbox_mode="contains", bbox_crs=3794, limit=10, offset=10)
         """
 
         tab_prefix = namespace or self.whoami
 
-        dataset = f"{tab_prefix}_{dataset}"
+        dn = f"{tab_prefix}_{dataset}"
 
-        self._raise_for_dataset_exists(dataset=dataset)
+        self._raise_for_dataset_exists(dataset=dn)
         self._raise_for_stored_procedure_exists('geodb_filter_by_bbox')
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
         r = self.post('/rpc/geodb_filter_by_bbox', headers=headers, payload={
-            "dataset": dataset,
+            "dataset": dn,
             "minx": minx,
             "miny": miny,
             "maxx": maxx,
@@ -565,16 +632,20 @@ class GeoDBClient(object):
             return GeoDataFrame(columns=["Empty Result"])
 
     def filter(self, dataset: str, query: Optional[str] = None, namespace: Optional[str] = None) \
-            -> Union[gpd.GeoDataFrame, DataFrame]:
+            -> Union[GeoDataFrame, DataFrame]:
         """
 
         Args:
-            namespace:
             dataset: The dataset to be filtered
             query: A filter query using PostGrest style
+            namespace: By default the API filters in the user's own namespace. To access
+                       datasets the user has grant set the namespace accordingly.
 
         Returns:
-            GeoDataFrame of results
+            GeoDataFrame or DataFrame: results
+
+        Raises:
+            HttpError: When the database raises an error
 
         Examples:
             >>> geodb = GeoDBClient()
@@ -583,14 +654,14 @@ class GeoDBClient(object):
         """
 
         tab_prefix = namespace or self.whoami
-        dataset = f"{tab_prefix}_{dataset}"
+        dn = f"{tab_prefix}_{dataset}"
 
-        self._raise_for_dataset_exists(dataset=dataset)
+        self._raise_for_dataset_exists(dataset=dn)
 
         if query:
-            r = self.get(f"/{dataset}?{query}")
+            r = self.get(f"/{dn}?{query}")
         else:
-            r = self.get(f"/{dataset}")
+            r = self.get(f"/{dn}")
 
         js = r.json()
 
@@ -602,17 +673,39 @@ class GeoDBClient(object):
     def filter_raw(self, dataset: str, select: str = "*", where: Optional[str] = None,
                    group: Optional[str] = None, order: Optional[str] = None, limit: Optional[int] = None,
                    offset: Optional[int] = None, namespace: Optional[str] = None) -> Union[GeoDataFrame, DataFrame]:
+        """
 
+        Args:
+            dataset: Dataset to query
+            select: Properties (columns) to return. Can contain aggregation functions
+            where: SQL WHERE statement
+            group: SQL GROUP statement
+            order: SQL ORDER statement
+            limit: Limit for paging
+            offset: Offset (start) of rows to return. Used in combination with limit.
+            namespace: By default the API filters in the user's own namespace. To access
+                       datasets the user has grant set the namespace accordingly.
+
+        Returns:
+            GeoDataFrame or DataFrame: results
+
+        Raises:
+            HttpError: When the database raises an error
+
+        Examples:
+            >>> geodb = GeoDBClient()
+            >>> df = geodb.filter_raw('land_use', where='raba_id=1410', group='d_od', select='COUNT(d_od) as ct, d_od')
+        """
         tab_prefix = namespace or self.whoami
 
-        dataset = f"{tab_prefix}_{dataset}"
+        dn = f"{tab_prefix}_{dataset}"
 
-        self._raise_for_dataset_exists(dataset=dataset)
+        self._raise_for_dataset_exists(dataset=dn)
         self._raise_for_stored_procedure_exists('geodb_filter_raw')
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
-        qry = f'SELECT {select} FROM "{dataset}" '
+        qry = f'SELECT {select} FROM "{dn}" '
 
         if where:
             qry += f'WHERE {where} '
@@ -629,8 +722,6 @@ class GeoDBClient(object):
         if limit and offset:
             qry += f'OFFSET {offset} '
 
-        print(qry)
-
         r = self.post("/rpc/geodb_filter_raw", headers=headers, payload={'dataset': dataset, 'qry': qry})
         r.raise_for_status()
 
@@ -642,23 +733,34 @@ class GeoDBClient(object):
             return DataFrame(columns=["Empty Result"])
 
     @property
-    def geoserver_url(self):
+    def geoserver_url(self) -> str:
+        """
+
+        Returns:
+            str: The URL of the corresponding geoserver instance
+        """
         return f"{self._server_url}/geoserver"
 
     def get_catalog(self) -> object:
+        """
+
+        Returns:
+            Catalog: A Geoserver catalog instance
+        """
         from geoserver.catalog import Catalog
 
         return Catalog(self.geoserver_url + "/rest/", username=self._auth_client_id, password=self._auth_client_secret)
 
-    def register_user_to_database(self, user_name: str, password: str):
-        user = {
-            "user_name": user_name,
-            "password": password
-        }
+    def register_user_to_geoserver(self, user_name: str, password: str) -> str:
+        """
 
-        return self.post(f'/rpc/geodb_register_user', payload=user)
+        Args:
+            user_name: User name of the user
+            password: Password for the user
 
-    def register_user_to_geoserver(self, user_name: str, password: str):
+        Returns:
+            str: Success message
+        """
         admin_user = os.environ.get("GEOSERVER_ADMIN_USER")
         admin_pwd = os.environ.get("GEOSERVER_ADMIN_PASSWORD")
 
@@ -716,6 +818,8 @@ class GeoDBClient(object):
 
         r = requests.post(geoserver_url, json=rule, auth=(admin_user, admin_pwd))
         r.raise_for_status()
+
+        return f"User {user_name} successfully added"
 
     def _df_from_json(self, js: json) -> Union[GeoDataFrame, DataFrame]:
         """
@@ -860,7 +964,11 @@ class GeoDBClient(object):
         else:
             raise ValueError(f"Stored procedure {stored_procedure} does not exist")
 
+    # noinspection PyMethodMayBeStatic
     def setup(self):
+        """
+            Sets up  the datase. Needs DB credentials and the database user requires CREATE TABLE/FUNCTION grants.
+        """
         host = os.getenv('GEODB_DB_HOST')
         port = os.getenv('GEODB_DB_PORT')
         user = os.getenv('GEODB_DB_USER')
@@ -885,5 +993,4 @@ class GeoDBClient(object):
             sql_create = sql_file.read()
             cursor.execute(sql_create)
 
-        conn.commit()
         conn.commit()

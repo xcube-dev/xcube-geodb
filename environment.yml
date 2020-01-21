@@ -6,7 +6,6 @@ dependencies:
   # Python
   - python >=3.6
   # Required
-  - jupyterlab
   - pip
   - geopandas >=0.5
   - matplotlib-base
@@ -16,6 +15,8 @@ dependencies:
       - fastjsonschema
       - python-dotenv
       - gsconfig-py3
+  # Exploring
+  - jupyterlab
   # Testing
   - pytest >=4.4
   - pytest-cov >=2.6

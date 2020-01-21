@@ -75,8 +75,9 @@ BEGIN
                                        || ' ' ||  miny
                                        || ', ' || minx
                                        || ' ' || miny
-                                       || '))'', geometry)'
-                                       || ' ' || lmt_str || ') as src',
+                                       || '))'', geometry) '
+                                       || 'ODER BY id ' ||
+                                       || lmt_str || ') as src',
 	    dataset, bbox_func, bbox_crs
 	);
 
