@@ -1,16 +1,16 @@
 import os
 from typing import Dict, Optional, Union, Sequence
 
-import fastjsonschema
 import geopandas as gpd
 import psycopg2
 from geopandas import GeoDataFrame
+from pandas import DataFrame
 from shapely import wkb
 import requests
 import json
 from dotenv import load_dotenv, find_dotenv
 
-from dcfs_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS, JSON_VALIDATIONS
+from dcfs_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS
 
 
 class GeoDBError(ValueError):
@@ -46,6 +46,7 @@ class GeoDBClient(object):
         self._server_port = server_port or self._server_port
         self._auth_client_id = client_id or self._auth_client_id
         self._auth_client_secret = client_secret or self._auth_client_secret
+        self._auth_access_token = None
 
         self._capabilities = None
         self._is_public_client = anonymous
@@ -53,21 +54,7 @@ class GeoDBClient(object):
 
         self._whoami = None
 
-    @property
-    def capabilities(self) -> json:
-        """
-            Get a list of WebAPI endpoints.
-            Returns:
-                A json object containing all endpoints and capability information about the PostGrest API.
-        """
-
-        if self._capabilities is None:
-            r = self.get('/')
-            r.raise_for_status()
-
-            self._capabilities = r.json()
-
-        return self._capabilities
+        self._mandatory_properties = ["geometry", "id", "created_at", "modified_at"]
 
     def get_dataset_info(self, dataset: str):
         capabilities = self.capabilities
@@ -78,17 +65,11 @@ class GeoDBClient(object):
 
     @property
     def common_headers(self):
-        if self._get_geodb_api_access_token():
-            return {
-                'Prefer': 'return=representation',
-                'Content-type': 'application/json',
-                'Authorization': f"Bearer {self._geodb_api_access_token}"
-            }
-        else:
-            return {
-                'Prefer': 'return=representation',
-                'Content-type': 'application/json',
-            }
+        return {
+            'Prefer': 'return=representation',
+            'Content-type': 'application/json',
+            'Authorization': f"Bearer {self.auth_access_token}"
+        }
 
     @property
     def whoami(self):
@@ -96,6 +77,16 @@ class GeoDBClient(object):
             self._whoami = self.get(path='/rpc/geodb_whoami').json()
 
         return self._whoami
+
+    @property
+    def capabilities(self):
+        if self._capabilities is None:
+            self._capabilities = self.get(path='/').json()
+
+        return self._capabilities
+
+    def _refresh_capabilities(self):
+        self._capabilities = None
 
     def post(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
              headers: Optional[Dict] = None) -> requests.models.Response:
@@ -132,7 +123,7 @@ class GeoDBClient(object):
                 r = requests.post(self._get_full_url(path=path), json=payload, params=params, headers=common_headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError:
-            raise GeoDBError(r.json()['message'])
+            raise GeoDBError(r.text)
 
         return r
 
@@ -240,14 +231,8 @@ class GeoDBClient(object):
             >>> geodb = GeoDBClient()
             >>> geodb.create_dataset(datasets=['myDataset1', 'myDataset2'])
         """
-        validate = fastjsonschema.compile(
-            JSON_VALIDATIONS['validation'],
-            formats=JSON_VALIDATIONS['formats']
-        )
 
-        # validate(datasets)
-
-        self._capabilities = None
+        self._refresh_capabilities()
 
         datasets = {"datasets": datasets}
         return self.post(path='/rpc/geodb_create_datasets', payload=datasets)
@@ -270,7 +255,7 @@ class GeoDBClient(object):
 
         dataset = {'name': dataset, 'properties': properties, 'crs': crs}
 
-        self._capabilities = None
+        self._refresh_capabilities()
 
         return self.create_datasets([dataset])
 
@@ -288,7 +273,7 @@ class GeoDBClient(object):
             >>> geodb.drop_dataset(dataset='myDataset')
         """
 
-        self._capabilities = None
+        self._refresh_capabilities()
 
         return self.post(path='/rpc/geodb_drop_datasets', payload={'datasets': [dataset]})
 
@@ -306,7 +291,7 @@ class GeoDBClient(object):
             >>> geodb.drop_datasets(datasets=['myDataset1', 'myDaraset2'])
         """
 
-        self._capabilities = None
+        self._refresh_capabilities()
 
         return self.post(path='/rpc/geodb_drop_datasets', payload={'datasets': datasets})
 
@@ -343,8 +328,6 @@ class GeoDBClient(object):
 
         prop = {'name': prop, 'type': typ}
 
-        dataset = f"{self.whoami}_{dataset}"
-
         return self.add_properties(dataset=dataset, properties=[prop])
 
     def add_properties(self, dataset: str, properties: Sequence[Dict]) -> requests.models.Response:
@@ -363,13 +346,7 @@ class GeoDBClient(object):
             >>> geodb.add_property(dataset='myDataset', prop=[prop])
         """
 
-        dataset = f"{self.whoami}_{dataset}"
-
-        validate = fastjsonschema.compile(
-            JSON_VALIDATIONS['validation'],
-            formats=JSON_VALIDATIONS['formats']
-        )
-        # validate(properties)
+        self._refresh_capabilities()
 
         return self.post(path='/rpc/geodb_add_properties', payload={'dataset': dataset, 'properties': properties})
 
@@ -388,12 +365,9 @@ class GeoDBClient(object):
             >>> geodb.drop_property(dataset='myDataset', prop='myProperty')
         """
 
-        dataset = f"{self.whoami}_{dataset}"
-
         return self.drop_properties(dataset=dataset, properties=[prop])
 
-    def drop_properties(self, dataset: str, properties: Union[Sequence[Dict], Sequence[str]]) \
-            -> requests.models.Response:
+    def drop_properties(self, dataset: str, properties: Sequence[str]) -> requests.models.Response:
         """
 
         Args:
@@ -408,21 +382,40 @@ class GeoDBClient(object):
             >>> geodb.drop_properties(dataset='myDataset', properties=['myProperty1', 'myProperty2'])
         """
 
-        dataset = f"{self.whoami}_{dataset}"
+        self._refresh_capabilities()
 
-        if not self._stored_procedure_exists('geodb_drop_properties'):
-            raise ValueError(f"Stored procedure geodb_drop_properties does not exist")
+        self._raise_for_mandatory_columns(properties)
 
-        if not self._dataset_exists(dataset=dataset):
-            raise ValueError(f"Dataset {dataset} does not exist")
-
-        validate = fastjsonschema.compile(
-            JSON_VALIDATIONS['validation'],
-            formats=JSON_VALIDATIONS['formats']
-        )
-        # validate(properties)
+        self._raise_for_stored_procedure_exists('geodb_drop_properties')
 
         return self.post(path='/rpc/geodb_drop_properties', payload={'dataset': dataset, 'properties': properties})
+
+    def _raise_for_mandatory_columns(self, properties: Sequence[str]):
+        common_props = list(set(properties) & set(self._mandatory_properties))
+        if len(common_props) > 0:
+            raise ValueError("Don't delete the following columns: " + str(common_props))
+
+    def get_properties(self, dataset: str) -> DataFrame:
+        r = self.post(path='/rpc/geodb_get_properties', payload={'dataset': dataset})
+
+        js = r.json()[0]['src']
+
+        if js:
+            return self._df_from_json(js)
+        else:
+            return DataFrame(columns=["table_name", "column_name", "data_type"])
+
+        # dataset = f"{self.whoami}_{dataset}"
+        # return self.capabilities['definitions'][dataset]
+
+    def get_datasets(self) -> DataFrame:
+        r = self.post(path='/rpc/geodb_list_datasets', payload={})
+
+        js = r.json()[0]['src']
+        if js:
+            return self._df_from_json(js)
+        else:
+            return DataFrame(columns=["table_name"])
 
     def delete_from_dataset(self, dataset: str, query: str) -> requests.models.Response:
         """
@@ -453,8 +446,7 @@ class GeoDBClient(object):
 
         dataset = f"{self.whoami}_{dataset}"
 
-        if not self._dataset_exists(dataset=dataset):
-            raise ValueError(f"Dataset {dataset} does not exist")
+        self._raise_for_dataset_exists(dataset=dataset)
 
         if isinstance(values, Dict):
             if 'id' in values.keys():
@@ -464,6 +456,7 @@ class GeoDBClient(object):
 
         return self.patch(f'/{dataset}?{query}', payload=values)
 
+    # noinspection PyMethodMayBeStatic
     def _gdf_to_csv(self, gpdf: GeoDataFrame, crs: int = None) -> str:
         if crs is None:
             try:
@@ -496,10 +489,10 @@ class GeoDBClient(object):
             requests.models.Response
         """
 
+        values.columns = map(str.lower, values.columns)
         dataset = f"{self.whoami}_{dataset}"
 
-        # if not self._dataset_exists(dataset=dataset):
-        #    raise ValueError(f"Dataset {dataset} does not exist")
+        # self._dataset_exists(dataset=dataset)
 
         if isinstance(values, GeoDataFrame):
             headers = {'Content-type': 'text/csv'}
@@ -518,7 +511,7 @@ class GeoDBClient(object):
 
     def filter_by_bbox(self, dataset: str, minx, miny, maxx, maxy, bbox_mode: str = 'contains', bbox_crs: int = 4326,
                        limit: int = 0, offset: int = 0, namespace: Optional[str] = None) \
-            -> gpd.GeoDataFrame:
+            -> Union[GeoDataFrame, str]:
         """
 
         Args:
@@ -548,11 +541,8 @@ class GeoDBClient(object):
 
         dataset = f"{tab_prefix}_{dataset}"
 
-        if not self._dataset_exists(dataset=dataset):
-            raise ValueError(f"Dataset {dataset} does not exist")
-
-        if not self._stored_procedure_exists('geodb_filter_by_bbox'):
-            raise ValueError(f"Stored procedure geodb_filter_by_bbox does not exist")
+        self._raise_for_dataset_exists(dataset=dataset)
+        self._raise_for_stored_procedure_exists('geodb_filter_by_bbox')
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
@@ -570,16 +560,12 @@ class GeoDBClient(object):
 
         js = r.json()['src']
         if js:
-            data = [self._load_geo(d) for d in js]
-
-            gpdf = gpd.GeoDataFrame(data).set_geometry('geometry')
-            if not self._validate(gpdf):
-                raise ValueError("Geometry or ID field is missing")
-            return gpdf
+            return self._df_from_json(js)
         else:
-            raise ValueError("Result is empty")
+            return GeoDataFrame(columns=["Empty Result"])
 
-    def filter(self, dataset: str, query: str, fmt='postgrest', namespace: Optional[str] = None) -> GeoDataFrame:
+    def filter(self, dataset: str, query: Optional[str] = None, namespace: Optional[str] = None) \
+            -> Union[gpd.GeoDataFrame, DataFrame]:
         """
 
         Args:
@@ -599,38 +585,82 @@ class GeoDBClient(object):
         tab_prefix = namespace or self.whoami
         dataset = f"{tab_prefix}_{dataset}"
 
-        if not self._dataset_exists(dataset=dataset):
-            raise ValueError(f"Dataset {dataset} does not exist")
+        self._raise_for_dataset_exists(dataset=dataset)
 
-        if fmt == "postgrest":
+        if query:
             r = self.get(f"/{dataset}?{query}")
-        elif fmt == "raw":
-            headers = {'Accept': 'application/vnd.pgrst.object+json'}
-            r = self.post("/rpc/geodb_filter_raw", headers=headers, payload={'dataset': dataset, 'qry': query})
         else:
-            raise ValueError("Error: Query format not known.")
+            r = self.get(f"/{dataset}")
 
         js = r.json()
 
         if js:
-            return self._gpdf_from_json(js)
+            return self._df_from_json(js)
         else:
-            raise ValueError("Result is empty")
+            return DataFrame(columns=["Empty Result"])
+
+    def filter_raw(self, dataset: str, select: str = "*", where: Optional[str] = None,
+                   group: Optional[str] = None, order: Optional[str] = None, limit: Optional[int] = None,
+                   offset: Optional[int] = None, namespace: Optional[str] = None) -> Union[GeoDataFrame, DataFrame]:
+
+        tab_prefix = namespace or self.whoami
+
+        dataset = f"{tab_prefix}_{dataset}"
+
+        self._raise_for_dataset_exists(dataset=dataset)
+        self._raise_for_stored_procedure_exists('geodb_filter_raw')
+
+        headers = {'Accept': 'application/vnd.pgrst.object+json'}
+
+        qry = f'SELECT {select} FROM "{dataset}" '
+
+        if where:
+            qry += f'WHERE {where} '
+
+        if group:
+            qry += f'GROUP BY {group} '
+
+        if order:
+            qry += f'ORDER BY {order} '
+
+        if limit:
+            qry += f'LIMIT {limit}  '
+
+        if limit and offset:
+            qry += f'OFFSET {offset} '
+
+        print(qry)
+
+        r = self.post("/rpc/geodb_filter_raw", headers=headers, payload={'dataset': dataset, 'qry': qry})
+        r.raise_for_status()
+
+        js = r.json()['src']
+
+        if js:
+            return self._df_from_json(js)
+        else:
+            return DataFrame(columns=["Empty Result"])
 
     @property
     def geoserver_url(self):
         return f"{self._server_url}/geoserver"
 
-    def register_user(self, user_name: str, password: str):
+    def get_catalog(self) -> object:
+        from geoserver.catalog import Catalog
+
+        return Catalog(self.geoserver_url + "/rest/", username=self._auth_client_id, password=self._auth_client_secret)
+
+    def register_user_to_database(self, user_name: str, password: str):
         user = {
             "user_name": user_name,
             "password": password
         }
 
+        return self.post(f'/rpc/geodb_register_user', payload=user)
+
+    def register_user_to_geoserver(self, user_name: str, password: str):
         admin_user = os.environ.get("GEOSERVER_ADMIN_USER")
         admin_pwd = os.environ.get("GEOSERVER_ADMIN_PASSWORD")
-
-        # r = self.post(f'/rpc/geodb_register_user', payload=user)
 
         geoserver_url = f"{self.geoserver_url}/rest/security/usergroup/users"
 
@@ -643,6 +673,7 @@ class GeoDBClient(object):
         }
 
         r = requests.post(geoserver_url, json=user, auth=(admin_user, admin_pwd))
+        r.raise_for_status()
 
         from geoserver.catalog import Catalog
 
@@ -670,9 +701,23 @@ class GeoDBClient(object):
         }
 
         r = requests.post(geoserver_url, json=db, auth=(admin_user, admin_pwd))
-        print(r)
+        r.raise_for_status()
 
-    def _gpdf_from_json(self, js: json) -> GeoDataFrame:
+        rule = {
+            "org.geoserver.rest.security.xml.JaxbUser": {
+                "rule": {
+                    "@resource": "helge2.*.a",
+                    "text": "GROUP_ADMIN"
+                }
+            }
+        }
+
+        geoserver_url = f"{self.geoserver_url}/rest/security/acl/layers"
+
+        r = requests.post(geoserver_url, json=rule, auth=(admin_user, admin_pwd))
+        r.raise_for_status()
+
+    def _df_from_json(self, js: json) -> Union[GeoDataFrame, DataFrame]:
         """
         Converts wkb geometry string to wkt from a PostGrest json result
         Args:
@@ -689,12 +734,9 @@ class GeoDBClient(object):
 
         gpdf = gpd.GeoDataFrame(data)
         if 'geometry' in gpdf:
-            gpdf = gpdf.set_geometry('geometry')
-
-        if not self._validate(gpdf):
-            raise ValueError("Geometry field is missing")
-
-        return gpdf
+            return gpdf.set_geometry('geometry')
+        else:
+            return DataFrame(gpdf)
 
     def _get_full_url(self, path: str) -> str:
         """
@@ -720,6 +762,7 @@ class GeoDBClient(object):
         Returns:
             Dict: A row of thePostGrest result with its geometry converted from wkb to wkt
         """
+
         if 'geometry' in d:
             d['geometry'] = wkb.loads(d['geometry'], hex=True)
         return d
@@ -743,6 +786,19 @@ class GeoDBClient(object):
         self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
 
     def _get_geodb_api_access_token(self):
+        data = self._get_geodb_api_access_token_data()
+        return data['access_token']
+
+    @property
+    def auth_access_token(self):
+        if self._auth_access_token is not None:
+            return self._auth_access_token
+
+        return self._get_geodb_api_access_token()
+
+    def _get_geodb_api_access_token_data(self):
+        if self._auth_access_token is not None:
+            return
         client_id = self._auth_pub_client_id if self._is_public_client else self._auth_client_id
         client_secret = self._auth_pub_client_secret if self._is_public_client else self._auth_client_secret
 
@@ -755,11 +811,10 @@ class GeoDBClient(object):
 
         headers = {'content-type': "application/json"}
 
-        r = requests.post(self._auth_domain + "/oauth/token", json=payload,  headers=headers)
+        r = requests.post(self._auth_domain + "/oauth/token", json=payload, headers=headers)
+        r.raise_for_status()
 
-        data = r.json()
-
-        return data['access_token']
+        return r.json()
 
     # noinspection PyMethodMayBeStatic
     def _validate(self, df: gpd.GeoDataFrame) -> bool:
@@ -776,7 +831,7 @@ class GeoDBClient(object):
 
         return len(list(valid_columns - cols)) == 0
 
-    def _dataset_exists(self, dataset: str) -> bool:
+    def _raise_for_dataset_exists(self, dataset: str) -> bool:
         """
 
         Args:
@@ -786,9 +841,12 @@ class GeoDBClient(object):
             bool whether the table exists
 
         """
-        return dataset in self.capabilities['definitions']
+        if dataset in self.capabilities['definitions']:
+            return True
+        else:
+            raise ValueError(f"Dataset {dataset} does not exist")
 
-    def _stored_procedure_exists(self, stored_procedure: str) -> bool:
+    def _raise_for_stored_procedure_exists(self, stored_procedure: str) -> bool:
         """
 
         Args:
@@ -797,7 +855,10 @@ class GeoDBClient(object):
         Returns:
             bool whether the stored procedure exists in DB
         """
-        return f"/rpc/{stored_procedure}" in self.capabilities['paths']
+        if f"/rpc/{stored_procedure}" in self.capabilities['paths']:
+            return True
+        else:
+            raise ValueError(f"Stored procedure {stored_procedure} does not exist")
 
     def setup(self):
         host = os.getenv('GEODB_DB_HOST')
@@ -825,10 +886,4 @@ class GeoDBClient(object):
             cursor.execute(sql_create)
 
         conn.commit()
-
-
-if __name__ == "__main__":
-    # execute only if run as a script
-    geodb = GeoDBClient(client_id="PechSoVRytCYj6QDQqNRZISvYtFg4qcM",
-                        client_secret="QKEavCtWRn41BTnNx3O45fQzWHe9omPU49Zkg4dK0D2DGS45Z9Y_LZd_ogifxVJF")
-    geodb.register_user('helge', 'inkl67z')
+        conn.commit()

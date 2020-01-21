@@ -5,6 +5,7 @@ import pandas as pd
 
 import requests_mock
 from geopandas import GeoDataFrame
+from pandas import DataFrame
 from shapely import wkt
 
 from dcfs_geodb.core.geo_db import GeoDBClient
@@ -36,7 +37,7 @@ class GeoDBTest(unittest.TestCase):
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_datasets"
         m.post(url, text=json.dumps(expected_response))
-        self.set_auth_mock(m)
+        self.set_global_mocks(m)
 
         res = self._api.create_dataset(dataset='test', properties=[{'name': 'test_col', 'type': 'inger'}])
         self.assertTrue(res)
@@ -59,7 +60,7 @@ class GeoDBTest(unittest.TestCase):
         res = self._api.add_properties('test', [{'name': 'test_col', 'type': 'insssssteger'}])
         self.assertTrue(res)
 
-    def test_query_by_bbox(self, m):
+    def test_filter_by_bbox(self, m):
         expected_response = {'src': [{'id': 'dd', 'geometry': "0103000020D20E000001000000110000007593188402B51B4"
                                                               "1B6F3FDD4423FF6405839B4C802B51B412B8716D9EC3EF6406"
                                                               "F1283C0EBB41B41A8C64B37C53EF640B6F3FDD4E4B41B419A999"
@@ -172,21 +173,55 @@ class GeoDBTest(unittest.TestCase):
 
         self.assertEqual(str(e.exception), "Could not guess the dataframe's crs. Please specify.")
 
-    # def test_real(self):
-    #     api = GeoDB()
-    #
-    #     csv = """
-    #             id,tt,geometry\n
-    #             2,'blablubb',"POINT(25 25)"\n
-    #             """
-    #     file = StringIO(csv)
-    #     df = pd.read_csv(file)
-    #     df['geometry'] = df['geometry'].apply(wkt.loads)
-    #
-    #     values = GeoDataFrame(df, geometry=df['geometry'])
-    #     values = {'column': 200}
-    #
-    #     r = api.update_dataset('tt2', values, "id=eq.2")
-    #     print(r)
-    #
-    #     print('Finished')
+    def test_register_user_to_database(self, m):
+        m.post(self._server_full_address + '/rpc/geodb_register_user', text="success")
+        self.set_global_mocks(m)
+
+        r = self._api.register_user_to_database('mama', 'mamaspassword')
+        self.assertEqual(r.status_code, 200)
+
+    def test_filter_raw(self, m):
+        m.get(url=self._server_full_address + "/", text=json.dumps({'definitions': ['helge_test'],
+                                                                    'paths': ['/rpc/geodb_filter_raw']}))
+
+        expected_result = {'src': []}
+        m.post(self._server_full_address + '/rpc/geodb_filter_raw', json=expected_result)
+
+        self.set_global_mocks(m)
+
+        with self.assertRaises(ValueError) as e:
+            self._api.filter_raw('test', select='min(tt)', group='tt', limit=1, offset=2)
+
+        self.assertEqual("Result is empty", str(e.exception))
+
+        expected_result = {'src': [{'count': 142, 'D_OD': '2019-03-21'}, {'count': 114, 'D_OD': '2019-02-20'}]}
+        m.post(self._server_full_address + '/rpc/geodb_filter_raw', json=expected_result)
+
+        r = self._api.filter_raw('test', select='count(D_OD)', group='D_OD', limit=1, offset=2)
+        self.assertIsInstance(r, DataFrame)
+        self.assertEqual((2, 2), r.shape)
+
+        expected_result = {'src': [{
+            'id': 11,
+            'created_at': '2020-01-20T14:45:30.763162+00:00',
+            'modified_at': None,
+            'geometry': '0103000020D20E0000010000001100000046B6F3FDA7151C417D3F355ECE58F740DD2406013C151C410E2DB29DC'
+                        '35BF740C74B3709E6141C41F6285C8F1C5EF740BE9F1A2F40141C417F6ABC748562F740894160E583141C417B14A'
+                        'E472363F740EC51B81EB0141C415EBA490CE061F7405EBA498CCE141C41E5D022DB1961F7404E621058EA141C41AA'
+                        'F1D24D6860F7402FDD248612151C41FED478E9585FF7404A0C022B1E151C4114AE47E1045FF7405839B4C860151C4'
+                        '1DBF97E6A2A5DF74021B072E881151C41D122DBF9425CF74093180456A2151C41FED478E9845BF74075931884C3151'
+                        'C415839B4C8B45AF7405EBA498CF3151C4191ED7C3FA159F740C3F528DCF1151C41F6285C8F7659F74046B6F3FDA71'
+                        '51C417D3F355ECE58F740',
+            'RABA_PID': 5983161,
+            'RABA_ID': 1100,
+            'D_OD': '2019-03-11'}]}
+        m.post(self._server_full_address + '/rpc/geodb_filter_raw', json=expected_result)
+
+        r = self._api.filter_raw('test', limit=1, offset=2)
+        self.assertIsInstance(r, GeoDataFrame)
+        self.assertEqual((1, 7), r.shape)
+        self.assertIs(True, 'geometry' in r)
+        self.assertIs(True, 'id' in r)
+        self.assertIs(True, 'created_at' in r)
+        self.assertIs(True, 'modified_at' in r)
+

@@ -109,6 +109,28 @@ END
 $BODY$;
 
 
+CREATE OR REPLACE FUNCTION public.geodb_list_datasets()
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+AS $BODY$
+DECLARE usr text;
+BEGIN
+    usr := (SELECT geodb_whoami());
+
+    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js ' ||
+                                'FROM (SELECT
+                                           regexp_replace(tablename, ''%s_'', '''') as table_name
+                                        FROM
+                                           pg_catalog.pg_tables
+                                        WHERE
+                                           schemaname = ''public''
+                                            AND tableowner = ''%s'') AS src',
+                                usr, usr);
+
+END
+$BODY$;
+
+
 CREATE OR REPLACE FUNCTION public.geodb_list_grants()
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
