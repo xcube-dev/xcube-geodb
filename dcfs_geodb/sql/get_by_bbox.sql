@@ -1,16 +1,13 @@
-CREATE OR REPLACE FUNCTION public.geodb_filter_raw(IN dataset text, IN qry text)
+CREATE OR REPLACE FUNCTION public.geodb_filter_raw(IN collection text, IN qry text)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 
 AS $BODY$
 DECLARE
     row_ct int;
-    usr text;
 BEGIN
-    usr := (SELECT geodb_whoami());
-
-    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js FROM (SELECT * FROM %I.%I WHERE %s) as src ', usr,
-        dataset, qry);
+    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as src FROM (SELECT * FROM %I WHERE %s) as src ',
+        collection, qry);
 
     GET DIAGNOSTICS row_ct = ROW_COUNT;
 
@@ -21,7 +18,7 @@ END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_filter_by_bbox(IN dataset text,
+CREATE OR REPLACE FUNCTION public.geodb_filter_by_bbox(IN collection text,
 											  IN minx double precision,
 											  IN miny double precision,
 											  IN maxx double precision,
@@ -39,7 +36,6 @@ DECLARE
     row_ct int;
 	lmt_str text;
     qry text;
-    usr text;
 BEGIN
 	CASE bbox_mode
 		WHEN 'within' THEN
@@ -60,8 +56,6 @@ BEGIN
 		lmt_str := lmt_str || ' OFFSET ' || "offset";
 	END IF;
 
-    usr := (SELECT geodb_whoami());
-
 	qry := format(
 		'SELECT JSON_AGG(src) as js
 		 FROM (SELECT * FROM %I
@@ -76,9 +70,9 @@ BEGIN
                                        || ', ' || minx
                                        || ' ' || miny
                                        || '))'', geometry) '
-                                       || 'ODER BY id ' ||
+                                       || 'ORDER BY id '
                                        || lmt_str || ') as src',
-	    dataset, bbox_func, bbox_crs
+        collection, bbox_func, bbox_crs
 	);
 
     RETURN QUERY EXECUTE qry;

@@ -9,7 +9,7 @@ END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN dataset text, IN properties json)
+CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN collection text, IN properties json)
     RETURNS void
     LANGUAGE 'plpgsql'
     AS $BODY$
@@ -20,7 +20,7 @@ CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN dataset text, IN prope
     BEGIN
         usr := (SELECT geodb_whoami());
 
-        tab := usr || '_' ||  dataset;
+        tab := usr || '_' ||  collection;
         FOR props_row IN SELECT * FROM geodb_get_column_info_from_json(properties) LOOP
             EXECUTE format('ALTER TABLE %I ADD COLUMN "%s" %s', tab, props_row.name, props_row.type);
         END LOOP;
@@ -28,7 +28,7 @@ CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN dataset text, IN prope
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_drop_properties(IN dataset text, IN properties json)
+CREATE OR REPLACE FUNCTION public.geodb_drop_properties(IN collection text, IN properties json)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
@@ -38,7 +38,7 @@ AS $BODY$
         tab text;
     BEGIN
         usr := (SELECT geodb_whoami());
-        tab := usr || '_' ||  dataset;
+        tab := usr || '_' ||  collection;
 
         FOR props_row IN SELECT property FROM json_array_elements(properties::json) AS property LOOP
         EXECUTE format('ALTER TABLE %I DROP COLUMN %s', tab, props_row.property);
@@ -46,14 +46,14 @@ AS $BODY$
 END
 $BODY$;
 
-CREATE OR REPLACE FUNCTION public.geodb_get_properties(dataset text)
+CREATE OR REPLACE FUNCTION public.geodb_get_properties(collection text)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 AS $BODY$
 DECLARE usr text;
 BEGIN
     usr := (SELECT geodb_whoami());
-    dataset := usr || '_' || dataset;
+    collection := usr || '_' || collection;
 
     RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js ' ||
                                 'FROM (SELECT
@@ -64,7 +64,7 @@ BEGIN
                                         WHERE
                                            table_schema = ''public''
                                             AND table_name = ''%s'') AS src',
-                                usr, dataset);
+                                usr, collection);
 
 END
 $BODY$;

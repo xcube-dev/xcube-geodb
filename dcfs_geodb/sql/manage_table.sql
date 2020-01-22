@@ -9,20 +9,20 @@ END;
 $$ language 'plpgsql';
 
 
-CREATE OR REPLACE FUNCTION public.geodb_get_table_infos_from_json(IN datasets json)
+CREATE OR REPLACE FUNCTION public.geodb_get_table_infos_from_json(IN collections json)
     RETURNS TABLE("name" VARCHAR(255), "properties"  json, "crs" text)
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-    RETURN QUERY EXECUTE 'SELECT ("dataset"->>''name'')::VARCHAR(255) , ' ||
-                         '("dataset"->>''properties'')::json, ' ||
-                         '("dataset"->>''crs'')' ||
-                         'FROM json_array_elements(''' || "datasets" || '''::json) AS "dataset"';
+    RETURN QUERY EXECUTE 'SELECT ("collection"->>''name'')::VARCHAR(255) , ' ||
+                         '("collection"->>''properties'')::json, ' ||
+                         '("collection"->>''crs'')' ||
+                         'FROM json_array_elements(''' || "collections" || '''::json) AS "collection"';
 END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_create_dataset(IN dataset text, IN properties json, IN crs text)
+CREATE OR REPLACE FUNCTION public.geodb_create_collection(IN collection text, IN properties json, IN crs text)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
@@ -32,7 +32,7 @@ DECLARE
 BEGIN
     usr := (SELECT geodb_whoami());
 
-    tab := usr || '_' ||  dataset;
+    tab := usr || '_' ||  collection;
 
     EXECUTE format('CREATE TABLE %I(
 								    id SERIAL PRIMARY KEY,
@@ -41,75 +41,75 @@ BEGIN
 									geometry geometry(Geometry,' || crs || ') NOT NULL
 							   )', tab);
 
-    PERFORM geodb_add_properties(dataset, properties);
+    PERFORM geodb_add_properties(collection, properties);
 
     EXECUTE format('CREATE TRIGGER update_%s_modtime
                     BEFORE UPDATE ON %I_%I
-                    FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', tab, usr, dataset);
+                    FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', tab, usr, collection);
 
     EXECUTE format('ALTER TABLE %I OWNER to %I;', tab, usr);
 END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_create_datasets(IN "datasets" json)
+CREATE OR REPLACE FUNCTION public.geodb_create_collections(IN "collections" json)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
 DECLARE
-    "dataset_row" record;
+    "collection_row" record;
 BEGIN
-    FOR dataset_row IN SELECT * FROM geodb_get_table_infos_from_json("datasets") LOOP
-            EXECUTE format('SELECT geodb_create_dataset(''%s'', ''%s''::json, ''%s'')',
-            dataset_row.name,
-            dataset_row.properties,
-            dataset_row.crs);
+    FOR collection_row IN SELECT * FROM geodb_get_table_infos_from_json("collections") LOOP
+            EXECUTE format('SELECT geodb_create_collection(''%s'', ''%s''::json, ''%s'')',
+            collection_row.name,
+            collection_row.properties,
+            collection_row.crs);
     END LOOP;
 END
 $BODY$;
 
-CREATE OR REPLACE FUNCTION public.geodb_drop_datasets(IN datasets json)
+CREATE OR REPLACE FUNCTION public.geodb_drop_collections(IN collections json)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
 DECLARE
-    "dataset_row" record;
+    "collection_row" record;
     usr text;
     tab text;
 BEGIN
     usr := (SELECT geodb_whoami());
 
-    FOR dataset_row IN SELECT dataset FROM json_array_elements_text(datasets) as dataset LOOP
-            tab := usr || '_' ||  dataset_row.dataset;
+    FOR collection_row IN SELECT collection FROM json_array_elements_text(collections) as collection LOOP
+            tab := usr || '_' ||  collection_row.collection;
             EXECUTE format('DROP TABLE %I', tab);
     END LOOP;
 END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_grant_access_to_dataset(dataset text, usr text)
+CREATE OR REPLACE FUNCTION public.geodb_grant_access_to_collection(collection text, usr text)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-    EXECUTE format('GRANT SELECT ON TABLE %I TO %I;', dataset, usr);
+    EXECUTE format('GRANT SELECT ON TABLE %I TO %I;', collection, usr);
 
 END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_revoke_access_to_dataset(dataset text, usr text)
+CREATE OR REPLACE FUNCTION public.geodb_revoke_access_to_collection(collection text, usr text)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-    EXECUTE format('REVOKE SELECT ON TABLE %I FROM %I;', dataset, usr);
+    EXECUTE format('REVOKE SELECT ON TABLE %I FROM %I;', collection, usr);
 
 END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_list_datasets()
+CREATE OR REPLACE FUNCTION public.geodb_list_collections()
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 AS $BODY$

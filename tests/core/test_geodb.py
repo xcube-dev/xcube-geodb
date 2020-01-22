@@ -8,11 +8,11 @@ from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkt
 
-from dcfs_geodb.core.geo_db import GeoDBClient
+from dcfs_geodb.core.geodb import GeoDBClient
 
 
 @requests_mock.mock(real_http=True)
-class GeoDBTest(unittest.TestCase):
+class GeoDBClientTest(unittest.TestCase):
     def setUp(self) -> None:
         self._server_test_url = "https://test"
         self._server_test_auth_domain = "https://auth"
@@ -33,22 +33,22 @@ class GeoDBTest(unittest.TestCase):
         url = f"{self._server_full_address}/rpc/geodb_whoami"
         m.get(url, text=json.dumps("helge"))
 
-    def test_create_dataset(self, m):
+    def test_create_collection(self, m):
         expected_response = 'Success'
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_datasets"
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
         m.post(url, text=json.dumps(expected_response))
         self.set_global_mocks(m)
 
-        res = self._api.create_dataset(dataset='test', properties=[{'name': 'test_col', 'type': 'inger'}])
+        res = self._api.create_collection(collection='test', properties=[{'name': 'test_col', 'type': 'inger'}])
         self.assertTrue(res)
 
-    def test_drop_dataset(self, m):
+    def test_drop_collection(self, m):
         expected_response = 'Success'
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_drop_datasets"
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_drop_collections"
         m.post(url, text=json.dumps(expected_response))
         self.set_global_mocks(m)
 
-        res = self._api.drop_dataset('test')
+        res = self._api.drop_collection('test')
         self.assertTrue(res)
 
     def test_add_properties(self, m):
@@ -80,11 +80,12 @@ class GeoDBTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         m.get(url=url, text=json.dumps({'paths': ['/rpc/geodb_filter_by_bbox'],
-                                        'definitions': ['helge_dataset']}))
+                                        'definitions': ['helge_collection']}))
 
         m.post(url + path, text=json.dumps(expected_response))
 
-        gdf = self._api.filter_by_bbox(dataset='dataset', minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299)
+        gdf = self._api.filter_collection_by_bbox(collection='collection', minx=452750.0, miny=88909.549, maxx=464000.0,
+                                                  maxy=102486.299)
 
         res = gdf.to_dict()
         ident = res['id'][0]
@@ -99,7 +100,7 @@ class GeoDBTest(unittest.TestCase):
         self.assertEqual(ident, 'dd')
         self.assertEqual(str(geo), exp_geo)
 
-    def test_delete_from_dataset(self, m):
+    def test_delete_from_collection(self, m):
         path = '/helge_tt?id=eq.1'
         expected_response = 'success'
 
@@ -108,12 +109,11 @@ class GeoDBTest(unittest.TestCase):
         url = self._server_full_address + path
         m.delete(url, text=expected_response)
 
-        r = self._api.delete_from_dataset('tt', 'id=eq.1')
+        r = self._api.delete_from_collection('tt', 'id=eq.1')
 
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(expected_response, r.text)
+        self.assertTrue(r)
 
-    def test_update_dataset(self, m):
+    def test_update_collection(self, m):
         path = '/helge_tt?id=eq.1'
         expected_response = 'success'
 
@@ -122,14 +122,13 @@ class GeoDBTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         values = {'column': 200}
-        r = self._api.update_dataset('tt', values, 'id=eq.1')
+        r = self._api.update_collection('tt', values, 'id=eq.1')
 
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(expected_response, r.text)
+        self.assertTrue(r)
 
         with self.assertRaises(ValueError) as e:
             # noinspection PyTypeChecker
-            self._api.update_dataset('tt', [1, 2, 3], 'id=eq.1')
+            self._api.update_collection('tt', [1, 2, 3], 'id=eq.1')
 
         self.assertEqual(str(e.exception), "Format <class 'list'> not supported.")
 
@@ -145,7 +144,7 @@ class GeoDBTest(unittest.TestCase):
         df['geometry'] = df['geometry'].apply(wkt.loads)
         return df
 
-    def test_insert_into_dataset(self, m):
+    def test_insert_into_collection(self, m):
         path = '/helge_tt'
         expected_response = 'success'
 
@@ -156,29 +155,27 @@ class GeoDBTest(unittest.TestCase):
         df = self.make_test_df()
         values = GeoDataFrame(df, crs={'init': 'epsg:4326'}, geometry=df['geometry'])
 
-        r = self._api.insert_into_dataset('tt', values)
+        r = self._api.insert_into_collection('tt', values)
 
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(expected_response, r.text)
+        self.assertTrue(r)
 
         with self.assertRaises(ValueError) as e:
             # noinspection PyTypeChecker
-            self._api.insert_into_dataset('tt', [1, 2, 3])
+            self._api.insert_into_collection('tt', [1, 2, 3])
 
         self.assertEqual(str(e.exception), "Format <class 'list'> not supported.")
 
         values = GeoDataFrame(df, geometry=df['geometry'])
         with self.assertRaises(ValueError) as e:
-            self._api.insert_into_dataset('tt', values)
+            self._api.insert_into_collection('tt', values)
 
         self.assertEqual(str(e.exception), "Could not guess the dataframe's crs. Please specify.")
 
-    def test_register_user_to_database(self, m):
+    def test_register_user_to_geoserver(self, m):
         m.post(self._server_full_address + '/rpc/geodb_register_user', text="success")
         self.set_global_mocks(m)
 
-        r = self._api.register_user_to_database('mama', 'mamaspassword')
-        self.assertEqual(r.status_code, 200)
+        self._api.register_user_to_geoserver('mama', 'mamaspassword')
 
     def test_filter_raw(self, m):
         m.get(url=self._server_full_address + "/", text=json.dumps({'definitions': ['helge_test'],
@@ -190,14 +187,14 @@ class GeoDBTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         with self.assertRaises(ValueError) as e:
-            self._api.filter_raw('test', select='min(tt)', group='tt', limit=1, offset=2)
+            self._api.filter_collection_pg('test', select='min(tt)', group='tt', limit=1, offset=2)
 
         self.assertEqual("Result is empty", str(e.exception))
 
         expected_result = {'src': [{'count': 142, 'D_OD': '2019-03-21'}, {'count': 114, 'D_OD': '2019-02-20'}]}
         m.post(self._server_full_address + '/rpc/geodb_filter_raw', json=expected_result)
 
-        r = self._api.filter_raw('test', select='count(D_OD)', group='D_OD', limit=1, offset=2)
+        r = self._api.filter_collection_pg('test', select='count(D_OD)', group='D_OD', limit=1, offset=2)
         self.assertIsInstance(r, DataFrame)
         self.assertEqual((2, 2), r.shape)
 
@@ -217,11 +214,10 @@ class GeoDBTest(unittest.TestCase):
             'D_OD': '2019-03-11'}]}
         m.post(self._server_full_address + '/rpc/geodb_filter_raw', json=expected_result)
 
-        r = self._api.filter_raw('test', limit=1, offset=2)
+        r = self._api.filter_collection_pg('test', limit=1, offset=2)
         self.assertIsInstance(r, GeoDataFrame)
         self.assertEqual((1, 7), r.shape)
         self.assertIs(True, 'geometry' in r)
         self.assertIs(True, 'id' in r)
         self.assertIs(True, 'created_at' in r)
         self.assertIs(True, 'modified_at' in r)
-

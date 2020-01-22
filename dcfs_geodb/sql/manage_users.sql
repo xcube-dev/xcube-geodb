@@ -67,7 +67,7 @@ GRANT EXECUTE ON FUNCTION geodb_grant_user_admin(text) TO geodb_admin;
 CREATE OR REPLACE FUNCTION geodb_check_user() RETURNS void AS $$
 BEGIN
     IF current_user = 'anonymous' THEN
-        RAISE EXCEPTION 'Anonymous users do not have access'
+        RAISE EXCEPTION 'Anonymous users do not have access to dev'
             USING HINT = 'Please ask Brockmann Consult for access. (geodb@brockmann-consult.de)';
     END IF;
 END
