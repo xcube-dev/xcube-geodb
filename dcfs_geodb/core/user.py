@@ -1,18 +1,20 @@
 # coding: utf-8
-
+import os
+from abc import abstractmethod
+from typing import Dict, Optional
 from urllib.parse import urljoin
 import logging
 from xml.etree.ElementTree import XML
-
 import requests
-
+from dotenv import find_dotenv, load_dotenv
 from geoserver import settings
 
+from dcfs_geodb.defaults import GEOSERVER_DEFAULT_PARAMETERS
 
 LOGGER = logging.getLogger("gsconfig2.catalog")
 
 
-class User:
+class GeoserverSession:
     """
     The GeoServer catalog represents all of the information in the GeoServer
     configuration. This includes:
@@ -27,10 +29,11 @@ class User:
     - Namespaces, which provide unique identifiers for resources
     """
 
-    def __init__(self, service_url,
-                 username=settings.DEFAULT_USERNAME,
-                 password=settings.DEFAULT_PASSWORD,
-                 disable_ssl_certificate_validation=False):
+    def __init__(self, service_url: str = '',
+                 username: str = settings.DEFAULT_USERNAME,
+                 password: str = settings.DEFAULT_PASSWORD,
+                 disable_ssl_certificate_validation: bool = False,
+                 dotenv_file: str = '.env'):
         self._service_url = service_url
         self._username = username
         self._password = password
@@ -39,6 +42,17 @@ class User:
         self._version = None
         self._session = requests.Session()
         self._session.auth = (self.username, self.password)
+
+        self._dotenv_file = find_dotenv(filename=dotenv_file)
+        if self._dotenv_file:
+            load_dotenv(self._dotenv_file)
+
+        self._load_from_env()
+
+    def _load_from_env(self):
+        self._service_url = os.environ.get("GEOSERVER_API_SERVER_URL") or self._service_url
+        self._username = os.environ.get("GEOSERVER_ADMIN_USER") or self._username
+        self._password = os.environ.get("GEOSERVER_ADMIN_PASSWORD") or self._password
 
     @property
     def service_url(self):
@@ -76,6 +90,7 @@ class User:
         raise FailedRequestError("Unable to determine version: {}"
                                  .format(r.text or r.status_code))
 
+    # TODO: Make json
     def gsversion(self):
         """
         :return: The geoserver version.
@@ -99,29 +114,32 @@ class User:
             self._version = version
             return version
 
-    def delete(self, config_object, purge=None, recurse=False):
+    def delete(self, path: str, purge=None, recurse: bool = False):
         """
         send a delete request.
         :param recurse: True if underlying objects must be deleted recursively.
         :param purge:
+
+        Args:
+            recurse (bool):
+            purge:
+            config_object:
         """
-        rest_url = config_object.href
+        delete_url = urljoin(self.service_url, path)
+
         params = {
             'purge': purge,
             'recurse': recurse,
         }
+
         headers = {
-            "Content-type": "application/xml",
-            "Accept": "application/xml"
+            "Content-type": "application/json",
+            "Accept": "application/json"
+
         }
-        r = self.session.delete(rest_url, params=params, headers=headers)
-        if r.status_code == requests.codes.ok:
-            return r.text
-        else:
-            msg = "Tried to make a DELETE request to " \
-                  + "{} but got a {} status code: \n{}" \
-                      .format(rest_url, r.status_code, r.text)
-            raise FailedRequestError(msg)
+
+        r = self.session.delete(delete_url, params=params, headers=headers)
+        r.raise_for_status()
 
     def reload(self):
         """
@@ -130,6 +148,19 @@ class User:
         """
         reload_url = urljoin(self.service_url, "reload")
         r = self.session.post(reload_url)
+        self._cache.clear()
+        return r
+
+    def get(self, path: str, params: Optional[Dict] = None):
+        """
+        Send a reload request to the GeoServer and clear the cache.
+        :return: The response given by the GeoServer.
+        """
+        get_url = urljoin(self.service_url, path)
+
+        r = self.session.get(get_url, params=params)
+        r.raise_for_status()
+
         self._cache.clear()
         return r
 
@@ -143,46 +174,114 @@ class User:
         self._cache.clear()
         return r
 
-    def save(self, obj, content_type="application/json"):
+    def post(self, path: str, payload: Dict, params: Optional[Dict] = None, content_type: str = "application/json"):
+        """
+
+        Args:
+            path:
+            payload:
+            params:
+            content_type:
+
+        Returns:
+
+        """
+        return self._save(self.session.post, path, payload, params, content_type)
+
+    def put(self, path: str, payload: Dict, params: Optional[Dict] = None, content_type: str = "application/json"):
+        """
+
+        Args:
+            path:
+            payload:
+            params:
+            content_type:
+
+        Returns:
+
+        """
+        return self._save(self.session.put, path, payload, params, content_type)
+
+    def _save(self, method, path: str, payload: Dict, params: Optional[Dict] = None,
+              content_type: str = "application/json"):
         """
         saves an object to the REST service
         gets the object's REST location and the data from the object,
         then POSTS the request.
-        :param obj: The object to save.
         :return: The response given by the server.
+
+        Args:
+            content_type (str):
+            obj (GeoserverObject):
         """
-        rest_url = obj.href
-        message = obj.message()
-        save_method = obj.save_method
-        LOGGER.debug("{} {}".format(save_method, rest_url))
-        methods = {
-            settings.POST: self.session.post,
-            settings.PUT: self.session.put
-        }
+
+        rest_url = urljoin(self.service_url, path)
+
         headers = {
             "Content-type": content_type,
             "Accept": content_type
         }
-        r = methods[save_method](rest_url, data=message, headers=headers)
+
+        r = method(rest_url, data=payload, params=params, headers=headers)
+        r.raise_for_status()
+
         self._cache.clear()
-        if 400 <= r.status_code < 600:
-            raise FailedRequestError(
-                "Error code ({}) from GeoServer: {}" \
-                    .format(r.status_code, r.text)
-            )
+
         return r
 
-    def get_user(self, name):
-        # Make sure workspace is a workspace object and not a string.
-        # If the workspace does not exist,
-        # continue as if no workspace had been defined.
+
+class GeoServerObject:
+    def __init__(self, session: GeoserverSession = None):
+        if session is not None:
+            self._session = session
+        else:
+            self._session = GeoserverSession()
+
+    @abstractmethod
+    @property
+    def path(self):
         pass
 
-    def get_users(self):
+
+class User(GeoServerObject):
+    path = "/rest/usergroup/users"
+
+    def __init__(self,
+                 user_name: str = GEOSERVER_DEFAULT_PARAMETERS['user_name'],
+                 password: str = GEOSERVER_DEFAULT_PARAMETERS['password'],
+                 active: bool = True,
+                 session: Optional[GeoserverSession] = None
+                 ):
+        super().__init__(session=session)
+
+        self._username = user_name
+        self._password = password
+        self._active = active
+
+    @property
+    def user_name(self):
+        return self._username
+
+    @classmethod
+    def load(cls, user_name: str, session: Optional[GeoserverSession] = None):
+        session = session or GeoserverSession()
+
+        r = session.get(urljoin(User.path, user_name))
+        user_json = r.json()
+
+        return cls(
+            user_name=user_json['userName'],
+            password=user_json['password'],
+            active=user_json['enabled'],
+            session=session
+        )
+
+    def save(self):
         pass
 
-    def create_user(self, name):
-        pass
+    @property
+    def name(self):
+        return self._username
 
 
 def _name(named):
@@ -199,7 +298,7 @@ def _name(named):
     elif hasattr(named, 'name') and isinstance(named.name, str):
         return named.name
     else:
-        msg = "Can't interpret {} as a name or a configuration object"
+        msg = f"Can't interpret object as a name or a configuration object"
         raise ValueError(msg.format(named))
 
 

@@ -1,14 +1,3 @@
-CREATE OR REPLACE FUNCTION public.geodb_get_column_info_from_json(IN properties json)
-    RETURNS TABLE("name" VARCHAR(255), "type"  VARCHAR(255))
-    LANGUAGE 'plpgsql'
-AS $BODY$
-BEGIN
-    RETURN QUERY EXECUTE 'SELECT lower(("column"->>''name''))::VARCHAR(255) , ("column"->>''type'')::VARCHAR(255) ' ||
-                         'FROM json_array_elements(''' || properties || '''::json) AS "column"';
-END
-$BODY$;
-
-
 CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN collection text, IN properties json)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -21,8 +10,8 @@ CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN collection text, IN pr
         usr := (SELECT geodb_whoami());
 
         tab := usr || '_' ||  collection;
-        FOR props_row IN SELECT * FROM geodb_get_column_info_from_json(properties) LOOP
-            EXECUTE format('ALTER TABLE %I ADD COLUMN "%s" %s', tab, props_row.name, props_row.type);
+        FOR props_row IN SELECT lower("key"), "value" FROM json_each_text(properties) LOOP
+            EXECUTE format('ALTER TABLE %I ADD COLUMN %I %s', tab, props_row.key, props_row.value);
         END LOOP;
     END
 $BODY$;

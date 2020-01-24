@@ -9,19 +9,6 @@ END;
 $$ language 'plpgsql';
 
 
-CREATE OR REPLACE FUNCTION public.geodb_get_table_infos_from_json(IN collections json)
-    RETURNS TABLE("name" VARCHAR(255), "properties"  json, "crs" text)
-    LANGUAGE 'plpgsql'
-AS $BODY$
-BEGIN
-    RETURN QUERY EXECUTE 'SELECT ("collection"->>''name'')::VARCHAR(255) , ' ||
-                         '("collection"->>''properties'')::json, ' ||
-                         '("collection"->>''crs'')' ||
-                         'FROM json_array_elements(''' || "collections" || '''::json) AS "collection"';
-END
-$BODY$;
-
-
 CREATE OR REPLACE FUNCTION public.geodb_create_collection(IN collection text, IN properties json, IN crs text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -58,12 +45,16 @@ CREATE OR REPLACE FUNCTION public.geodb_create_collections(IN "collections" json
 AS $BODY$
 DECLARE
     "collection_row" record;
+    properties json;
+    crs text;
 BEGIN
-    FOR collection_row IN SELECT * FROM geodb_get_table_infos_from_json("collections") LOOP
+    FOR collection_row IN SELECT "key"::text,"value" FROM json_each(collections) LOOP
+            properties := (SELECT "value"::json FROM collection_row.value WHERE "key" = 'properties');
+            crs := (SELECT "value"::text FROM collection_row.value WHERE "key" = 'crs');
             EXECUTE format('SELECT geodb_create_collection(''%s'', ''%s''::json, ''%s'')',
-            collection_row.name,
-            collection_row.properties,
-            collection_row.crs);
+            collection_row.key,
+            properties,
+            crs);
     END LOOP;
 END
 $BODY$;
