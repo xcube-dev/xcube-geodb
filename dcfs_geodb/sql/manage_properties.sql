@@ -1,3 +1,5 @@
+
+DROP FUNCTION IF EXISTS public.geodb_add_properties(text, json);
 CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN collection text, IN properties json)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -17,6 +19,7 @@ CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN collection text, IN pr
 $BODY$;
 
 
+DROP FUNCTION IF EXISTS public.geodb_drop_properties(text, json);
 CREATE OR REPLACE FUNCTION public.geodb_drop_properties(IN collection text, IN properties json)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -35,6 +38,8 @@ AS $BODY$
 END
 $BODY$;
 
+
+DROP FUNCTION IF EXISTS public.geodb_get_properties(text);
 CREATE OR REPLACE FUNCTION public.geodb_get_properties(collection text)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'

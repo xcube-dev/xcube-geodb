@@ -1,5 +1,6 @@
 -- noinspection SqlSignatureForFile
 
+DROP FUNCTION IF EXISTS public.geodb_whoami();
 CREATE OR REPLACE FUNCTION public.geodb_whoami()
     RETURNS text
     LANGUAGE 'plpgsql'
@@ -9,6 +10,7 @@ BEGIN
 END
 $BODY$;
 
+DROP FUNCTION IF EXISTS public.geodb_register_user(text, text);
 CREATE OR REPLACE FUNCTION public.geodb_register_user(IN user_name text, IN password text)
     RETURNS character varying(255)
     LANGUAGE 'plpgsql'
@@ -25,7 +27,7 @@ $BODY$;
 REVOKE EXECUTE ON FUNCTION geodb_register_user(text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION geodb_register_user(text, text) TO geodb_admin;
 
-
+DROP FUNCTION IF EXISTS public.geodb_user_exists(text);
 CREATE OR REPLACE FUNCTION public.geodb_user_exists(IN user_name text)
     RETURNS TABLE(exts boolean)
     LANGUAGE 'plpgsql'
@@ -40,6 +42,7 @@ REVOKE EXECUTE ON FUNCTION geodb_user_exists(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION geodb_user_exists(text) TO geodb_admin;
 
 
+DROP FUNCTION IF EXISTS public.geodb_drop_user(text);
 CREATE OR REPLACE FUNCTION public.geodb_drop_user(IN user_name text)
     RETURNS boolean
     LANGUAGE 'plpgsql'
@@ -54,6 +57,7 @@ $BODY$;
 REVOKE EXECUTE ON FUNCTION geodb_drop_user(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION geodb_drop_user(text) TO geodb_admin;
 
+DROP FUNCTION IF EXISTS public.geodb_grant_user_admin(text);
 CREATE OR REPLACE FUNCTION public.geodb_grant_user_admin(IN user_name text)
     RETURNS boolean
     LANGUAGE 'plpgsql'
@@ -69,7 +73,8 @@ REVOKE EXECUTE ON FUNCTION geodb_grant_user_admin(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION geodb_grant_user_admin(text) TO geodb_admin;
 
 
-CREATE OR REPLACE FUNCTION geodb_check_user() RETURNS void AS $$
+DROP FUNCTION IF EXISTS public.geodb_check_user()
+CREATE OR REPLACE FUNCTION public.geodb_check_user() RETURNS void AS $$
 BEGIN
     IF current_user = 'anonymous' THEN
         RAISE EXCEPTION 'Anonymous users do not have access to dev'
@@ -79,6 +84,7 @@ END
 $$ LANGUAGE plpgsql;
 
 
+DROP FUNCTION IF EXISTS geodb_check_user_grants(text);
 CREATE OR REPLACE FUNCTION geodb_check_user_grants(grt text) RETURNS boolean AS $$
 DECLARE
     permissions json;

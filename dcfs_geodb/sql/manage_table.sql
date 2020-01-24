@@ -1,5 +1,6 @@
 -- CREATE EXTENSION postgis;
 
+DROP FUNCTION IF EXISTS update_modified_column();
 CREATE OR REPLACE FUNCTION update_modified_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -9,6 +10,7 @@ END;
 $$ language 'plpgsql';
 
 
+DROP FUNCTION IF EXISTS public.geodb_create_collection(text, json, text);
 CREATE OR REPLACE FUNCTION public.geodb_create_collection(IN collection text, IN properties json, IN crs text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -39,6 +41,7 @@ END
 $BODY$;
 
 
+DROP FUNCTION IF EXISTS public.geodb_create_collections(json);
 CREATE OR REPLACE FUNCTION public.geodb_create_collections(IN "collections" json)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -59,6 +62,7 @@ BEGIN
 END
 $BODY$;
 
+DROP FUNCTION IF EXISTS public.geodb_drop_collections(json);
 CREATE OR REPLACE FUNCTION public.geodb_drop_collections(IN collections json)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -78,6 +82,7 @@ END
 $BODY$;
 
 
+DROP FUNCTION IF EXISTS public.geodb_grant_access_to_collection(text, text);
 CREATE OR REPLACE FUNCTION public.geodb_grant_access_to_collection(collection text, usr text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -89,6 +94,7 @@ END
 $BODY$;
 
 
+DROP FUNCTION IF EXISTS public.geodb_revoke_access_to_collection(text, text);
 CREATE OR REPLACE FUNCTION public.geodb_revoke_access_to_collection(collection text, usr text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -100,6 +106,7 @@ END
 $BODY$;
 
 
+DROP FUNCTION IF EXISTS public.geodb_list_collections();
 CREATE OR REPLACE FUNCTION public.geodb_list_collections()
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
@@ -122,6 +129,7 @@ END
 $BODY$;
 
 
+DROP FUNCTION IF EXISTS public.geodb_list_grants();
 CREATE OR REPLACE FUNCTION public.geodb_list_grants()
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'

@@ -1,5 +1,6 @@
 import logging
 import os
+import IPython
 from typing import Dict, Optional, Union, Sequence
 
 import geopandas as gpd
@@ -12,7 +13,6 @@ import json
 from dotenv import load_dotenv, find_dotenv
 
 from dcfs_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS
-
 
 LOGGER = logging.getLogger("geodb.core")
 logging.basicConfig(level=logging.INFO)
@@ -27,38 +27,33 @@ class GeoDBClient(object):
                  server_port: Optional[int] = None,
                  client_id: Optional[str] = None,
                  client_secret: Optional[str] = None,
+                 access_token: Optional[str] = None,
                  anonymous: bool = False,
-                 dot_env_file: str = ".env"):
+                 dotenv_file: str = ".env"):
         """
 
         Args:
             server_url (str): The URL of the PostGrest Rest API
             server_port (str): The port to the PostGrest Rest API
-            dot_env_file (str): Name of the dotenv file [.env]
+            dotenv_file (str): Name of the dotenv file [.env]
             anonymous (bool): Whether the client connection is anonymous (without credentials) [False]
             client_secret (str): Client secret
             client_id (str): Client ID
         """
-        # noinspection SpellCheckingInspection
-        self._dotenv_file = find_dotenv(filename=dot_env_file)
-        if self._dotenv_file:
-            load_dotenv(self._dotenv_file)
-
-        self._set_defaults()
-        self._set_from_env()
+        self.refresh_config_from_env(dotenv_file=dotenv_file, use_dotenv=True)
 
         self._server_url = server_url or self._server_url
         self._server_port = server_port or self._server_port
         self._auth_client_id = client_id or self._auth_client_id
         self._auth_client_secret = client_secret or self._auth_client_secret
-        self._auth_access_token = None
+        self._auth_access_token = access_token
 
         self._capabilities = None
         self._is_public_client = anonymous
-        self._geodb_api_access_token = None
 
         self._whoami = None
         self._log_level = logging.INFO
+        self._shell = None
         LOGGER.setLevel(level=self._log_level)
 
         self._mandatory_properties = ["geometry", "id", "created_at", "modified_at"]
@@ -92,8 +87,29 @@ class GeoDBClient(object):
 
         return self._capabilities
 
+    def auth0_login(self):
+        from ipyauth import ParamsAuth0, Auth
+        p = ParamsAuth0(dotenv_file='ipyauth-auth0-demo.env')
+        a = Auth(params=p)
+        self._shell = IPython.get_ipython()
+        self._shell.push({'__auth__': a}, interactive=True)
+        return a
+
     def _refresh_capabilities(self):
         self._capabilities = None
+
+    def refresh_config_from_env(self, dotenv_file: str = ".env", use_dotenv: bool = False):
+        """
+
+        Args:
+            dotenv_file: A dotenv config file
+            use_dotenv: Whether to use dotenv. Might be useful if the configuration is set externally.
+        """
+        if use_dotenv:
+            self._dotenv_file = find_dotenv(filename=dotenv_file)
+            if self._dotenv_file:
+                load_dotenv(self._dotenv_file)
+        self._set_from_env()
 
     def post(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
              headers: Optional[Dict] = None) -> requests.models.Response:
@@ -593,8 +609,9 @@ class GeoDBClient(object):
         self._log(f"Data inserted into {collection}", level=logging.INFO)
         return True
 
-    def filter_collection_by_bbox(self, collection: str, minx, miny, maxx, maxy, bbox_mode: str = 'contains', bbox_crs: int = 4326,
-                                  limit: int = 0, offset: int = 0, namespace: Optional[str] = None) \
+    def filter_collection_by_bbox(self, collection: str, minx, miny, maxx, maxy, bbox_mode: str = 'contains',
+                                  bbox_crs: int = 4326, limit: int = 0, offset: int = 0,
+                                  namespace: Optional[str] = None) \
             -> Union[GeoDataFrame, str]:
         """
 
@@ -619,8 +636,8 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.filter_collection_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, maxy=102486.299, \
-                bbox_mode="contains", bbox_crs=3794, limit=10, offset=10)
+            >>> geodb.filter_collection_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, \
+                maxy=102486.299, bbox_mode="contains", bbox_crs=3794, limit=10, offset=10)
         """
 
         tab_prefix = namespace or self.whoami
@@ -714,7 +731,8 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> df = geodb.filter_collection_pg('land_use', where='raba_id=1410', group='d_od', select='COUNT(d_od) as ct, d_od')
+            >>> df = geodb.filter_collection_pg('land_use', where='raba_id=1410', group='d_od', \
+                select='COUNT(d_od) as ct, d_od')
         """
         tab_prefix = namespace or self.whoami
 
@@ -744,7 +762,6 @@ class GeoDBClient(object):
 
         self._log(qry, logging.DEBUG)
 
-        print(qry)
         r = self.post("/rpc/geodb_filter_raw", headers=headers, payload={'collection': collection, 'qry': qry})
         r.raise_for_status()
 
@@ -754,6 +771,15 @@ class GeoDBClient(object):
             return self._df_from_json(js)
         else:
             return DataFrame(columns=["Empty Result"])
+
+    @property
+    def server_url(self) -> str:
+        """
+
+        Returns:
+            str: The URL of the corresponding geodb service instance
+        """
+        return self._server_url
 
     @property
     def geoserver_url(self) -> str:
@@ -913,6 +939,9 @@ class GeoDBClient(object):
         self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
 
     def _get_geodb_api_access_token(self):
+        if self._shell is not None:
+            self._shell['__auth__'].access_token
+
         data = self._get_geodb_api_access_token_data()
         return data['access_token']
 

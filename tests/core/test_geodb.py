@@ -22,7 +22,7 @@ class GeoDBClientTest(unittest.TestCase):
         if self._server_test_port > 0:
             self._server_full_address += ':' + str(self._server_test_port)
 
-        self._api = GeoDBClient(dot_env_file=".env_test")
+        self._api = GeoDBClient(dotenv_file=".env_test")
 
     def tearDown(self) -> None:
         pass
