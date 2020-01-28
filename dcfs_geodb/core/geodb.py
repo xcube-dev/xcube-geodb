@@ -52,7 +52,7 @@ class GeoDBClient(object):
         """
         self._dotenv_file = dotenv_file
         self._auth_mode = None
-        self._namespace = None
+        self._namespace = namespace
 
         self.refresh_config_from_env(dotenv_file=dotenv_file, use_dotenv=True)
 
@@ -651,7 +651,7 @@ class GeoDBClient(object):
     def get_collection_by_bbox(self, collection: str, bbox: Tuple[float, float, float, float],
                                comparison_mode: str = 'contains', bbox_crs: int = 4326, limit: int = 0, offset: int = 0,
                                namespace: Optional[str] = None) \
-            -> Union[GeoDataFrame, str]:
+            -> GeoDataFrame:
         """
 
         Args:
@@ -672,8 +672,8 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.get_collection_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, \
-                maxy=102486.299, comparison_mode="contains", bbox_crs=3794, limit=10, offset=10)
+            >>> geodb.get_collection_by_bbox(table="land_use", bbox=(452750.0, 88909.549, 464000.0, \
+                102486.299), comparison_mode="contains", bbox_crs=3794, limit=10, offset=10)
         """
 
         tab_prefix = namespace or self.whoami
@@ -963,7 +963,6 @@ class GeoDBClient(object):
         self._auth_aud = GEODB_API_DEFAULT_PARAMETERS.get('auth_aud')
         self._auth_pub_client_id = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_id')
         self._auth_pub_client_secret = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_secret')
-        self._auth0_config_file = GEODB_API_DEFAULT_PARAMETERS.get('auth0_config_file') or self._auth0_config_file
 
     def _set_from_env(self):
         self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url
