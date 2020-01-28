@@ -12,7 +12,7 @@ CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN collection text, IN pr
         usr := (SELECT geodb_whoami());
 
         tab := usr || '_' ||  collection;
-        FOR props_row IN SELECT lower("key"), "value" FROM json_each_text(properties) LOOP
+        FOR props_row IN SELECT "key", "value" FROM json_each_text(properties) LOOP
             EXECUTE format('ALTER TABLE %I ADD COLUMN %I %s', tab, props_row.key, props_row.value);
         END LOOP;
     END

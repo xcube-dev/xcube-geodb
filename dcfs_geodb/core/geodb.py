@@ -59,6 +59,8 @@ class GeoDBClient(object):
         self._server_url = server_url or self._server_url
         self._server_port = server_port or self._server_port
         self._auth_client_id = client_id or self._auth_client_id
+        self._auth_pub_client_id = "nF1s2D2fs770KLCY16zVk3i5nuqK6Ptx"
+        self._auth_pub_client_secret = "WQtMECNYySz-1KTM6acEr_SJlped6QU6qxLyo4ahupLTqlfb4zu2Z27PbrwmEMqU"
         self._auth_client_secret = client_secret or self._auth_client_secret
         self._auth_access_token = access_token
         self._auth_mode = auth_mode or self._auth_mode
@@ -433,11 +435,11 @@ class GeoDBClient(object):
             >>> geodb.add_property(collection='myDataset', name='myProperty', type='postgresType')
         """
 
-        prop = {'name': prop, 'type': typ}
+        prop = {prop: typ}
 
-        return self.add_properties(collection=collection, properties=[prop])
+        return self.add_properties(collection=collection, properties=prop)
 
-    def add_properties(self, collection: str, properties: Sequence[Dict]) -> bool:
+    def add_properties(self, collection: str, properties: Dict) -> bool:
         """
 
         Args:
@@ -448,7 +450,7 @@ class GeoDBClient(object):
             bool: Success
 
         Examples:
-            >>> properties = [{'myName1': 'postgresType1'}, {'myName2': 'postgresType2'},]
+            >>> properties = {'myName1': 'postgresType1', 'myName2': 'postgresType2'}
             >>> geodb = GeoDBClient()
             >>> geodb.add_property(collection='myDataset', properties=properties)
         """

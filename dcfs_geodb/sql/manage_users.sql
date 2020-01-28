@@ -73,7 +73,7 @@ REVOKE EXECUTE ON FUNCTION geodb_grant_user_admin(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION geodb_grant_user_admin(text) TO geodb_admin;
 
 
-DROP FUNCTION IF EXISTS public.geodb_check_user()
+DROP FUNCTION IF EXISTS public.geodb_check_user();
 CREATE OR REPLACE FUNCTION public.geodb_check_user() RETURNS void AS $$
 BEGIN
     IF current_user = 'anonymous' THEN
@@ -88,6 +88,7 @@ DROP FUNCTION IF EXISTS geodb_check_user_grants(text);
 CREATE OR REPLACE FUNCTION geodb_check_user_grants(grt text) RETURNS boolean AS $$
 DECLARE
     permissions json;
+    ct integer;
 BEGIN
     permissions := (SELECT current_setting('request.jwt.claim.permissions', TRUE)::json);
 

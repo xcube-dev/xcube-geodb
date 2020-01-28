@@ -52,8 +52,8 @@ DECLARE
     crs text;
 BEGIN
     FOR collection_row IN SELECT "key"::text,"value" FROM json_each(collections) LOOP
-            properties := (SELECT "value"::json FROM collection_row.value WHERE "key" = 'properties');
-            crs := (SELECT "value"::text FROM collection_row.value WHERE "key" = 'crs');
+            properties := (SELECT "value"::json FROM json_each(collection_row.value) WHERE "key" = 'properties');
+            crs := (SELECT "value"::text FROM json_each(collection_row.value) WHERE "key" = 'crs');
             EXECUTE format('SELECT geodb_create_collection(''%s'', ''%s''::json, ''%s'')',
             collection_row.key,
             properties,
