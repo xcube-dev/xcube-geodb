@@ -1,4 +1,5 @@
 import json
+import os
 import unittest
 from io import StringIO
 import pandas as pd
@@ -23,6 +24,8 @@ class GeoDBClientTest(unittest.TestCase):
             self._server_full_address += ':' + str(self._server_test_port)
 
         self._api = GeoDBClient(dotenv_file=".env_test")
+
+        os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'ipyauth-auth0-demo_test.env'
 
     def tearDown(self) -> None:
         pass
@@ -84,8 +87,8 @@ class GeoDBClientTest(unittest.TestCase):
 
         m.post(url + path, text=json.dumps(expected_response))
 
-        gdf = self._api.filter_collection_by_bbox(collection='collection', minx=452750.0, miny=88909.549, maxx=464000.0,
-                                                  maxy=102486.299)
+        gdf = self._api.get_collection_by_bbox(collection='collection',
+                                               bbox=(452750.0, 88909.549, 464000.0, 102486.299))
 
         res = gdf.to_dict()
         ident = res['id'][0]
@@ -187,14 +190,14 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         with self.assertRaises(ValueError) as e:
-            self._api.filter_collection_pg('test', select='min(tt)', group='tt', limit=1, offset=2)
+            self._api.get_collection_pg('test', select='min(tt)', group='tt', limit=1, offset=2)
 
         self.assertEqual("Result is empty", str(e.exception))
 
         expected_result = {'src': [{'count': 142, 'D_OD': '2019-03-21'}, {'count': 114, 'D_OD': '2019-02-20'}]}
         m.post(self._server_full_address + '/rpc/geodb_filter_raw', json=expected_result)
 
-        r = self._api.filter_collection_pg('test', select='count(D_OD)', group='D_OD', limit=1, offset=2)
+        r = self._api.get_collection_pg('test', select='count(D_OD)', group='D_OD', limit=1, offset=2)
         self.assertIsInstance(r, DataFrame)
         self.assertEqual((2, 2), r.shape)
 
@@ -214,10 +217,23 @@ class GeoDBClientTest(unittest.TestCase):
             'D_OD': '2019-03-11'}]}
         m.post(self._server_full_address + '/rpc/geodb_filter_raw', json=expected_result)
 
-        r = self._api.filter_collection_pg('test', limit=1, offset=2)
+        r = self._api.get_collection_pg('test', limit=1, offset=2)
         self.assertIsInstance(r, GeoDataFrame)
         self.assertEqual((1, 7), r.shape)
         self.assertIs(True, 'geometry' in r)
         self.assertIs(True, 'id' in r)
         self.assertIs(True, 'created_at' in r)
         self.assertIs(True, 'modified_at' in r)
+
+    def test_init(self):
+        with self.assertRaises(ValueError) as e:
+            GeoDBClient(auth_mode='interactive')
+
+        self.assertEqual("You do not seem to be in an interactive ipython session. Interactive login cannot "
+                         "be used.", str(e.exception))
+
+        with self.assertRaises(FileExistsError) as e:
+            os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'bla.env'
+            GeoDBClient(auth_mode='interactive')
+
+        self.assertEqual("Mandatory auth configuration file ipyauth-auth0-demo.env must exist", str(e.exception))

@@ -4,7 +4,8 @@ GEODB_API_DEFAULT_PARAMETERS = {
     'auth_domain': "https://xcube.eu.auth0.com",
     'auth_aud': "geodb",
     'auth_pub_client_id': 'QoZa2Vmg36x9NOEqyy4yRVueeITaeZ81',
-    'auth_pub_client_secret': 'd4POTIHcKOor3qbMbs08Ow1NzHCR6UzvT31CkGapMVok-FZ7ScNffYyPBHlH3cPz'
+    'auth_pub_client_secret': 'd4POTIHcKOor3qbMbs08Ow1NzHCR6UzvT31CkGapMVok-FZ7ScNffYyPBHlH3cPz',
+    'auth0_config_file': 'ipyauth-auth0-demo.env'
 }
 
 

@@ -1,6 +1,6 @@
 
-DROP FUNCTION IF EXISTS public.geodb_filter_raw(text, text);
-CREATE OR REPLACE FUNCTION public.geodb_filter_raw(IN collection text, IN qry text)
+DROP FUNCTION IF EXISTS public.geodb_get_raw(text, text);
+CREATE OR REPLACE FUNCTION public.geodb_get_raw(IN collection text, IN qry text)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 
@@ -20,8 +20,8 @@ END
 $BODY$;
 
 
-DROP FUNCTION IF EXISTS public.geodb_filter_by_bbox(text, double precision, double precision, double precision, double precision, VARCHAR, int, int, int);
-CREATE OR REPLACE FUNCTION public.geodb_filter_by_bbox(IN collection text,
+DROP FUNCTION IF EXISTS public.geodb_get_by_bbox(text, double precision, double precision, double precision, double precision, VARCHAR, int, int, int);
+CREATE OR REPLACE FUNCTION public.geodb_get_by_bbox(IN collection text,
 											  IN minx double precision,
 											  IN miny double precision,
 											  IN maxx double precision,

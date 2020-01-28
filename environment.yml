@@ -1,7 +1,7 @@
 name: dcfs-geodb
 channels:
   - conda-forge
-  - defaults
+
 dependencies:
   # Python
   - python >=3.6
@@ -11,10 +11,13 @@ dependencies:
   - matplotlib-base
   - descartes
   - requests
+  - sphinx
   - pip:
       - fastjsonschema
       - python-dotenv
       - gsconfig-py3
+      - testing.postgresql
+      - requests_mock
   # Exploring
   - jupyterlab
   # Testing
@@ -22,9 +25,6 @@ dependencies:
   - pytest-cov >=2.6
   - psycopg2
   - postgis
-  - pip:
-    - testing.postgresql
-    - requests_mock
   - httpretty
 
 

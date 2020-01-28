@@ -1,7 +1,7 @@
 import logging
 import os
 import IPython
-from typing import Dict, Optional, Union, Sequence
+from typing import Dict, Optional, Union, Sequence, Tuple
 
 import geopandas as gpd
 import psycopg2
@@ -23,23 +23,37 @@ class GeoDBError(ValueError):
 
 
 class GeoDBClient(object):
-    def __init__(self, server_url: Optional[str] = None,
+    minx = 0
+    maxx = 1
+    miny = 2
+    maxy = 3
+
+    def __init__(self,
+                 namespace: Optional[str] = None,
+                 server_url: Optional[str] = None,
                  server_port: Optional[int] = None,
                  client_id: Optional[str] = None,
                  client_secret: Optional[str] = None,
                  access_token: Optional[str] = None,
                  anonymous: bool = False,
-                 dotenv_file: str = ".env"):
+                 dotenv_file: str = ".env",
+                 auth_mode: str = 'silent'):
         """
 
         Args:
+            namespace (str):
             server_url (str): The URL of the PostGrest Rest API
             server_port (str): The port to the PostGrest Rest API
             dotenv_file (str): Name of the dotenv file [.env]
             anonymous (bool): Whether the client connection is anonymous (without credentials) [False]
             client_secret (str): Client secret
             client_id (str): Client ID
+            auth_mode (str): Authentication modus [silent]. Can be 'silent' and 'interactive'
         """
+        self._dotenv_file = dotenv_file
+        self._auth_mode = None
+        self._namespace = None
+
         self.refresh_config_from_env(dotenv_file=dotenv_file, use_dotenv=True)
 
         self._server_url = server_url or self._server_url
@@ -47,16 +61,21 @@ class GeoDBClient(object):
         self._auth_client_id = client_id or self._auth_client_id
         self._auth_client_secret = client_secret or self._auth_client_secret
         self._auth_access_token = access_token
+        self._auth_mode = auth_mode or self._auth_mode
+        self._auth0_config_file = None
 
         self._capabilities = None
         self._is_public_client = anonymous
 
         self._whoami = None
         self._log_level = logging.INFO
-        self._shell = None
+        self._ipython_shell = None
         LOGGER.setLevel(level=self._log_level)
 
         self._mandatory_properties = ["geometry", "id", "created_at", "modified_at"]
+
+        if self._auth_mode == "interactive":
+            self._auth_login()
 
     def get_collection_info(self, collection: str):
         capabilities = self.capabilities
@@ -65,8 +84,7 @@ class GeoDBClient(object):
         else:
             raise ValueError(f"Table {collection} does not exist.")
 
-    @property
-    def common_headers(self):
+    def _get_common_headers(self):
         return {
             'Prefer': 'return=representation',
             'Content-type': 'application/json',
@@ -74,26 +92,41 @@ class GeoDBClient(object):
         }
 
     @property
-    def whoami(self):
-        if self._whoami is None:
-            self._whoami = self.get(path='/rpc/geodb_whoami').json()
+    def namespace(self):
+        return self._namespace or self.whoami
 
-        return self._whoami
+    @property
+    def whoami(self):
+        return self._whoami or self.get(path='/rpc/geodb_whoami').json()
 
     @property
     def capabilities(self):
-        if self._capabilities is None:
-            self._capabilities = self.get(path='/').json()
+        return self._capabilities or self.get(path='/').json()
 
-        return self._capabilities
+    def _auth_login(self):
+        self._auth0_login()
 
-    def auth0_login(self):
+    def _auth0_login(self):
         from ipyauth import ParamsAuth0, Auth
-        p = ParamsAuth0(dotenv_file='ipyauth-auth0-demo.env')
-        a = Auth(params=p)
-        self._shell = IPython.get_ipython()
-        self._shell.push({'__auth__': a}, interactive=True)
-        return a
+        from IPython.display import display
+
+        auth0_config_file = os.environ.get('GEODB_AUTH0_CONFIG_FILE') or 'ipyauth-auth0-demo.env'
+
+        if not os.path.isfile(auth0_config_file):
+            raise FileExistsError("Mandatory auth configuration file ipyauth-auth0-demo.env must exist")
+
+        auth_params = ParamsAuth0(dotenv_file=auth0_config_file)
+        auth = Auth(params=auth_params)
+
+        self._ipython_shell = IPython.get_ipython()
+
+        if self._ipython_shell is None:
+            raise ValueError("You do not seem to be in an interactive ipython session. Interactive login cannot "
+                             "be used.")
+
+        self._ipython_shell.push({'__auth__': auth}, interactive=True)
+        # noinspection PyTypeChecker
+        display(auth)
 
     def _refresh_capabilities(self):
         self._capabilities = None
@@ -130,7 +163,7 @@ class GeoDBClient(object):
             HttpError: If the request fails
         """
 
-        common_headers = self.common_headers
+        common_headers = self._get_common_headers()
 
         if headers is not None:
             common_headers.update(headers)
@@ -162,7 +195,9 @@ class GeoDBClient(object):
             GeoDBError: If the database raises an error
             HttpError: If the request fails
         """
-        headers = self.common_headers.update(headers) if headers else self.common_headers
+
+        common_headers = self._get_common_headers()
+        headers = common_headers.update(headers) if headers else self._get_common_headers()
 
         r = None
         try:
@@ -190,7 +225,9 @@ class GeoDBClient(object):
             HttpError: If the request fails
         """
 
-        headers = self.common_headers.update(headers) if headers else self.common_headers
+        common_headers = self._get_common_headers()
+        headers = common_headers.update(headers) if headers else self._get_common_headers()
+
         r = None
         try:
             r = requests.delete(self._get_full_url(path=path), params=params, headers=headers)
@@ -217,7 +254,9 @@ class GeoDBClient(object):
             HttpError: If the request fails
         """
 
-        headers = self.common_headers.update(headers) if headers else self.common_headers
+        common_headers = self._get_common_headers()
+        headers = common_headers.update(headers) if headers else self._get_common_headers()
+
         r = None
         try:
             r = requests.patch(self._get_full_url(path=path), json=payload, params=params, headers=headers)
@@ -330,12 +369,12 @@ class GeoDBClient(object):
         self._log(f"Dataset {str(collections)} deleted", level=logging.INFO)
         return True
 
-    def grant_collection_access_to_namespace(self, collection: str, namespace: str = "public") -> bool:
+    def grant_access_to_collection(self, collection: str, user: str = "public") -> bool:
         """
 
         Args:
             collection: Dataset to grant access to
-            namespace: The namespace (user name) to grant access to [public].
+            user: The namespace (user name) to grant access to [public].
                         By default, public access is granted
 
         Returns:
@@ -343,12 +382,12 @@ class GeoDBClient(object):
         """
         dn = f"{self.whoami}_{collection}"
 
-        self.post(path='/rpc/geodb_grant_access_to_collection', payload={'collection': dn, 'usr': namespace})
+        self.post(path='/rpc/geodb_grant_access_to_collection', payload={'collection': dn, 'usr': user})
 
-        self._log(message=f"Access granted on {collection} to {namespace}", level=logging.INFO)
+        self._log(message=f"Access granted on {collection} to {user}", level=logging.INFO)
         return True
 
-    def revoke_access_to_collection(self, collection: str, user: str = 'public') -> bool:
+    def revoke_access_from_collection(self, collection: str, user: str = 'public') -> bool:
         """
 
         Args:
@@ -609,23 +648,20 @@ class GeoDBClient(object):
         self._log(f"Data inserted into {collection}", level=logging.INFO)
         return True
 
-    def filter_collection_by_bbox(self, collection: str, minx, miny, maxx, maxy, bbox_mode: str = 'contains',
-                                  bbox_crs: int = 4326, limit: int = 0, offset: int = 0,
-                                  namespace: Optional[str] = None) \
+    def get_collection_by_bbox(self, collection: str, bbox: Tuple[float, float, float, float],
+                               comparison_mode: str = 'contains', bbox_crs: int = 4326, limit: int = 0, offset: int = 0,
+                               namespace: Optional[str] = None) \
             -> Union[GeoDataFrame, str]:
         """
 
         Args:
-            collection: Table to filter
-            minx: BBox minx (e.g. lon)
-            miny: BBox miny (e.g. lat)
-            maxx: BBox maxx
-            maxy: BBox maxy
-            bbox_mode: Filter mode. Can be 'contains' or 'within' ['contains']
+            collection: Table to get
+            bbox (int, int, int, int): minx, maxx, miny, maxy
+            comparison_mode: Filter mode. Can be 'contains' or 'within' ['contains']
             bbox_crs: Projection code. [4326]
             limit: Limit for paging
             offset: Offset (start) of rows to return. Used in combination with lmt.
-            namespace: By default the API filters in the user's own namespace. To access
+            namespace: By default the API gets in the user's own namespace. To access
                        collections the user has grant set the namespace accordingly.
 
         Returns:
@@ -636,8 +672,8 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.filter_collection_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, \
-                maxy=102486.299, bbox_mode="contains", bbox_crs=3794, limit=10, offset=10)
+            >>> geodb.get_collection_by_bbox(table="land_use",minx=452750.0, miny=88909.549, maxx=464000.0, \
+                maxy=102486.299, comparison_mode="contains", bbox_crs=3794, limit=10, offset=10)
         """
 
         tab_prefix = namespace or self.whoami
@@ -645,17 +681,17 @@ class GeoDBClient(object):
         dn = f"{tab_prefix}_{collection}"
 
         self._raise_for_collection_exists(collection=dn)
-        self._raise_for_stored_procedure_exists('geodb_filter_by_bbox')
+        self._raise_for_stored_procedure_exists('geodb_get_by_bbox')
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
-        r = self.post('/rpc/geodb_filter_by_bbox', headers=headers, payload={
+        r = self.post('/rpc/geodb_get_by_bbox', headers=headers, payload={
             "collection": dn,
-            "minx": minx,
-            "miny": miny,
-            "maxx": maxx,
-            "maxy": maxy,
-            "bbox_mode": bbox_mode,
+            "minx": bbox[GeoDBClient.minx],
+            "miny": bbox[GeoDBClient.miny],
+            "maxx": bbox[GeoDBClient.maxx],
+            "maxy": bbox[GeoDBClient.maxy],
+            "bbox_mode": comparison_mode,
             "bbox_crs": bbox_crs,
             "limit": limit,
             "offset": offset
@@ -667,14 +703,14 @@ class GeoDBClient(object):
         else:
             return GeoDataFrame(columns=["Empty Result"])
 
-    def filter_collection(self, collection: str, query: Optional[str] = None, namespace: Optional[str] = None) \
+    def get_collection(self, collection: str, query: Optional[str] = None, namespace: Optional[str] = None) \
             -> Union[GeoDataFrame, DataFrame]:
         """
 
         Args:
-            collection: The collection to be filtered
-            query: A filter query using PostGrest style
-            namespace: By default the API filters in the user's own namespace. To access
+            collection: The collection to be geted
+            query: A get query using PostGrest style
+            namespace: By default the API gets in the user's own namespace. To access
                        collections the user has grant set the namespace accordingly.
 
         Returns:
@@ -685,7 +721,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.filter_collection('land_use', 'id=ge.1000')
+            >>> geodb.get_collection('land_use', 'id=ge.1000')
 
         """
 
@@ -706,9 +742,9 @@ class GeoDBClient(object):
         else:
             return DataFrame(columns=["Empty Result"])
 
-    def filter_collection_pg(self, collection: str, select: str = "*", where: Optional[str] = None,
-                             group: Optional[str] = None, order: Optional[str] = None, limit: Optional[int] = None,
-                             offset: Optional[int] = None, namespace: Optional[str] = None) \
+    def get_collection_pg(self, collection: str, select: str = "*", where: Optional[str] = None,
+                          group: Optional[str] = None, order: Optional[str] = None, limit: Optional[int] = None,
+                          offset: Optional[int] = None, namespace: Optional[str] = None) \
             -> Union[GeoDataFrame, DataFrame]:
         """
 
@@ -720,7 +756,7 @@ class GeoDBClient(object):
             order: SQL ORDER statement
             limit: Limit for paging
             offset: Offset (start) of rows to return. Used in combination with limit.
-            namespace: By default the API filters in the user's own namespace. To access
+            namespace: By default the API gets in the user's own namespace. To access
                        collections the user has grant set the namespace accordingly.
 
         Returns:
@@ -731,7 +767,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> df = geodb.filter_collection_pg('land_use', where='raba_id=1410', group='d_od', \
+            >>> df = geodb.get_collection_pg('land_use', where='raba_id=1410', group='d_od', \
                 select='COUNT(d_od) as ct, d_od')
         """
         tab_prefix = namespace or self.whoami
@@ -739,7 +775,7 @@ class GeoDBClient(object):
         dn = f"{tab_prefix}_{collection}"
 
         self._raise_for_collection_exists(collection=dn)
-        self._raise_for_stored_procedure_exists('geodb_filter_raw')
+        self._raise_for_stored_procedure_exists('geodb_get_raw')
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
@@ -762,7 +798,7 @@ class GeoDBClient(object):
 
         self._log(qry, logging.DEBUG)
 
-        r = self.post("/rpc/geodb_filter_raw", headers=headers, payload={'collection': collection, 'qry': qry})
+        r = self.post("/rpc/geodb_get_raw", headers=headers, payload={'collection': collection, 'qry': qry})
         r.raise_for_status()
 
         js = r.json()['src']
@@ -927,6 +963,7 @@ class GeoDBClient(object):
         self._auth_aud = GEODB_API_DEFAULT_PARAMETERS.get('auth_aud')
         self._auth_pub_client_id = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_id')
         self._auth_pub_client_secret = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_secret')
+        self._auth0_config_file = GEODB_API_DEFAULT_PARAMETERS.get('auth0_config_file') or self._auth0_config_file
 
     def _set_from_env(self):
         self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url
@@ -937,24 +974,18 @@ class GeoDBClient(object):
         self._auth_pub_client_secret = os.getenv('GEODB_AUTH_PUB_CLIENT_SECRET') or self._auth_pub_client_secret
         self._auth_domain = os.getenv('GEODB_AUTH_DOMAIN') or self._auth_domain
         self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
-
-    def _get_geodb_api_access_token(self):
-        if self._shell is not None:
-            self._shell['__auth__'].access_token
-
-        data = self._get_geodb_api_access_token_data()
-        return data['access_token']
+        self._auth_mode = os.getenv('GEODB_AUTH_MODE') or self._auth_mode
 
     @property
     def auth_access_token(self):
-        if self._auth_access_token is not None:
+        if self._ipython_shell is not None:
+            return self._ipython_shell.user_ns['__auth__'].access_token
+        elif self._auth_access_token is not None:
             return self._auth_access_token
+        else:
+            return self._get_geodb_client_credentials_accesss_token()
 
-        return self._get_geodb_api_access_token()
-
-    def _get_geodb_api_access_token_data(self):
-        if self._auth_access_token is not None:
-            return
+    def _get_geodb_client_credentials_accesss_token(self):
         client_id = self._auth_pub_client_id if self._is_public_client else self._auth_client_id
         client_secret = self._auth_pub_client_secret if self._is_public_client else self._auth_client_secret
 
@@ -970,7 +1001,8 @@ class GeoDBClient(object):
         r = requests.post(self._auth_domain + "/oauth/token", json=payload, headers=headers)
         r.raise_for_status()
 
-        return r.json()
+        data = r.json()
+        return data['access_token']
 
     # noinspection PyMethodMayBeStatic
     def _validate(self, df: gpd.GeoDataFrame) -> bool:
