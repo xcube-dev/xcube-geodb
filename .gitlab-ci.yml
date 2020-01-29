@@ -1,5 +1,8 @@
 image: continuumio/miniconda3:latest
 
+variables:
+  ANACONDA_TOKEN: "bc-15762ac2-9c5c-43b9-b111-7a5e620a1545"
+
 before_script:
   - conda env create -f environment.yml
   - source activate dcfs-geodb
