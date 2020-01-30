@@ -1,12 +1,17 @@
 .. xcube documentation master file
 
-============================================
-xcube - An xarray-based EO data cube toolkit
-============================================
+===================================================================
+xcube geodb - A Feature database for the xcube EO data cube toolkit
+===================================================================
 
-.. warning:: This documentation is a work in progress and currently less than a draft.
+geodb has been developed to generate, manipulate, analyse, and publish data cubes from EO data.
 
-xcube has been developed to generate, manipulate, analyse, and publish data cubes from EO data.
+.. toctree::
+   :caption: User Guide
+   :maxdepth: 1
+
+   core
+
 
 .. toctree::
    :caption: Getting Started
@@ -14,13 +19,6 @@ xcube has been developed to generate, manipulate, analyse, and publish data cube
 
    examples
    installation
-
-.. toctree::
-   :caption: User Guide
-   :maxdepth: 1
-
-   cli
-   core
 
 
 Indices and tables

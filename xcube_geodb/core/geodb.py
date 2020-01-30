@@ -13,7 +13,6 @@ from dotenv import load_dotenv, find_dotenv
 
 from xcube_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS
 
-
 LOGGER = logging.getLogger("geodb.core")
 logging.basicConfig(level=logging.INFO)
 
@@ -214,7 +213,8 @@ class GeoDBClient(object):
 
         return r
 
-    def _get(self, path: str, params: Optional[Dict] = None, headers: Optional[Dict] = None) -> requests.models.Response:
+    def _get(self, path: str, params: Optional[Dict] = None,
+             headers: Optional[Dict] = None) -> requests.models.Response:
         """
 
         Args:
@@ -310,20 +310,9 @@ class GeoDBClient(object):
 
         Examples:
 
-            .. highlight:: python
-
-                geodb = GeoDBClient()
-                collections = {
-                        '[MyCollection]': {
-                        'crs': 1234,
-                        'properties': {
-                            '[MyProp1]': 'float',
-                            '[MyProp2]': 'float',
-                            '[MyProp3]': 'date'
-                            }
-                        }
-                    }
-                geodb.create_collections(collections)
+            >>> geodb = GeoDBClient()
+            >>> collections = {'[MyCollection]': {'crs': 1234, 'properties': {'[MyProp1]': 'float', '[MyProp2]': 'date'}}}
+            >>> geodb.create_collections(collections)
         """
 
         self._refresh_capabilities()
@@ -347,12 +336,8 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> properties = { \
-                            'RABA_PID': 'float', \
-                            'RABA_ID': 'float', \
-                            'D_OD': 'date' \
-                        }
-            >>> geodb.create_collection(collection='land_use', crs=3794, properties=properties)
+            >>> properties = {'[MyProp1]': 'float', '[MyProp2]': 'date'}
+            >>> geodb.create_collection(collection='[MyCollection]', crs=3794, properties=properties)
         """
 
         collection = dict(name=collection, properties=properties, crs=str(crs))
@@ -372,7 +357,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.drop_collection(collection='myCollection')
+            >>> geodb.drop_collection(collection='[MyCollection]')
         """
 
         self._refresh_capabilities()
@@ -393,7 +378,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.drop_collections(collections=['myCollection1', 'myCollection2'])
+            >>> geodb.drop_collections(collections=['[MyCollection1]', '[MyCollection2]'])
         """
 
         self._refresh_capabilities()
@@ -465,7 +450,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.add_property(collection='myCollection', name='myProperty', type='postgresType')
+            >>> geodb.add_property(collection='[MyCollection]', name='[MyProperty]', type='[PostgresType]')
         """
 
         prop = {prop: typ}
@@ -483,9 +468,9 @@ class GeoDBClient(object):
             bool: Success
 
         Examples:
-            >>> properties = {'myName1': 'postgresType1', 'myName2': 'postgresType2'}
+            >>> properties = {'[MyName1]': '[PostgresType1]', '[MyName2]': '[PostgresType2]'}
             >>> geodb = GeoDBClient()
-            >>> geodb.add_property(collection='myCollection', properties=properties)
+            >>> geodb.add_property(collection='[MyCollection]', properties=properties)
         """
 
         self._refresh_capabilities()
@@ -508,7 +493,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.drop_property(collection='myCollection', prop='myProperty')
+            >>> geodb.drop_property(collection='[MyCollection]', prop='[MyProperty]')
         """
 
         self.drop_properties(collection=collection, properties=[prop])
@@ -527,7 +512,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.drop_properties(collection='myCollection', properties=['myProperty1', 'myProperty2'])
+            >>> geodb.drop_properties(collection='[MyCollection]', properties=['[MyProperty1]', '[MyProperty2]'])
         """
 
         self._refresh_capabilities()
@@ -593,7 +578,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.delete_from_collection('myCollection', 'id=eq.1')
+            >>> geodb.delete_from_collection('[MyCollection]', 'id=eq.1')
         """
 
         dn = f"{self.whoami}_{collection}"
@@ -713,7 +698,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.get_collection_by_bbox(table="land_use", bbox=(452750.0, 88909.549, 464000.0, \
+            >>> geodb.get_collection_by_bbox(table="[MyCollection]", bbox=(452750.0, 88909.549, 464000.0, \
                 102486.299), comparison_mode="contains", bbox_crs=3794, limit=10, offset=10)
         """
 
@@ -762,7 +747,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.get_collection(collection='land_use', query='id=ge.1000')
+            >>> geodb.get_collection(collection='[MyCollection]', query='id=ge.1000')
 
         """
 
@@ -808,7 +793,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> df = geodb.get_collection_pg(collection='land_use', where='raba_id=1410', group='d_od', \
+            >>> df = geodb.get_collection_pg(collection='[MyCollection]', where='raba_id=1410', group='d_od', \
                 select='COUNT(d_od) as ct, d_od')
         """
         tab_prefix = namespace or self.namespace

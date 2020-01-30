@@ -1,13 +1,13 @@
 ========
 Examples
 ========
-When you follow the examples section you can build your first tiny xcube dataset and view it in the xcube-viewer
-by using the xcube server. The examples section is still growing and improving :)
 
-Have fun exploring xcube!
+This section will demonstrate how to use the xcube geodb in stand alone or xcube plugin mode. You will learn to create
+a collection, change the collection's properties, and to explore the collection
+
+Have fun!
 
 .. toctree::
    :maxdepth: 1
 
-   examples/xcube_gen
-   examples/xcube_serve
+   examples/geodb
