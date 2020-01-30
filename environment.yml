@@ -25,9 +25,6 @@ dependencies:
   - psycopg2
   - postgis
   - httpretty
-  - sphinx >= 2.0
-  - sphinx_rtd_theme>=0.4.3
-  - recommonmark>=0.6.0
 
 
 

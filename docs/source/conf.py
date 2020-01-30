@@ -133,4 +133,11 @@ autodoc_mock_imports = [
     'scipy',
     'setuptools',
     'shapely'
+    'IPython',
+    'geopandas',
+    'matplotlib-base',
+    'descartes',
+    'requests',
+    'psycopg2',
+    'postgis'
 ]
