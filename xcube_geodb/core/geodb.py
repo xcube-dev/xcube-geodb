@@ -309,8 +309,11 @@ class GeoDBClient(object):
             bool: Success
 
         Examples:
-            >>> geodb = GeoDBClient()
-            >>> collections = {
+
+            .. highlight:: python
+
+                geodb = GeoDBClient()
+                collections = {
                         '[MyCollection]': {
                         'crs': 1234,
                         'properties': {
@@ -320,7 +323,7 @@ class GeoDBClient(object):
                             }
                         }
                     }
-            >>> geodb.create_collections(collections)
+                geodb.create_collections(collections)
         """
 
         self._refresh_capabilities()
