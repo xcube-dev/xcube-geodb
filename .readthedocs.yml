@@ -16,10 +16,12 @@ sphinx:
 # The path to the pip requirements file.
 # Optionally set the version of Python and requirements required to build your docs
 
-python:
-  install:
-    - requirements: docs/source/requirements.txt
+#python:
+#  install:
+#    - requirements: docs/source/requirements.txt
 
+conda:
+  environment: environment.yml
 
 # Optionally build your docs in additional formats such as PDF and ePub
 formats: all
