@@ -41,13 +41,13 @@ class GeoDBClient(object):
         """
 
         Args:
-            namespace (str):
-            server_url (str): The URL of the PostGrest Rest API
-            server_port (str): The port to the PostGrest Rest API
-            dotenv_file (str): Name of the dotenv file [.env]
+            namespace (str): defaults to user name at this stage
+            server_url (str): The URL of the PostGrest Rest API service
+            server_port (str): The port to the PostGrest Rest API service
+            dotenv_file (str): Name of the dotenv file [.env] to set client IDs and secrets
             anonymous (bool): Whether the client connection is anonymous (without credentials) [False]
-            client_secret (str): Client secret
-            client_id (str): Client ID
+            client_secret (str): Client secret (overrides environment variables)
+            client_id (str): Client ID (overrides environment variables)
             auth_mode (str): Authentication modus [silent]. Can be 'silent' and 'interactive'
         """
 
@@ -83,8 +83,18 @@ class GeoDBClient(object):
         if self._auth_mode == "interactive":
             self._auth_login()
 
-    def get_collection_info(self, collection: str):
+    def get_collection_info(self, collection: str) -> Dict:
+        """
+
+        Args:
+            collection (str): The name of teh collection to inspect
+
+        Returns:
+            A dictionary with collection information
+        """
         capabilities = self.capabilities
+        collection = self.namespace + '_' + collection
+
         if collection in capabilities['definitions']:
             return capabilities['definitions'][collection]
         else:
@@ -98,15 +108,29 @@ class GeoDBClient(object):
         }
 
     @property
-    def namespace(self):
+    def namespace(self) -> str:
+        """
+        Returns:
+            The current namespace
+        """
         return self._namespace or self.whoami
 
     @property
-    def whoami(self):
+    def whoami(self) -> str:
+        """
+
+        Returns:
+            The current database user
+        """
         return self._whoami or self.get(path='/rpc/geodb_whoami').json()
 
     @property
-    def capabilities(self):
+    def capabilities(self) -> Dict:
+        """
+
+        Returns:
+            A dictionary of the PostGrest REST API service's capabilities
+        """
         return self._capabilities or self.get(path='/').json()
 
     def _auth_login(self):
@@ -275,29 +299,27 @@ class GeoDBClient(object):
             raise GeoDBError(r.json()['message'])
         return r
 
-    def create_collections(self, collections: Sequence[Dict]) -> bool:
+    def create_collections(self, collections: Dict) -> bool:
         """
 
         Args:
-            collections: A json list of collections
+            collections: A dictionalry of collections
 
         Returns:
             bool: Success
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> collections = [
-                    {
-                        'name': 'land_use',
-                        'crs': 3794,
-                        'properties':
-                        [
-                            {'name': 'RABA_PID', 'type': 'float'},
-                            {'name': 'RABA_ID', 'type': 'float'},
-                            {'name': 'D_OD', 'type': 'date'}
-                        ]
+            >>> collections = { \
+                        '[MyCollection]': { \
+                        'crs': 1234, \
+                        'properties': { \
+                            '[MyProp1]': 'float', \
+                            '[MyProp2]': 'float', \
+                            '[MyProp3]': 'date' \
+                            } \
+                        } \
                     }
-                ]
             >>> geodb.create_collections(collections)
         """
 
@@ -306,119 +328,119 @@ class GeoDBClient(object):
         collections = {"collections": collections}
         self.post(path='/rpc/geodb_create_collections', payload=collections)
 
-        self._log(f"Datasets {str(collections)} added.")
+        self._log(f"Collections {str(collections)} added.")
         return True
 
-    def create_collection(self, collection: str, properties: Sequence[Dict], crs: int = 4326):
+    def create_collection(self, collection: str, properties: Dict, crs: int = 4326):
         """
 
         Args:
-            crs:
-            collection: Dataset to be created
+            collection: Collection to be created
             properties: Property definitions for the collection
+            crs:
 
         Returns:
             bool: Success
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> properties = [
-                        [
-                            {'RABA_PID': 'float'},
-                            {'RABA_ID': 'float'},
-                            {'D_OD': 'date'}
-                        ]
+            >>> properties = { \
+                            'RABA_PID': 'float', \
+                            'RABA_ID': 'float', \
+                            'D_OD': 'date' \
+                        }
             >>> geodb.create_collection(collection='land_use', crs=3794, properties=properties)
         """
 
-        collection = {'name': collection, 'properties': properties, 'crs': str(crs)}
+        collection = dict(name=collection, properties=properties, crs=str(crs))
 
         self._refresh_capabilities()
 
-        self.create_collections([collection])
+        return self.create_collections(collection)
 
     def drop_collection(self, collection: str) -> bool:
         """
 
         Args:
-            collection: Dataset to be dropped
+            collection: Collection to be dropped
 
         Returns:
             bool: Success
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.drop_collection(collection='myDataset')
+            >>> geodb.drop_collection(collection='myCollection')
         """
 
         self._refresh_capabilities()
 
         self.post(path='/rpc/geodb_drop_collections', payload={'collections': [collection]})
 
-        self._log(f"Dataset {collection} deleted", level=logging.INFO)
+        self._log(f"Collection {collection} deleted", level=logging.INFO)
         return True
 
     def drop_collections(self, collections: Sequence[str]) -> bool:
         """
 
         Args:
-            collections: Datasets to be dropped
+            collections: Collections to be dropped
 
         Returns:
             bool: Success
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.drop_collections(collections=['myDataset1', 'myDaraset2'])
+            >>> geodb.drop_collections(collections=['myCollection1', 'myCollection2'])
         """
 
         self._refresh_capabilities()
 
         self.post(path='/rpc/geodb_drop_collections', payload={'collections': collections})
 
-        self._log(f"Dataset {str(collections)} deleted", level=logging.INFO)
+        self._log(f"Collection {str(collections)} deleted", level=logging.INFO)
         return True
 
     def grant_access_to_collection(self, collection: str, user: str = "public") -> bool:
         """
 
         Args:
-            collection: Dataset to grant access to
-            user: The namespace (user name) to grant access to [public].
-                        By default, public access is granted
+            collection: Collection to grant access to
+            user: The namespace to grant access to [public]. By default, public access is granted
 
         Returns:
             bool: Success
         """
-        dn = f"{self.whoami}_{collection}"
+        dn = f"{self.namespace}_{collection}"
 
         self.post(path='/rpc/geodb_grant_access_to_collection', payload={'collection': dn, 'usr': user})
 
         self._log(message=f"Access granted on {collection} to {user}", level=logging.INFO)
+
         return True
 
     def revoke_access_from_collection(self, collection: str, user: str = 'public') -> bool:
         """
 
         Args:
-            collection: Dataset to grant access to
+            collection: Collection to grant access to
             user: The user to revoke access from [public].
 
         Returns:
             bool: Success
         """
-        dn = f"{self.whoami}_{collection}"
+        dn = f"{self.namespace}_{collection}"
 
         self.post(path='/rpc/geodb_revoke_access_to_collection', payload={'collection': dn, 'usr': user})
 
         self._log(f"Access revoked from {collection} of {user}", level=logging.INFO)
+
         return True
 
     def list_grants(self) -> Sequence:
         """
 
         Returns:
-            A list of collection grants
+            A list of the current user's collection grants
 
         """
         r = self.post(path='/rpc/geodb_list_grants', payload={})
@@ -431,16 +453,16 @@ class GeoDBClient(object):
         """
         Add a property to an existing collection
         Args:
-            collection: Dataset to add a property to
+            collection: Collection to add a property to
             prop: Property name
-            typ: Type of property
+            typ: Type of property (Postgres type)
 
         Returns:
             Success Message
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.add_property(collection='myDataset', name='myProperty', type='postgresType')
+            >>> geodb.add_property(collection='myCollection', name='myProperty', type='postgresType')
         """
 
         prop = {prop: typ}
@@ -451,7 +473,7 @@ class GeoDBClient(object):
         """
 
         Args:
-            collection:Dataset to add properties to
+            collection: Collection to add properties to
             properties: Property definitions as json array
 
         Returns:
@@ -460,7 +482,7 @@ class GeoDBClient(object):
         Examples:
             >>> properties = {'myName1': 'postgresType1', 'myName2': 'postgresType2'}
             >>> geodb = GeoDBClient()
-            >>> geodb.add_property(collection='myDataset', properties=properties)
+            >>> geodb.add_property(collection='myCollection', properties=properties)
         """
 
         self._refresh_capabilities()
@@ -468,13 +490,14 @@ class GeoDBClient(object):
         self.post(path='/rpc/geodb_add_properties', payload={'collection': collection, 'properties': properties})
 
         self._log(f"Properties added", level=logging.INFO)
+
         return True
 
     def drop_property(self, collection: str, prop: str) -> bool:
         """
 
         Args:
-            collection: Dataset to drop the property from
+            collection: Collection to drop the property from
             prop: Property to delete
 
         Returns:
@@ -482,17 +505,18 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.drop_property(collection='myDataset', prop='myProperty')
+            >>> geodb.drop_property(collection='myCollection', prop='myProperty')
         """
 
         self.drop_properties(collection=collection, properties=[prop])
+
         return True
 
     def drop_properties(self, collection: str, properties: Sequence[str]) -> bool:
         """
 
         Args:
-            collection: Dataset to delete properties from
+            collection: Collection to delete properties from
             properties: A json object containing the property definitions
 
         Returns:
@@ -500,7 +524,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.drop_properties(collection='myDataset', properties=['myProperty1', 'myProperty2'])
+            >>> geodb.drop_properties(collection='myCollection', properties=['myProperty1', 'myProperty2'])
         """
 
         self._refresh_capabilities()
@@ -512,6 +536,7 @@ class GeoDBClient(object):
         self.post(path='/rpc/geodb_drop_properties', payload={'collection': collection, 'properties': properties})
 
         self._log(f"Properties {str(properties)} dropped from {collection}", level=logging.INFO)
+
         return True
 
     def _raise_for_mandatory_columns(self, properties: Sequence[str]):
@@ -523,7 +548,7 @@ class GeoDBClient(object):
         """
 
         Args:
-            collection: Dataset to retrieve a list of properties from
+            collection: Collection to retrieve a list of properties from
 
         Returns:
             DataFrame: A list of properties
@@ -557,15 +582,15 @@ class GeoDBClient(object):
         """
 
         Args:
-            collection: Dataset to delete from  
-            query: Filter which records to delete
+            collection: Collection to delete from  
+            query: Filter which records to delete. Follow the http://postgrest.org/en/v6.0/api.html query convention.
 
         Returns:
             bool: Success
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.delete_from_collection('myDataset', 'id=eq.1')
+            >>> geodb.delete_from_collection('myCollection', 'id=eq.1')
         """
 
         dn = f"{self.whoami}_{collection}"
@@ -573,15 +598,16 @@ class GeoDBClient(object):
         self.delete(f'/{dn}?{query}')
 
         self._log(f"Data from {collection} deleted", level=logging.INFO)
+
         return True
 
     def update_collection(self, collection: str, values: Dict, query: str) -> bool:
         """
 
         Args:
-            collection: Dataset to be updated
+            collection: Collection to be updated
             values: Values to update
-            query: Filter which values to be updated
+            query: Filter which values to be updated. Follow the http://postgrest.org/en/v6.0/api.html query convention.
 
         Returns:
             bool: Success
@@ -600,6 +626,7 @@ class GeoDBClient(object):
         self.patch(f'/{dn}?{query}', payload=values)
 
         self._log(f"{collection} updated", level=logging.INFO)
+
         return True
 
     # noinspection PyMethodMayBeStatic
@@ -622,21 +649,18 @@ class GeoDBClient(object):
         """
 
         Args:
-            collection: Dataset to be inserted to
+            collection: Collection to be inserted to
             values: Values to be inserted
             upsert: Whether the insert shall replace existing rows (by PK)
-            crs: crs (in the form of an SRID) of the geometries. If not present, thsi methid will attempt to guess it
-            from the geodataframe input. Must be in sync with the target collection in the GeoDatabase.
+            crs: crs (in the form of an SRID) of the geometries. If not present, tssi method will attempt to guess it
+            from the GeoDataFrame input. Must be in sync with the target collection in the GeoDatabase
 
         Raises:
-            ValueError: When crs is not given and cannot be guessed from dataframe
+            ValueError: When crs is not given and cannot be guessed from the GeoDataFrame
 
         Returns:
             bool: Success
         """
-
-        values.columns = map(str.lower, values.columns)
-        dn = f"{self.whoami}_{collection}"
 
         # self._collection_exists(collection=collection)
 
@@ -646,9 +670,12 @@ class GeoDBClient(object):
             if 'id' in values.columns and not upsert:
                 values.drop(columns=['id'])
 
+            values.columns = map(str.lower, values.columns)
             values = self._gdf_to_csv(values, crs)
         else:
             raise ValueError(f'Format {type(values)} not supported.')
+
+        dn = f"{self.namespace}_{collection}"
 
         if upsert:
             headers['Prefer'] = 'resolution=merge-duplicates'
@@ -656,6 +683,7 @@ class GeoDBClient(object):
         self.post(f'/{dn}', payload=values, headers=headers)
 
         self._log(f"Data inserted into {collection}", level=logging.INFO)
+
         return True
 
     def get_collection_by_bbox(self, collection: str, bbox: Tuple[float, float, float, float],
@@ -718,8 +746,8 @@ class GeoDBClient(object):
         """
 
         Args:
-            collection: The collection to be geted
-            query: A get query using PostGrest style
+            collection: The collection's name
+            query: A query. Follow the http://postgrest.org/en/v6.0/api.html query convention.
             namespace: By default the API gets in the user's own namespace. To access
                        collections the user has grant set the namespace accordingly.
 
@@ -731,7 +759,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.get_collection('land_use', 'id=ge.1000')
+            >>> geodb.get_collection(collection='land_use', query='id=ge.1000')
 
         """
 
@@ -759,7 +787,7 @@ class GeoDBClient(object):
         """
 
         Args:
-            collection: Dataset to query
+            collection: Collection to query
             select: Properties (columns) to return. Can contain aggregation functions
             where: SQL WHERE statement
             group: SQL GROUP statement
@@ -777,10 +805,10 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> df = geodb.get_collection_pg('land_use', where='raba_id=1410', group='d_od', \
+            >>> df = geodb.get_collection_pg(collection='land_use', where='raba_id=1410', group='d_od', \
                 select='COUNT(d_od) as ct, d_od')
         """
-        tab_prefix = namespace or self.whoami
+        tab_prefix = namespace or self.namespace
 
         dn = f"{tab_prefix}_{collection}"
 
@@ -823,7 +851,7 @@ class GeoDBClient(object):
         """
 
         Returns:
-            str: The URL of the corresponding geodb service instance
+            str: The URL of the GeoDB REST service
         """
         return self._server_url
 
@@ -848,6 +876,7 @@ class GeoDBClient(object):
 
     def register_user_to_geoserver(self, user_name: str, password: str) -> str:
         """
+        Registers a user in the PostGres database. Needs admin privileges.
 
         Args:
             user_name: User name of the user
@@ -986,7 +1015,13 @@ class GeoDBClient(object):
         self._auth_mode = os.getenv('GEODB_AUTH_MODE') or self._auth_mode
 
     @property
-    def auth_access_token(self):
+    def auth_access_token(self) -> str:
+        """
+
+        Returns:
+            The current authentication access_token
+        """
+
         if self._ipython_shell is not None:
             return self._ipython_shell.user_ns['__auth__'].access_token
         elif self._auth_access_token is not None:
@@ -1045,7 +1080,7 @@ class GeoDBClient(object):
         if collection in self.capabilities['definitions']:
             return True
         else:
-            raise ValueError(f"Dataset {collection} does not exist")
+            raise ValueError(f"Collection {collection} does not exist")
 
     def _raise_for_stored_procedure_exists(self, stored_procedure: str) -> bool:
         """

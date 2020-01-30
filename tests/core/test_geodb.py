@@ -3,8 +3,6 @@ import os
 import unittest
 from io import StringIO
 import pandas as pd
-import mock
-
 import requests_mock
 from geopandas import GeoDataFrame
 from pandas import DataFrame
@@ -43,7 +41,7 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(url, text=json.dumps(expected_response))
         self.set_global_mocks(m)
 
-        res = self._api.create_collection(collection='test', properties=[{'name': 'test_col', 'type': 'inger'}])
+        res = self._api.create_collection(collection='test', properties={'test_col': 'inger'})
         self.assertTrue(res)
 
     def test_drop_collection(self, m):
@@ -80,11 +78,11 @@ class GeoDBClientTest(unittest.TestCase):
                                                               "93188402B51B41B6F3FDD4423FF640"}]}
 
         url = f"{self._server_test_url}:{self._server_test_port}"
-        path = "/rpc/geodb_filter_by_bbox"
+        path = "/rpc/geodb_get_by_bbox"
 
         self.set_global_mocks(m)
 
-        m.get(url=url, text=json.dumps({'paths': ['/rpc/geodb_filter_by_bbox'],
+        m.get(url=url, text=json.dumps({'paths': ['/rpc/geodb_get_by_bbox'],
                                         'definitions': ['helge_collection']}))
 
         m.post(url + path, text=json.dumps(expected_response))
@@ -176,6 +174,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual(str(e.exception), "Could not guess the dataframe's crs. Please specify.")
 
+    @unittest.skip("Not yet implemented")
     def test_register_user_to_geoserver(self, m):
         m.post(self._server_full_address + '/rpc/geodb_register_user', text="success")
         self.set_global_mocks(m)
@@ -184,20 +183,20 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_filter_raw(self, m):
         m.get(url=self._server_full_address + "/", text=json.dumps({'definitions': ['helge_test'],
-                                                                    'paths': ['/rpc/geodb_filter_raw']}))
+                                                                    'paths': ['/rpc/geodb_get_raw']}))
 
         expected_result = {'src': []}
-        m.post(self._server_full_address + '/rpc/geodb_filter_raw', json=expected_result)
+        m.post(self._server_full_address + '/rpc/geodb_get_raw', json=expected_result)
 
         self.set_global_mocks(m)
 
         with self.assertRaises(ValueError) as e:
-            self._api.get_collection_pg('test', select='min(tt)', group='tt', limit=1, offset=2)
+            self._api.get_collection_pg('tesdsct', select='min(tt)', group='tt', limit=1, offset=2)
 
-        self.assertEqual("Result is empty", str(e.exception))
+        self.assertEqual("Collection helge_tesdsct does not exist", str(e.exception))
 
         expected_result = {'src': [{'count': 142, 'D_OD': '2019-03-21'}, {'count': 114, 'D_OD': '2019-02-20'}]}
-        m.post(self._server_full_address + '/rpc/geodb_filter_raw', json=expected_result)
+        m.post(self._server_full_address + '/rpc/geodb_get_raw', json=expected_result)
 
         r = self._api.get_collection_pg('test', select='count(D_OD)', group='D_OD', limit=1, offset=2)
         self.assertIsInstance(r, DataFrame)
@@ -217,7 +216,7 @@ class GeoDBClientTest(unittest.TestCase):
             'RABA_PID': 5983161,
             'RABA_ID': 1100,
             'D_OD': '2019-03-11'}]}
-        m.post(self._server_full_address + '/rpc/geodb_filter_raw', json=expected_result)
+        m.post(self._server_full_address + '/rpc/geodb_get_raw', json=expected_result)
 
         r = self._api.get_collection_pg('test', limit=1, offset=2)
         self.assertIsInstance(r, GeoDataFrame)
@@ -245,7 +244,6 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual("auth_mode can only be 'interactive' or 'silent'!", str(e.exception))
 
-    @mock.patch('IPython')
     def test_auth_token(self, m):
         m.post(self._server_test_auth_domain + "/oauth/token", json={"broken_access_token": "A long lived token"})
 
@@ -255,4 +253,3 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual("The authorization request did net return an access token. Please contact helpdesk.",
                          str(e.exception))
 
-        GeoDBClient(auth_mode='interactive')
