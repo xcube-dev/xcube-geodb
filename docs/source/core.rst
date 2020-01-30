@@ -5,7 +5,7 @@ Python Client
 GeoDBClient
 ===========
 
-.. autoclass:: dcfs_geodb.core.geodb.GeoDBClient
+.. autoclass:: xcube_geodb.core.geodb.GeoDBClient
     :members:
 
 
