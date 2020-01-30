@@ -11,6 +11,8 @@ import requests
 import json
 from dotenv import load_dotenv, find_dotenv
 
+from xcube_geodb.core.collection import Collection
+from xcube_geodb.core.message import Message
 from xcube_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS
 
 LOGGER = logging.getLogger("geodb.core")
@@ -147,7 +149,7 @@ class GeoDBClient(object):
         auth0_config_file = os.environ.get('GEODB_AUTH0_CONFIG_FILE') or 'ipyauth-auth0-demo.env'
         auth0_config_folder = os.environ.get('GEODB_AUTH0_CONFIG_FOLDER') or '.'
 
-        if not os.path.isfile(auth0_config_file):
+        if not os.path.isfile(os.path.join(auth0_config_folder,auth0_config_file)):
             raise FileExistsError("Mandatory auth configuration file ipyauth-auth0-demo.env must exist")
 
         auth_params = ParamsAuth0(dotenv_file=auth0_config_file, dotenv_folder=auth0_config_folder)
@@ -301,7 +303,7 @@ class GeoDBClient(object):
             raise GeoDBError(r.json()['message'])
         return r
 
-    def create_collections(self, collections: Dict) -> bool:
+    def create_collections(self, collections: Dict) -> Collection:
         """
 
         Args:
@@ -322,10 +324,10 @@ class GeoDBClient(object):
         collections = {"collections": collections}
         self.post(path='/rpc/geodb_create_collections', payload=collections)
 
-        self._log(f"Collections {str(collections)} added.")
-        return True
+        self._log(f"Collections {str(collections)} added.", level=logging.DEBUG)
+        return Collection(collections['collections'])
 
-    def create_collection(self, collection: str, properties: Dict, crs: int = 4326):
+    def create_collection(self, collection: str, properties: Dict, crs: int = 4326) -> Collection:
         """
 
         Args:
@@ -348,7 +350,7 @@ class GeoDBClient(object):
 
         return self.create_collections(collection)
 
-    def drop_collection(self, collection: str) -> bool:
+    def drop_collection(self, collection: str) -> Message:
         """
 
         Args:
@@ -366,17 +368,17 @@ class GeoDBClient(object):
 
         self.post(path='/rpc/geodb_drop_collections', payload={'collections': [collection]})
 
-        self._log(f"Collection {collection} deleted", level=logging.INFO)
-        return True
+        self._log(f"Collection {collection} deleted", level=logging.DEBUG)
+        return Message(f"Collection {collection} deleted")
 
-    def drop_collections(self, collections: Sequence[str]) -> bool:
+    def drop_collections(self, collections: Sequence[str]) -> Message:
         """
 
         Args:
             collections: Collections to be dropped
 
         Returns:
-            bool: Success
+            Message
 
         Examples:
             >>> geodb = GeoDBClient()
@@ -387,10 +389,10 @@ class GeoDBClient(object):
 
         self.post(path='/rpc/geodb_drop_collections', payload={'collections': collections})
 
-        self._log(f"Collection {str(collections)} deleted", level=logging.INFO)
-        return True
+        self._log(f"Collection {str(collections)} deleted", level=logging.DEBUG)
+        return Message(f"Collection {str(collections)} deleted")
 
-    def grant_access_to_collection(self, collection: str, user: str = "public") -> bool:
+    def grant_access_to_collection(self, collection: str, user: str = "public") -> Message:
         """
 
         Args:
@@ -404,11 +406,11 @@ class GeoDBClient(object):
 
         self.post(path='/rpc/geodb_grant_access_to_collection', payload={'collection': dn, 'usr': user})
 
-        self._log(message=f"Access granted on {collection} to {user}", level=logging.INFO)
+        self._log(message=f"Access granted on {collection} to {user}", level=logging.DEBUG)
 
-        return True
+        return Message(f"Access granted on {collection} to {user}")
 
-    def revoke_access_from_collection(self, collection: str, user: str = 'public') -> bool:
+    def revoke_access_from_collection(self, collection: str, user: str = 'public') -> Message:
         """
 
         Args:
@@ -422,9 +424,9 @@ class GeoDBClient(object):
 
         self.post(path='/rpc/geodb_revoke_access_to_collection', payload={'collection': dn, 'usr': user})
 
-        self._log(f"Access revoked from {collection} of {user}", level=logging.INFO)
+        self._log(f"Access revoked from {collection} of {user}", level=logging.DEBUG)
 
-        return True
+        return Message(f"Access revoked from {collection} of {user}")
 
     def list_grants(self) -> Sequence:
         """
@@ -439,7 +441,7 @@ class GeoDBClient(object):
         else:
             return r.json()[0]['src']
 
-    def add_property(self, collection: str, prop: str, typ: str) -> bool:
+    def add_property(self, collection: str, prop: str, typ: str) -> Message:
         """
         Add a property to an existing collection
         Args:
@@ -459,7 +461,7 @@ class GeoDBClient(object):
 
         return self.add_properties(collection=collection, properties=prop)
 
-    def add_properties(self, collection: str, properties: Dict) -> bool:
+    def add_properties(self, collection: str, properties: Dict) -> Message:
         """
 
         Args:
@@ -479,11 +481,11 @@ class GeoDBClient(object):
 
         self.post(path='/rpc/geodb_add_properties', payload={'collection': collection, 'properties': properties})
 
-        self._log(f"Properties added", level=logging.INFO)
+        self._log(f"Properties added", level=logging.DEBUG)
 
-        return True
+        return Message(f"Properties added")
 
-    def drop_property(self, collection: str, prop: str) -> bool:
+    def drop_property(self, collection: str, prop: str) -> Message:
         """
 
         Args:
@@ -498,11 +500,9 @@ class GeoDBClient(object):
             >>> geodb.drop_property(collection='[MyCollection]', prop='[MyProperty]')
         """
 
-        self.drop_properties(collection=collection, properties=[prop])
+        return self.drop_properties(collection=collection, properties=[prop])
 
-        return True
-
-    def drop_properties(self, collection: str, properties: Sequence[str]) -> bool:
+    def drop_properties(self, collection: str, properties: Sequence[str]) -> Message:
         """
 
         Args:
@@ -525,9 +525,9 @@ class GeoDBClient(object):
 
         self.post(path='/rpc/geodb_drop_properties', payload={'collection': collection, 'properties': properties})
 
-        self._log(f"Properties {str(properties)} dropped from {collection}", level=logging.INFO)
+        self._log(f"Properties {str(properties)} dropped from {collection}", level=logging.DEBUG)
 
-        return True
+        return Message(f"Properties {str(properties)} dropped from {collection}")
 
     def _raise_for_mandatory_columns(self, properties: Sequence[str]):
         common_props = list(set(properties) & set(self._mandatory_properties))
@@ -568,7 +568,7 @@ class GeoDBClient(object):
         else:
             return DataFrame(columns=["table_name"])
 
-    def delete_from_collection(self, collection: str, query: str) -> bool:
+    def delete_from_collection(self, collection: str, query: str) -> Message:
         """
 
         Args:
@@ -587,11 +587,11 @@ class GeoDBClient(object):
 
         self._delete(f'/{dn}?{query}')
 
-        self._log(f"Data from {collection} deleted", level=logging.INFO)
+        self._log(f"Data from {collection} deleted", level=logging.DEBUG)
 
-        return True
+        return Message(f"Data from {collection} deleted")
 
-    def update_collection(self, collection: str, values: Dict, query: str) -> bool:
+    def update_collection(self, collection: str, values: Dict, query: str) -> Message:
         """
 
         Args:
@@ -615,9 +615,9 @@ class GeoDBClient(object):
 
         self._patch(f'/{dn}?{query}', payload=values)
 
-        self._log(f"{collection} updated", level=logging.INFO)
+        self._log(f"{collection} updated", level=logging.DEBUG)
 
-        return True
+        return Message(f"{collection} updated")
 
     # noinspection PyMethodMayBeStatic
     def _gdf_to_csv(self, gpdf: GeoDataFrame, crs: int = None) -> str:
@@ -635,7 +635,7 @@ class GeoDBClient(object):
         return gpdf.to_csv(header=True, index=False).lstrip()
 
     def insert_into_collection(self, collection: str, values: GeoDataFrame, upsert: bool = False, crs: int = None) \
-            -> bool:
+            -> Message:
         """
 
         Args:
@@ -672,9 +672,9 @@ class GeoDBClient(object):
 
         self.post(f'/{dn}', payload=values, headers=headers)
 
-        self._log(f"Data inserted into {collection}", level=logging.INFO)
+        self._log(f"Data inserted into {collection}", level=logging.DEBUG)
 
-        return True
+        return Message(f"Data inserted into {collection}")
 
     def get_collection_by_bbox(self, collection: str, bbox: Tuple[float, float, float, float],
                                comparison_mode: str = 'contains', bbox_crs: int = 4326, limit: int = 0, offset: int = 0,
@@ -864,7 +864,7 @@ class GeoDBClient(object):
 
         return Catalog(self.geoserver_url + "/rest/", username=self._auth_client_id, password=self._auth_client_secret)
 
-    def register_user_to_geoserver(self, user_name: str, password: str) -> str:
+    def register_user_to_geoserver(self, user_name: str, password: str) -> Message:
         """
         Registers a user in the PostGres database. Needs admin privileges.
 
@@ -933,7 +933,7 @@ class GeoDBClient(object):
         r = requests.post(geoserver_url, json=rule, auth=(admin_user, admin_pwd))
         r.raise_for_status()
 
-        return f"User {user_name} successfully added"
+        return Message(f"User {user_name} successfully added")
 
     def _df_from_json(self, js: json) -> Union[GeoDataFrame, DataFrame]:
         """
