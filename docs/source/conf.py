@@ -141,5 +141,9 @@ autodoc_mock_imports = [
     'descartes',
     'requests',
     'psycopg2',
-    'postgis'
+    'postgis',
+    'dotenv',
+    'json',
+    'logging',
+    'typing'
 ]
