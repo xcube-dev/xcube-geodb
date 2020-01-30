@@ -114,8 +114,11 @@ class GeoDBClient(object):
         self._auth0_login()
 
     def _auth0_login(self):
-        from ipyauth import ParamsAuth0, Auth
-        from IPython.display import display
+        try:
+            from ipyauth import ParamsAuth0, Auth
+            from IPython.display import display
+        except ImportError:
+            raise GeoDBError("You need to install IPython and ipyauth dependencies")
 
         auth0_config_file = os.environ.get('GEODB_AUTH0_CONFIG_FILE') or 'ipyauth-auth0-demo.env'
 
