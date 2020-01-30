@@ -1,4 +1,4 @@
-name: dcfs-geodb
+name: xcube_geodb
 channels:
   - conda-forge
 
