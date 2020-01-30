@@ -253,3 +253,40 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual("The authorization request did net return an access token. Please contact helpdesk.",
                          str(e.exception))
 
+    def test_get_collection_info(self, m):
+        self.set_global_mocks(m)
+
+        expected_result = {'required': ['id', 'geometry'],
+                           'properties': {'id': {'format': 'integer',
+                                                 'type': 'integer',
+                                                 'description': 'Note:\nThis is a Primary Key.<pk/>'},
+                                          'created_at': {'format': 'timestamp with time zone', 'type': 'string'},
+                                          'modified_at': {'format': 'timestamp with time zone', 'type': 'string'},
+                                          'geometry': {'format': 'public.geometry(Geometry,3794)', 'type': 'string'},
+                                          'raba_pid': {'format': 'double precision', 'type': 'number'}},
+                           'type': 'object'}
+        m.post(self._server_full_address + '/rpc/geodb_get_raw', json=expected_result)
+
+        expected_result = {'id': 'integer'}
+        m.get(url=self._server_full_address + "/", text=json.dumps({'definitions': {'helge_test': expected_result},
+                                                                    'paths': ['/']}))
+        res = self._api.get_collection_info('test')
+        self.assertDictEqual(expected_result, res)
+
+        with self.assertRaises(ValueError) as e:
+            self._api.get_collection_info('test_not_exist')
+
+        self.assertEqual("Table helge_test_not_exist does not exist.", str(e.exception))
+
+    def test_namespace(self, m):
+        self.set_global_mocks(m)
+
+        geodb = GeoDBClient()
+        self.assertEqual('helge', geodb.namespace)
+
+        geodb = GeoDBClient(namespace='test')
+        self.assertEqual('test', geodb.namespace)
+
+
+
+
