@@ -65,6 +65,7 @@ class GeoDBClient(object):
         self._auth_access_token = access_token
         self._auth_mode = auth_mode or self._auth_mode
         self._auth0_config_file = None
+        self._auth0_config_folder = '.'
 
         self._capabilities = None
         self._is_public_client = anonymous
@@ -144,11 +145,12 @@ class GeoDBClient(object):
             raise GeoDBError("You need to install IPython and ipyauth dependencies")
 
         auth0_config_file = os.environ.get('GEODB_AUTH0_CONFIG_FILE') or 'ipyauth-auth0-demo.env'
+        auth0_config_folder = os.environ.get('GEODB_AUTH0_CONFIG_FOLDER') or '.'
 
         if not os.path.isfile(auth0_config_file):
             raise FileExistsError("Mandatory auth configuration file ipyauth-auth0-demo.env must exist")
 
-        auth_params = ParamsAuth0(dotenv_file=auth0_config_file)
+        auth_params = ParamsAuth0(dotenv_file=auth0_config_file, dotenv_folder=auth0_config_folder)
         auth = Auth(params=auth_params)
 
         self._ipython_shell = IPython.get_ipython()

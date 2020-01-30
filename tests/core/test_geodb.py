@@ -24,7 +24,8 @@ class GeoDBClientTest(unittest.TestCase):
 
         self._api = GeoDBClient(dotenv_file="tests/envs/.env_test")
 
-        os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'tests/envs/ipyauth-auth0-demo_test.env'
+        os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'ipyauth-auth0-demo_test.env'
+        os.environ['GEODB_AUTH0_CONFIG_FOLDER'] = 'tests/envs/'
 
     def tearDown(self) -> None:
         pass
