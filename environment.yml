@@ -26,7 +26,6 @@ dependencies:
   - psycopg2
   - postgis
   - httpretty
-  - nose
 
 
 
