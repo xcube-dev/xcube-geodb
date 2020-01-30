@@ -9,7 +9,7 @@ import requests
 from dotenv import find_dotenv, load_dotenv
 from geoserver import settings
 
-from dcfs_geodb.defaults import GEOSERVER_DEFAULT_PARAMETERS
+from xcube_geodb.defaults import GEOSERVER_DEFAULT_PARAMETERS
 
 LOGGER = logging.getLogger("gsconfig2.catalog")
 

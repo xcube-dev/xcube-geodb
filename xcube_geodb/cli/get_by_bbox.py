@@ -19,37 +19,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
 
 import click
 
-from dcfs_geodb.cli.common import cli_option_traceback, new_cli_ctx_obj, handle_cli_exception
-from dcfs_geodb.cli.get_by_bbox import get_by_bbox
-from dcfs_geodb.version import version
+__author__ = "Helge Dzierzon (Brockmann Consult GmbH)"
 
 
-# noinspection PyShadowingBuiltins,PyUnusedLocal
-@click.group(name='geodb')
-@click.version_option(version)
-@cli_option_traceback
-def cli(traceback=False):
-    """
-    xcube Toolkit
-    """
+@click.command(name='get_by_bbox')
+@click.option('--dataset', '-d', 'dataset', metavar='DATASET', help="Comma-separated list of bbox.")
+@click.option('--bbox', '-b', 'bbox', metavar='BBOX', help="Comma-separated list of bbox.")
+@click.option('--limit', '-l', 'limit', metavar='LIMIT', help="Limit or rows to be returned")
+@click.option('--offset', '-o', 'offset', metavar='OFFSET', help="Starting point")
+@click.option('--bbox-mode', '-m', 'bbox-mode', metavar='BBOX_MODE', help="Starting point")
+@click.option('--bbox-crs', '-c', 'bbox-crs', metavar='BBOX_CRS', help="Starting point")
+def get_by_bbox(dataset, bbox, limit, offset, bbox_mode, bbox_crs):
+    from xcube_geodb.core.geodb import GeoDBClient
+
+    bbox = bbox.split(',')
+
+    api = GeoDBClient()
+    api.get_collection_by_bbox(collection=dataset, bbox=bbox, limit=limit, offset=offset, comparison_mode=bbox_mode,
+                               bbox_crs=bbox_crs)
 
 
-cli.add_command(get_by_bbox)
 
-
-def main(args=None):
-    # noinspection PyBroadException
-    ctx_obj = new_cli_ctx_obj()
-    try:
-        exit_code = cli.main(args=args, obj=ctx_obj, standalone_mode=False)
-    except Exception as e:
-        exit_code = handle_cli_exception(e, traceback_mode=ctx_obj.get(False, "traceback"))
-    sys.exit(exit_code)
-
-
-if __name__ == '__main__':
-    main()

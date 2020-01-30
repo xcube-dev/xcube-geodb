@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 import click
 
@@ -25,46 +25,6 @@ def cli_option_traceback(func):
         is_flag=True,
         help="Enable tracing back errors by dumping the Python call stack. "
              "Pass as very first option to also trace back error during command-line validation.",
-        callback=_callback)(func)
-
-
-def cli_option_scheduler(func):
-    """Decorator for adding a pre-defined, reusable CLI option `--scheduler`."""
-
-    # noinspection PyUnusedLocal
-    def _callback(ctx: click.Context, param: click.Option, value: Optional[str]):
-        if not value:
-            return
-
-        address_and_kwargs = value.split("?", 2)
-        if len(address_and_kwargs) == 2:
-            address, kwargs_string = address_and_kwargs
-            kwargs = parse_cli_kwargs(kwargs_string, metavar="SCHEDULER")
-        else:
-            address, = address_and_kwargs
-            kwargs = dict()
-
-        try:
-            # The Dask Client registers itself as the default Dask scheduler, and so runs dask.array used by xarray
-            import distributed
-            scheduler_client = distributed.Client(address, **kwargs)
-            ctx_obj = ctx.ensure_object(dict)
-            if ctx_obj is not None:
-                ctx_obj["scheduler"] = scheduler_client
-            return scheduler_client
-        except ValueError as e:
-            raise click.BadParameter(f'Failed to create Dask scheduler client: {e}') from e
-
-    return click.option(
-        '--scheduler',
-        metavar='SCHEDULER',
-        help="Enable distributed computing using the Dask scheduler identified by SCHEDULER. "
-             "SCHEDULER can have the form <address>?<keyword>=<value>,... where <address> "
-             "is <host> or <host>:<port> and specifies the scheduler's address in your network. "
-             "For more information on distributed computing "
-             "using Dask, refer to http://distributed.dask.org/. "
-             "Pairs of <keyword>=<value> are passed to the Dask client. "
-             "Refer to http://distributed.dask.org/en/latest/api.html#distributed.Client",
         callback=_callback)(func)
 
 

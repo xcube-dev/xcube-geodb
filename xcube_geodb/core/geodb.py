@@ -12,7 +12,8 @@ import requests
 import json
 from dotenv import load_dotenv, find_dotenv
 
-from dcfs_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS
+from xcube_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS
+
 
 LOGGER = logging.getLogger("geodb.core")
 logging.basicConfig(level=logging.INFO)
@@ -50,6 +51,7 @@ class GeoDBClient(object):
             client_id (str): Client ID
             auth_mode (str): Authentication modus [silent]. Can be 'silent' and 'interactive'
         """
+
         self._dotenv_file = dotenv_file
         self._auth_mode = None
         self._namespace = namespace
@@ -75,6 +77,9 @@ class GeoDBClient(object):
         LOGGER.setLevel(level=self._log_level)
 
         self._mandatory_properties = ["geometry", "id", "created_at", "modified_at"]
+
+        if auth_mode not in ('interactive', 'silent'):
+            raise ValueError("auth_mode can only be 'interactive' or 'silent'!")
 
         if self._auth_mode == "interactive":
             self._auth_login()
@@ -1003,7 +1008,11 @@ class GeoDBClient(object):
         r.raise_for_status()
 
         data = r.json()
-        return data['access_token']
+
+        try:
+            return data['access_token']
+        except KeyError:
+            raise ValueError("The authorization request did net return an access token. Please contact helpdesk.")
 
     # noinspection PyMethodMayBeStatic
     def _validate(self, df: gpd.GeoDataFrame) -> bool:

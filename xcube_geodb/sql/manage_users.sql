@@ -77,7 +77,7 @@ DROP FUNCTION IF EXISTS public.geodb_check_user();
 CREATE OR REPLACE FUNCTION public.geodb_check_user() RETURNS void AS $$
 BEGIN
     IF current_user = 'anonymous' THEN
-        RAISE EXCEPTION 'Anonymous users do not have access to dev'
+        RAISE EXCEPTION 'Anonymous users do not have access'
             USING HINT = 'Please ask Brockmann Consult for access. (geodb@brockmann-consult.de)';
     END IF;
 END

@@ -3,13 +3,14 @@ import os
 import unittest
 from io import StringIO
 import pandas as pd
+import mock
 
 import requests_mock
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkt
 
-from dcfs_geodb.core.geodb import GeoDBClient
+from xcube_geodb.core.geodb import GeoDBClient
 
 
 @requests_mock.mock(real_http=True)
@@ -60,6 +61,7 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(url, text=json.dumps(expected_response))
         self.set_global_mocks(m)
 
+        # noinspection PyTypeChecker
         res = self._api.add_properties('test', [{'name': 'test_col', 'type': 'insssssteger'}])
         self.assertTrue(res)
 
@@ -225,7 +227,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIs(True, 'created_at' in r)
         self.assertIs(True, 'modified_at' in r)
 
-    def test_init(self):
+    def test_init(self, m):
         with self.assertRaises(ValueError) as e:
             GeoDBClient(auth_mode='interactive')
 
@@ -237,3 +239,20 @@ class GeoDBClientTest(unittest.TestCase):
             GeoDBClient(auth_mode='interactive')
 
         self.assertEqual("Mandatory auth configuration file ipyauth-auth0-demo.env must exist", str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            GeoDBClient(auth_mode='interacti')
+
+        self.assertEqual("auth_mode can only be 'interactive' or 'silent'!", str(e.exception))
+
+    @mock.patch('IPython')
+    def test_auth_token(self, m):
+        m.post(self._server_test_auth_domain + "/oauth/token", json={"broken_access_token": "A long lived token"})
+
+        with self.assertRaises(ValueError) as e:
+            access_token = self._api.auth_access_token
+
+        self.assertEqual("The authorization request did net return an access token. Please contact helpdesk.",
+                         str(e.exception))
+
+        GeoDBClient(auth_mode='interactive')

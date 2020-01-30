@@ -21,7 +21,7 @@ import recommonmark
 # noinspection PyUnresolvedReferences
 import sphinx_rtd_theme
 
-from dcfs_geodb.version import version
+from xcube_geodb.version import version
 
 # -- Project information -----------------------------------------------------
 

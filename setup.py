@@ -12,7 +12,7 @@ packages = find_packages(exclude=["tests", "tests.*"])
 
 # Same effect as "from cate import version", but avoids importing cate:
 version = None
-with open('dcfs_geodb/version.py') as f:
+with open('xcube_geodb/version.py') as f:
     exec(f.read())
 
 setup(
