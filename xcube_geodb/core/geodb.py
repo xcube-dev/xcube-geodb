@@ -1,6 +1,5 @@
 import logging
 import os
-import IPython
 from typing import Dict, Optional, Union, Sequence, Tuple
 
 import geopandas as gpd
@@ -116,6 +115,7 @@ class GeoDBClient(object):
     def _auth0_login(self):
         try:
             from ipyauth import ParamsAuth0, Auth
+            import IPython
             from IPython.display import display
         except ImportError:
             raise GeoDBError("You need to install IPython and ipyauth dependencies")
