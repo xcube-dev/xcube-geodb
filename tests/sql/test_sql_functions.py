@@ -38,13 +38,13 @@ class GeoDBSqlTest(unittest.TestCase):
             cls._cursor.execute(sql_create)
 
     def tearDown(self) -> None:
-        if os.environ.get('SKIP_PSQL_TESTS', False):
+        if os.environ._get('SKIP_PSQL_TESTS', False):
             return
 
         self._postgresql.stop()
 
     def tearDownModule(self):
-        if os.environ.get('SKIP_PSQL_TESTS', False):
+        if os.environ._get('SKIP_PSQL_TESTS', False):
             return
 
         # clear cached database at end of tests

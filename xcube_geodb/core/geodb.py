@@ -122,7 +122,7 @@ class GeoDBClient(object):
         Returns:
             The current database user
         """
-        return self._whoami or self.get(path='/rpc/geodb_whoami').json()
+        return self._whoami or self._get(path='/rpc/geodb_whoami').json()
 
     @property
     def capabilities(self) -> Dict:
@@ -131,7 +131,7 @@ class GeoDBClient(object):
         Returns:
             A dictionary of the PostGrest REST API service's capabilities
         """
-        return self._capabilities or self.get(path='/').json()
+        return self._capabilities or self._get(path='/').json()
 
     def _auth_login(self):
         self._auth0_login()
@@ -214,7 +214,7 @@ class GeoDBClient(object):
 
         return r
 
-    def get(self, path: str, params: Optional[Dict] = None, headers: Optional[Dict] = None) -> requests.models.Response:
+    def _get(self, path: str, params: Optional[Dict] = None, headers: Optional[Dict] = None) -> requests.models.Response:
         """
 
         Args:
@@ -242,7 +242,7 @@ class GeoDBClient(object):
 
         return r
 
-    def delete(self, path: str, params: Optional[Dict] = None, headers: Optional[Dict] = None) \
+    def _delete(self, path: str, params: Optional[Dict] = None, headers: Optional[Dict] = None) \
             -> requests.models.Response:
         """
 
@@ -270,8 +270,8 @@ class GeoDBClient(object):
             raise GeoDBError(r.json()['message'])
         return r
 
-    def patch(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
-              headers: Optional[Dict] = None) -> requests.models.Response:
+    def _patch(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
+               headers: Optional[Dict] = None) -> requests.models.Response:
         """
 
         Args:
@@ -595,7 +595,7 @@ class GeoDBClient(object):
 
         dn = f"{self.whoami}_{collection}"
 
-        self.delete(f'/{dn}?{query}')
+        self._delete(f'/{dn}?{query}')
 
         self._log(f"Data from {collection} deleted", level=logging.INFO)
 
@@ -623,7 +623,7 @@ class GeoDBClient(object):
         else:
             raise ValueError(f'Format {type(values)} not supported.')
 
-        self.patch(f'/{dn}?{query}', payload=values)
+        self._patch(f'/{dn}?{query}', payload=values)
 
         self._log(f"{collection} updated", level=logging.INFO)
 
@@ -769,9 +769,9 @@ class GeoDBClient(object):
         self._raise_for_collection_exists(collection=dn)
 
         if query:
-            r = self.get(f"/{dn}?{query}")
+            r = self._get(f"/{dn}?{query}")
         else:
-            r = self.get(f"/{dn}")
+            r = self._get(f"/{dn}")
 
         js = r.json()
 
@@ -885,8 +885,8 @@ class GeoDBClient(object):
         Returns:
             str: Success message
         """
-        admin_user = os.environ.get("GEOSERVER_ADMIN_USER")
-        admin_pwd = os.environ.get("GEOSERVER_ADMIN_PASSWORD")
+        admin_user = os.environ._get("GEOSERVER_ADMIN_USER")
+        admin_pwd = os.environ._get("GEOSERVER_ADMIN_PASSWORD")
 
         geoserver_url = f"{self.geoserver_url}/rest/security/usergroup/users"
 
@@ -996,12 +996,12 @@ class GeoDBClient(object):
         return d
 
     def _set_defaults(self):
-        self._server_url = GEODB_API_DEFAULT_PARAMETERS.get('server_url')
-        self._server_port = GEODB_API_DEFAULT_PARAMETERS.get('server_port')
-        self._auth_domain = GEODB_API_DEFAULT_PARAMETERS.get('auth_domain')
-        self._auth_aud = GEODB_API_DEFAULT_PARAMETERS.get('auth_aud')
-        self._auth_pub_client_id = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_id')
-        self._auth_pub_client_secret = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_secret')
+        self._server_url = GEODB_API_DEFAULT_PARAMETERS._get('server_url')
+        self._server_port = GEODB_API_DEFAULT_PARAMETERS._get('server_port')
+        self._auth_domain = GEODB_API_DEFAULT_PARAMETERS._get('auth_domain')
+        self._auth_aud = GEODB_API_DEFAULT_PARAMETERS._get('auth_aud')
+        self._auth_pub_client_id = GEODB_API_DEFAULT_PARAMETERS._get('auth_pub_client_id')
+        self._auth_pub_client_secret = GEODB_API_DEFAULT_PARAMETERS._get('auth_pub_client_secret')
 
     def _set_from_env(self):
         self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url

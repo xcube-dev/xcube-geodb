@@ -47,7 +47,7 @@ def main(args=None):
     try:
         exit_code = cli.main(args=args, obj=ctx_obj, standalone_mode=False)
     except Exception as e:
-        exit_code = handle_cli_exception(e, traceback_mode=ctx_obj.get(False, "traceback"))
+        exit_code = handle_cli_exception(e, traceback_mode=ctx_obj._get(False, "traceback"))
     sys.exit(exit_code)
 
 

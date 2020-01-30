@@ -50,9 +50,9 @@ class GeoserverSession:
         self._load_from_env()
 
     def _load_from_env(self):
-        self._service_url = os.environ.get("GEOSERVER_API_SERVER_URL") or self._service_url
-        self._username = os.environ.get("GEOSERVER_ADMIN_USER") or self._username
-        self._password = os.environ.get("GEOSERVER_ADMIN_PASSWORD") or self._password
+        self._service_url = os.environ._get("GEOSERVER_API_SERVER_URL") or self._service_url
+        self._username = os.environ._get("GEOSERVER_ADMIN_USER") or self._username
+        self._password = os.environ._get("GEOSERVER_ADMIN_PASSWORD") or self._password
 
     @property
     def service_url(self):
