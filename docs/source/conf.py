@@ -132,7 +132,7 @@ autodoc_mock_imports = [
     'rasterio',
     'scipy',
     'setuptools',
-    'shapely'
+    'shapely',
     'IPython',
     'geopandas',
     'matplotlib-base',
