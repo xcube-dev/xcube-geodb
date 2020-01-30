@@ -35,7 +35,7 @@ install:
   - conda info -a
 
   - conda env create --file environment.yml
-  - source activate ocdb
+  - source activate xcube_geodb
   - conda list
   - python setup.py install
 
