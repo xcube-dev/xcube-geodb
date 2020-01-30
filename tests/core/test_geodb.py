@@ -22,9 +22,9 @@ class GeoDBClientTest(unittest.TestCase):
         if self._server_test_port > 0:
             self._server_full_address += ':' + str(self._server_test_port)
 
-        self._api = GeoDBClient(dotenv_file=".env_test")
+        self._api = GeoDBClient(dotenv_file="tests/envs/.env_test")
 
-        os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'ipyauth-auth0-demo_test.env'
+        os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'tests/envs/ipyauth-auth0-demo_test.env'
 
     def tearDown(self) -> None:
         pass
