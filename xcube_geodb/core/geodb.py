@@ -310,15 +310,15 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> collections = { \
-                        '[MyCollection]': { \
-                        'crs': 1234, \
-                        'properties': { \
-                            '[MyProp1]': 'float', \
-                            '[MyProp2]': 'float', \
-                            '[MyProp3]': 'date' \
-                            } \
-                        } \
+            >>> collections = {
+                        '[MyCollection]': {
+                        'crs': 1234,
+                        'properties': {
+                            '[MyProp1]': 'float',
+                            '[MyProp2]': 'float',
+                            '[MyProp3]': 'date'
+                            }
+                        }
                     }
             >>> geodb.create_collections(collections)
         """
