@@ -4,6 +4,37 @@
 
 CREATE EXTENSION postgis;
 
+CREATE ROLE geodb_admin WITH
+    NOLOGIN
+    NOSUPERUSER
+    INHERIT
+    NOCREATEDB
+    CREATEROLE
+    NOREPLICATION;
+
+ALTER ROLE geodb_admin IN DATABASE geodb SET search_path TO public;
+
+CREATE ROLE publicaccess WITH
+    LOGIN
+    NOSUPERUSER
+    INHERIT
+    NOCREATEDB
+    NOCREATEROLE
+    NOREPLICATION;
+
+ALTER ROLE publicaccess IN DATABASE geodb SET search_path TO public;
+
+CREATE ROLE authenticator WITH
+    LOGIN
+    NOSUPERUSER
+    INHERIT
+    NOCREATEDB
+    NOCREATEROLE
+    NOREPLICATION;
+
+GRANT anonymous, geodb_admin, publicaccess TO authenticator;
+
+
 CREATE TABLE public.land_use
 (
     id       integer PRIMARY KEY,

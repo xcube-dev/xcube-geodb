@@ -51,7 +51,7 @@ class GeoDBSqlTest(unittest.TestCase):
         self._postgresql.clear_cache()
 
     def test_query_by_bbox(self):
-        sql_filter = "SELECT geodb_get_by_bbox('land_use'::VARCHAR(255), 452750.0, 88909.549, 464000.0, " \
+        sql_filter = "SELECT geodb_get_by_bbox('land_use', 452750.0, 88909.549, 464000.0, " \
                      "102486.299, 'contains', 3794)"
         self._cursor.execute(sql_filter)
 
@@ -106,8 +106,8 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertTrue(self.column_exists('test', 'id', 'integer'))
         self.assertTrue(self.column_exists('test', 'geometry', 'USER-DEFINED'))
 
-        datasets = [{'name': 'tt1', 'crs': '4326', 'properties': [{'name': 'tt', 'type': 'integer'}]},
-                    {'name': 'tt2', 'crs': '4326', 'properties': [{'name': 'tt', 'type': 'integer'}]}]
+        datasets = {'tt1': {'crs': '4326', 'properties': {'tt': 'integer'}},
+                    'tt2': {'crs': '4326', 'properties': {'tt': 'integer'}}}
         sql = f"SELECT geodb_create_datasets('{json.dumps(datasets)}')"
         self._cursor.execute(sql)
 
@@ -124,7 +124,7 @@ class GeoDBSqlTest(unittest.TestCase):
     def test_manage_properties(self):
         # geodb_add_properties
 
-        cols = [{'name': 'test_col', 'type': 'integer'}, {'name': 'test_col2', 'type': 'integer'}]
+        cols = {'test_col': 'integer', 'test_col2': 'integer'}
 
         sql = f"SELECT public.geodb_add_properties('land_use', '{json.dumps(cols)}')"
         self._cursor.execute(sql)
