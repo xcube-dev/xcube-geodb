@@ -165,6 +165,7 @@ class GeoDBClient(object):
         # noinspection PyTypeChecker
         display(auth)
 
+
     def _refresh_capabilities(self):
         self._capabilities = None
 
@@ -364,12 +365,7 @@ class GeoDBClient(object):
             >>> geodb.drop_collection(collection='[MyCollection]')
         """
 
-        self._refresh_capabilities()
-
-        self.post(path='/rpc/geodb_drop_collections', payload={'collections': [collection]})
-
-        self._log(f"Collection {collection} deleted", level=logging.DEBUG)
-        return Message(f"Collection {collection} deleted")
+        return self.drop_collections([collection])
 
     def drop_collections(self, collections: Sequence[str]) -> Message:
         """

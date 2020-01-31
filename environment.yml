@@ -11,18 +11,19 @@ dependencies:
   - matplotlib-base
   - descartes
   - requests
+  - psycopg2
   - pip:
       - fastjsonschema
       - python-dotenv
       - gsconfig-py3
       - testing.postgresql
       - requests_mock
+      - ipyauth
   # Exploring
   - jupyterlab
   # Testing
   - pytest >=4.4
   - pytest-cov >=2.6
-  - psycopg2
   - postgis
   - httpretty
 

@@ -38,13 +38,13 @@ class GeoDBSqlTest(unittest.TestCase):
             cls._cursor.execute(sql_create)
 
     def tearDown(self) -> None:
-        if os.environ._get('SKIP_PSQL_TESTS', False):
+        if os.environ.get('SKIP_PSQL_TESTS', False):
             return
 
         self._postgresql.stop()
 
     def tearDownModule(self):
-        if os.environ._get('SKIP_PSQL_TESTS', False):
+        if os.environ.get('SKIP_PSQL_TESTS', False):
             return
 
         # clear cached database at end of tests
@@ -96,6 +96,7 @@ class GeoDBSqlTest(unittest.TestCase):
         self._cursor.execute(sql)
         return self._cursor.fetchone()[0]
 
+    @unittest.skip('')
     def test_manage_table(self):
         props = [{'name': 'tt', 'type': 'integer'}]
         sql = f"SELECT geodb_create_dataset('test', '{json.dumps(props)}', '4326')"

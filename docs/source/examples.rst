@@ -10,4 +10,5 @@ Have fun!
 .. toctree::
    :maxdepth: 1
 
-   examples/geodb
+   _auto_examples/index.rst
+   examples/geodb_manage
