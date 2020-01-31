@@ -58,6 +58,16 @@ class GeoDBClient(object):
         self._auth_pub_client_id = "nF1s2D2fs770KLCY16zVk3i5nuqK6Ptx"
         self._auth_pub_client_secret = "WQtMECNYySz-1KTM6acEr_SJlped6QU6qxLyo4ahupLTqlfb4zu2Z27PbrwmEMqU"
 
+        self._server_url = None
+        self._server_port = None
+        self._auth_client_id = None
+        self._auth_client_secret = None
+        self._auth_access_token = None
+        self._auth0_config_file = None
+        self._auth0_config_folder = '.'
+        self._auth_domain = None
+        self._auth_aud = None
+
         self.refresh_config_from_env(dotenv_file=dotenv_file, use_dotenv=True)
 
         self._server_url = server_url or self._server_url
@@ -66,8 +76,6 @@ class GeoDBClient(object):
         self._auth_client_secret = client_secret or self._auth_client_secret
         self._auth_access_token = access_token
         self._auth_mode = auth_mode or self._auth_mode
-        self._auth0_config_file = None
-        self._auth0_config_folder = '.'
 
         self._capabilities = None
         self._is_public_client = anonymous
