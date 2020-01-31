@@ -6,7 +6,7 @@ package:
 
 source:
   git_url: https://github.com/dcs4cop/xcube-geodb
-  git_depth: 1
+  git_tag: dzelge_webapi
 
 build:
   number: 0
@@ -17,10 +17,10 @@ build:
 
 requirements:
   host:
-    - python =3.7
+    - python >=3.6
     - pip
   run:
-    - python =3.7
+    - python >=3.6
     - pip
     - geopandas
     - matplotlib-base
