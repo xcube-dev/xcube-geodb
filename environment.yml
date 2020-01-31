@@ -19,6 +19,7 @@ dependencies:
       - testing.postgresql
       - requests_mock
       - ipyauth
+      - pgsanity
   # Exploring
   - jupyterlab
   # Testing

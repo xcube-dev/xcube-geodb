@@ -16,8 +16,6 @@ CREATE OR REPLACE FUNCTION public.geodb_register_user(IN user_name text, IN pass
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-    SELECT geodb_check_user_grants('role:create');
-
     EXECUTE format('CREATE ROLE %s LOGIN; ALTER ROLE %s PASSWORD ''%s'';ALTER ROLE %s SET search_path = public;' ||
                    'GRANT %s TO authenticator;', user_name, user_name, password, user_name, user_name);
     RETURN 'success';
@@ -33,7 +31,6 @@ CREATE OR REPLACE FUNCTION public.geodb_user_exists(IN user_name text)
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-    SELECT geodb_check_user_grants('role:create');
     RETURN QUERY EXECUTE format('SELECT EXISTS (SELECT true FROM pg_roles WHERE rolname=''%s'')', user_name);
 END
 $BODY$;
@@ -48,7 +45,6 @@ CREATE OR REPLACE FUNCTION public.geodb_drop_user(IN user_name text)
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-    SELECT geodb_check_user_grants('role:create');
     EXECUTE format('DROP ROLE IF EXISTS %s', user_name);
     RETURN true;
 END
@@ -63,7 +59,6 @@ CREATE OR REPLACE FUNCTION public.geodb_grant_user_admin(IN user_name text)
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
-    SELECT geodb_check_user_grants('role:create');
     EXECUTE format('GRANT geodb_admin TO %I', user_name);
     RETURN true;
 END
