@@ -15,11 +15,11 @@ with open('xcube_geodb/version.py') as f:
     exec(f.read())
 
 setup(
-    name="dcfs_geodb",
+    name="xcube_geodb",
     version=version,
-    description='Geo DB for DCFS',
+    description='GeoDB',
     license='MIT',
-    author='DCFS Development Team',
+    author='xcube Development Team',
     packages=packages,
     entry_points={
         'console_scripts': [

@@ -12,9 +12,9 @@ dependencies:
   - descartes
   - requests
   - psycopg2
+  - python-dotenv
   - pip:
       - fastjsonschema
-      - python-dotenv
       - gsconfig-py3
       - testing.postgresql
       - requests_mock

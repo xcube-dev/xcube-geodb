@@ -13,17 +13,17 @@ build:
   noarch: python
   script: "{{ PYTHON }} -m pip install . -vv"
   entry_points:
-    - eocdb = xcube_geodb.cli.main:main
+    - geodb = xcube_geodb.cli.main:main
 
 requirements:
   host:
-    - python >=3.6
+    - python =3.7
     - pip
   run:
-    - python >=3.6
+    - python =3.7
     - pip
-    - geopandas >=0.5
-    - matplotlib
+    - geopandas
+    - matplotlib-base
     - descartes
     - requests
     - sphinx
@@ -33,7 +33,7 @@ requirements:
 
 test:
   imports:
-    - xcube_geodb.core.geodb
+    - xcube_geodb
   #commands:
   #  - xcube --help
 
