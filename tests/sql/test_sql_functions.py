@@ -38,20 +38,20 @@ class GeoDBSqlTest(unittest.TestCase):
             cls._cursor.execute(sql_create)
 
     def tearDown(self) -> None:
-        if os.environ._get('SKIP_PSQL_TESTS', False):
+        if os.environ.get('SKIP_PSQL_TESTS', False):
             return
 
         self._postgresql.stop()
 
     def tearDownModule(self):
-        if os.environ._get('SKIP_PSQL_TESTS', False):
+        if os.environ.get('SKIP_PSQL_TESTS', False):
             return
 
         # clear cached database at end of tests
         self._postgresql.clear_cache()
 
     def test_query_by_bbox(self):
-        sql_filter = "SELECT geodb_get_by_bbox('land_use', 452750.0, 88909.549, 464000.0, " \
+        sql_filter = "SELECT geodb_get_by_bbox('postgres_land_use', 452750.0, 88909.549, 464000.0, " \
                      "102486.299, 'contains', 3794)"
         self._cursor.execute(sql_filter)
 
@@ -97,47 +97,51 @@ class GeoDBSqlTest(unittest.TestCase):
         return self._cursor.fetchone()[0]
 
     def test_manage_table(self):
-        props = [{'name': 'tt', 'type': 'integer'}]
-        sql = f"SELECT geodb_create_dataset('test', '{json.dumps(props)}', '4326')"
+        props = {'tt': 'integer'}
+        sql = f"SELECT geodb_create_collection('test', '{json.dumps(props)}', '4326')"
         self._cursor.execute(sql)
 
-        self.assertTrue(self.table_exists('test'))
+        self.assertTrue(self.table_exists('postgres_test'))
 
-        self.assertTrue(self.column_exists('test', 'id', 'integer'))
-        self.assertTrue(self.column_exists('test', 'geometry', 'USER-DEFINED'))
+        self.assertTrue(self.column_exists('postgres_test', 'id', 'integer'))
+        self.assertTrue(self.column_exists('postgres_test', 'geometry', 'USER-DEFINED'))
 
         datasets = {'tt1': {'crs': '4326', 'properties': {'tt': 'integer'}},
                     'tt2': {'crs': '4326', 'properties': {'tt': 'integer'}}}
-        sql = f"SELECT geodb_create_datasets('{json.dumps(datasets)}')"
+        sql = f"SELECT geodb_create_collections('{json.dumps(datasets)}')"
         self._cursor.execute(sql)
 
-        self.assertTrue(self.table_exists('test'))
+        self.assertTrue(self.table_exists('postgres_test'))
 
-        self.assertTrue(self.column_exists('test', 'id', 'integer'))
-        self.assertTrue(self.column_exists('test', 'geometry', 'USER-DEFINED'))
+        self.assertTrue(self.column_exists('postgres_test', 'id', 'integer'))
+        self.assertTrue(self.column_exists('postgres_test', 'geometry', 'USER-DEFINED'))
 
         datasets = ['test', 'tt1', 'tt2']
-        sql = f"SELECT geodb_drop_datasets('{json.dumps(datasets)}')"
+        sql = f"SELECT geodb_drop_collections('{json.dumps(datasets)}')"
         self._cursor.execute(sql)
-        self.assertFalse(self.table_exists('test'))
+        self.assertFalse(self.table_exists('postgres_test'))
 
     def test_manage_properties(self):
         # geodb_add_properties
 
-        cols = {'test_col': 'integer', 'test_col2': 'integer'}
+        cols = ['test_col', 'test_col2']
 
-        sql = f"SELECT public.geodb_add_properties('land_use', '{json.dumps(cols)}')"
+        print(json.dumps(cols))
+        sql = f"SELECT public.geodb_add_properties('land_use', '{json.dumps(cols)}'::json)"
         self._cursor.execute(sql)
 
-        self.assertTrue(self.column_exists('land_use', 'test_col', 'integer'))
+        self.assertTrue(self.column_exists('postgres_land_use', 'test_col', 'integer'))
 
         sql = f"SELECT public.geodb_drop_properties('land_use', '{json.dumps(cols)}')"
         self._cursor.execute(sql)
-        self.assertFalse(self.column_exists('land_use', 'test_col', 'integer'))
+        self.assertFalse(self.column_exists('postgres_land_use', 'test_col', 'integer'))
 
     def test_manage_users(self):
-        sql = f"SELECT public.geodb_register_user('test')"
-        r = self._cursor.execute(sql)
+        with self.assertRaises(psycopg2.errors.RaiseException) as e:
+            sql = f"SELECT public.geodb_register_user('test', 'test')"
+            r = self._cursor.execute(sql)
+
+        # self.assertEqual("Not enough access rights to perform this operation: role:create\n", str(e.exception))
 
         sql = f"SELECT public.geodb_user_exists('test')"
         r = self._cursor.execute(sql)
