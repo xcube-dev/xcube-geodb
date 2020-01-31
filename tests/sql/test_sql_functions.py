@@ -21,19 +21,19 @@ class GeoDBSqlTest(unittest.TestCase):
         with open('tests/sql/setup.sql') as sql_file:
             cls._cursor.execute(sql_file.read())
 
-        with open('dcfs_geodb/sql/get_by_bbox.sql') as sql_file:
+        with open('xcube_geodb/sql/get_by_bbox.sql') as sql_file:
             sql_create = sql_file.read()
             cls._cursor.execute(sql_create)
 
-        with open('dcfs_geodb/sql/manage_table.sql') as sql_file:
+        with open('xcube_geodb/sql/manage_table.sql') as sql_file:
             sql_create = sql_file.read()
             cls._cursor.execute(sql_create)
 
-        with open('dcfs_geodb/sql/manage_properties.sql') as sql_file:
+        with open('xcube_geodb/sql/manage_properties.sql') as sql_file:
             sql_create = sql_file.read()
             cls._cursor.execute(sql_create)
 
-        with open('dcfs_geodb/sql/manage_users.sql') as sql_file:
+        with open('xcube_geodb/sql/manage_users.sql') as sql_file:
             sql_create = sql_file.read()
             cls._cursor.execute(sql_create)
 
@@ -134,7 +134,6 @@ class GeoDBSqlTest(unittest.TestCase):
         sql = f"SELECT public.geodb_drop_properties('land_use', '{json.dumps(cols)}')"
         self._cursor.execute(sql)
         self.assertFalse(self.column_exists('land_use', 'test_col', 'integer'))
-
 
     def test_manage_users(self):
         sql = f"SELECT public.geodb_register_user('test')"

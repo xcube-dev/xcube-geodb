@@ -5,7 +5,8 @@ package:
   version: {{ version }}
 
 source:
-  git: https://gitext.sinergise.com/dcfs/xcube_geodb
+  git_url: https://github.com/dcs4cop/xcube-geodb
+  git_depth: 1
 
 build:
   number: 0
@@ -38,13 +39,13 @@ test:
 
 about:
   summary: "geodb is a Python package"
-  home: https://gitext.sinergise.com/dcfs/xcube_geodb
+  home: https://github.com/dcs4cop/xcube-geodb
   license: MIT
   license_family: MIT
   license_file: LICENSE
   description: "geodb is a Python package"
   doc_url: https://xcube_geodb.readthedocs.io
-  dev_url: https://gitext.sinergise.com/dcfs/xcube_geodb
+  dev_url: https://github.com/dcs4cop/xcube-geodb
 
 extra:
   recipe-maintainers:
