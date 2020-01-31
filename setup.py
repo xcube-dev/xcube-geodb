@@ -23,7 +23,7 @@ setup(
     packages=packages,
     entry_points={
         'console_scripts': [
-            'geodb = dcfs_geodb.cli.main:main',
+            'geodb = xcube_geodb.cli.main:main',
         ],
     },
     install_requires=requirements,
