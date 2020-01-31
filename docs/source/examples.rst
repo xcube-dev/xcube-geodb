@@ -11,4 +11,3 @@ Have fun!
    :maxdepth: 1
 
    _auto_examples/index.rst
-   examples/geodb_manage

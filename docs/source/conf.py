@@ -42,7 +42,7 @@ doc_title = 'geodb Toolkit Documentation'
 master_doc = 'index'
 
 # The suffix(es) of source filenames.
-source_suffix = ['.rst', '.md']
+source_suffix = ['.rst', '.md', '.ipynb']
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -53,6 +53,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_rtd_theme',
     'sphinx_gallery.gen_gallery',
+    'nbsphinx',
     'recommonmark',
 ]
 

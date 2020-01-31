@@ -5,58 +5,56 @@
 
 Into existing conda environment (>= Python 3.6)
 
-    $ conda install -c conda-forge xcube
+```bash
+$ conda install -c conda-forge xcube-geodb
+```
 
 Into new conda environment
-    
-    $ conda create -c conda-forge -n xcube python3
-    $ conda install -c conda-forge xcube
-
+   
+```bash
+$ conda create -c conda-forge -n xcube-geodb python3
+$ conda install -c conda-forge xcube-geodb
+```
 
 ## Installation from sources
 
 First
     
-    $ git clone https://github.com/dcs4cop/xcube.git
-    $ cd xcube
-    $ conda env create
-    
+```bash
+$ git clone https://github.com/dcs4cop/xcube-geodb.git
+$ cd xcube-geodb
+$ conda env create
+```    
+
 Then
-    
-    $ activate xcube
-    $ python setup.py develop
+
+```bash
+$ conda activate xcube-geodb
+$ python setup.py develop
+```
 
 Update
-    
-    $ activate xcube
-    $ git pull --force
-    $ python setup.py develop
-    
+
+```bash
+$ conda activate xcube-geodb
+$ git pull --force
+$ python setup.py develop
+```
     
 Run tests
 
-    $ pytest
-    
+```bash
+$ pytest
+```
+
 with coverage
 
-    $ pytest --cov=xcube
+```bash
+$ pytest --cov=xcube
+```
 
 with [coverage report](https://pytest-cov.readthedocs.io/en/latest/reporting.html) in HTML
 
-    $ pytest --cov-report html --cov=xcube
-
-
-## Docker
-
-To start a demo using docker use the following commands
-
-    $ docker build -t [your name] .
-    $ docker run -d -p [host port]:8000 [your name]
-    
-Example:
-
-    $  docker build -t xcube:0.1.0dev6 .
-    $  docker run -d -p 8001:8000 xcube:0.1.0dev6
-    $  docker ps
-
-
+```bash
+$ pytest --cov-report html --cov=xcube
+```

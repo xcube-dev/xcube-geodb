@@ -141,8 +141,6 @@ class GeoDBSqlTest(unittest.TestCase):
         sql = f"SELECT public.geodb_register_user('test', 'test')"
         r = self._cursor.execute(sql)
 
-        # self.assertEqual("Not enough access rights to perform this operation: role:create\n", str(e.exception))
-
         sql = f"SELECT public.geodb_user_exists('test')"
         r = self._cursor.execute(sql)
 
