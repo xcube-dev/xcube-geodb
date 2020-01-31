@@ -96,7 +96,6 @@ class GeoDBSqlTest(unittest.TestCase):
         self._cursor.execute(sql)
         return self._cursor.fetchone()[0]
 
-    @unittest.skip('')
     def test_manage_table(self):
         props = {'tt': 'integer'}
         sql = f"SELECT geodb_create_collection('test', '{json.dumps(props)}', '4326')"
@@ -125,22 +124,22 @@ class GeoDBSqlTest(unittest.TestCase):
     def test_manage_properties(self):
         # geodb_add_properties
 
-        cols = ['test_col', 'test_col2']
+        cols = {'test_col1': 'integer', 'test_col2': 'integer'}
 
-        print(json.dumps(cols))
         sql = f"SELECT public.geodb_add_properties('land_use', '{json.dumps(cols)}'::json)"
         self._cursor.execute(sql)
 
-        self.assertTrue(self.column_exists('postgres_land_use', 'test_col', 'integer'))
+        self.assertTrue(self.column_exists('postgres_land_use', 'test_col1', 'integer'))
+
+        cols = ['test_col1', 'test_col2']
 
         sql = f"SELECT public.geodb_drop_properties('land_use', '{json.dumps(cols)}')"
         self._cursor.execute(sql)
         self.assertFalse(self.column_exists('postgres_land_use', 'test_col', 'integer'))
 
     def test_manage_users(self):
-        with self.assertRaises(psycopg2.errors.RaiseException) as e:
-            sql = f"SELECT public.geodb_register_user('test', 'test')"
-            r = self._cursor.execute(sql)
+        sql = f"SELECT public.geodb_register_user('test', 'test')"
+        r = self._cursor.execute(sql)
 
         # self.assertEqual("Not enough access rights to perform this operation: role:create\n", str(e.exception))
 
