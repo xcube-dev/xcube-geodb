@@ -17,13 +17,6 @@ geodb has been developed to generate, manipulate, analyse, and publish data cube
 
 
 .. toctree::
-   :caption: Examples
-   :maxdepth: 1
-
-   examples
-
-
-.. toctree::
    :caption: API
    :maxdepth: 1
 

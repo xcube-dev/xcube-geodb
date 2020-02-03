@@ -52,7 +52,7 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.napoleon',
     'sphinx_rtd_theme',
-    'sphinx_gallery.gen_gallery',
+    # 'sphinx_gallery.gen_gallery',
     'nbsphinx',
     'recommonmark',
 ]
