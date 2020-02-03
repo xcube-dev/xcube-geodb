@@ -157,7 +157,7 @@ class GeoDBClient(object):
         auth0_config_file = os.environ.get('GEODB_AUTH0_CONFIG_FILE') or 'ipyauth-auth0-demo.env'
         auth0_config_folder = os.environ.get('GEODB_AUTH0_CONFIG_FOLDER') or '.'
 
-        if not os.path.isfile(os.path.join(auth0_config_folder,auth0_config_file)):
+        if not os.path.isfile(os.path.join(auth0_config_folder, auth0_config_file)):
             raise FileExistsError("Mandatory auth configuration file ipyauth-auth0-demo.env must exist")
 
         auth_params = ParamsAuth0(dotenv_file=auth0_config_file, dotenv_folder=auth0_config_folder)
@@ -172,7 +172,6 @@ class GeoDBClient(object):
         self._ipython_shell.push({'__auth__': auth}, interactive=True)
         # noinspection PyTypeChecker
         display(auth)
-
 
     def _refresh_capabilities(self):
         self._capabilities = None
@@ -879,8 +878,8 @@ class GeoDBClient(object):
         Returns:
             str: Success message
         """
-        admin_user = os.environ._get("GEOSERVER_ADMIN_USER")
-        admin_pwd = os.environ._get("GEOSERVER_ADMIN_PASSWORD")
+        admin_user = os.environ.get("GEOSERVER_ADMIN_USER")
+        admin_pwd = os.environ.get("GEOSERVER_ADMIN_PASSWORD")
 
         geoserver_url = f"{self.geoserver_url}/rest/security/usergroup/users"
 
@@ -990,12 +989,12 @@ class GeoDBClient(object):
         return d
 
     def _set_defaults(self):
-        self._server_url = GEODB_API_DEFAULT_PARAMETERS._get('server_url')
-        self._server_port = GEODB_API_DEFAULT_PARAMETERS._get('server_port')
-        self._auth_domain = GEODB_API_DEFAULT_PARAMETERS._get('auth_domain')
-        self._auth_aud = GEODB_API_DEFAULT_PARAMETERS._get('auth_aud')
-        self._auth_pub_client_id = GEODB_API_DEFAULT_PARAMETERS._get('auth_pub_client_id')
-        self._auth_pub_client_secret = GEODB_API_DEFAULT_PARAMETERS._get('auth_pub_client_secret')
+        self._server_url = GEODB_API_DEFAULT_PARAMETERS.get('server_url')
+        self._server_port = GEODB_API_DEFAULT_PARAMETERS.get('server_port')
+        self._auth_domain = GEODB_API_DEFAULT_PARAMETERS.get('auth_domain')
+        self._auth_aud = GEODB_API_DEFAULT_PARAMETERS.get('auth_aud')
+        self._auth_pub_client_id = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_id')
+        self._auth_pub_client_secret = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_secret')
 
     def _set_from_env(self):
         self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url

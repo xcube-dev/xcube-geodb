@@ -40,14 +40,18 @@ install:
   - python setup.py install
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       for f in xcube_geodb/sql/*.sql;
       do
         pgsanity $f;
       done
     fi
-  - pytest --cov=ocdb --cov-report html
+  - py.test -v --cov=xcube_geodb
   - conda build -c conda-forge recipe
+
+after_success:
+  - pip install codecov
+  - codecov --env TRAVIS_PYTHON_VERSION
 
 deploy:
   # Deploy to Anaconda.org
