@@ -1,3 +1,7 @@
+[![Documentation Status](https://readthedocs.org/projects/xcube-geodb/badge/?version=latest)](https://xcube-geodb.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.com/dcs4cop/xcube-geodb.svg?branch=master)](https://travis-ci.com/dcs4cop/xcube-geodb)
+
+
 # xcube geodb
 
 The xcube GeoDB is a geo-spatial database plugin for [xcube](https://github.com/dcs4cop/xcube).
