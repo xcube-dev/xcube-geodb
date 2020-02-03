@@ -48,8 +48,6 @@ script:
     fi
   - py.test -v --cov=xcube_geodb
   - conda build -c conda-forge recipe
-
-after_success:
   - pip install codecov
   - codecov --env TRAVIS_PYTHON_VERSION
 

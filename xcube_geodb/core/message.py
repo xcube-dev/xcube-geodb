@@ -2,6 +2,10 @@ class Message:
     def __init__(self, message: str):
         self._message = message
 
+    @property
+    def message(self):
+        return self._message
+
     def _repr_pretty_(self, p, cycle):
         if cycle:
             p.text(self._message)

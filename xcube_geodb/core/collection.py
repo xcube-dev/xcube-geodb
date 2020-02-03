@@ -1,9 +1,10 @@
-from typing import Dict
+from typing import Dict, Sequence
 
 
 class Collection:
-    def __init__(self, config: Dict):
-        self._config = config
+    def __init__(self, name: str, props: Dict):
+        self._config = {name: props}
+        self._name = name
 
     @property
     def config(self):
@@ -13,9 +14,17 @@ class Collection:
     def config(self, value):
         self._config = value
 
-    def add(self, collection: str, properties: Dict):
-        self._config[collection] = properties
+    @property
+    def name(self):
+        return self._name
+
+    def add_props(self, properties: Dict):
+        self._config[self._name].update(properties)
         return self
+
+    def delete_props(self, props: Sequence):
+        for prop in props:
+            del self._config[self._name][prop]
 
     def _repr_pretty_(self, p, cycle):
         import pprint
