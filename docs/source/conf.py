@@ -128,29 +128,9 @@ autodoc_member_order = 'bysource'
 autodoc_inherit_docstrings = True
 autodoc_typehints = 'signature'
 autodoc_mock_imports = [
-    'affine',
-    'blas',
-    'click',
-    'fiona',
-    'gdal',
-    'matplotlib',
-    'numpy',
-    'pandas',
     'geopandas',
-    'rasterio',
-    'scipy',
-    'setuptools',
-    'shapely',
-    'IPython',
-    'IPython.display',
-    'matplotlib-base',
-    'ipyauth',
-    'descartes',
-    'requests',
     'psycopg2',
-    'postgis',
-    'dotenv',
-    'json',
-    'logging',
-    'typing'
+    'pandas',
+    'shapely',
+    'dotenv'
 ]
