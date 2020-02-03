@@ -19,11 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
-
 import click
 
-from xcube_geodb.cli.common import cli_option_traceback, new_cli_ctx_obj, handle_cli_exception
+from xcube_geodb.cli.common import cli_option_traceback
 from xcube_geodb.cli.get_by_bbox import get_by_bbox
 from xcube_geodb.version import version
 
@@ -43,12 +41,14 @@ cli.add_command(get_by_bbox)
 
 def main(args=None):
     # noinspection PyBroadException
-    ctx_obj = new_cli_ctx_obj()
-    try:
-        exit_code = cli.main(args=args, obj=ctx_obj, standalone_mode=False)
-    except Exception as e:
-        exit_code = handle_cli_exception(e, traceback_mode=ctx_obj._get(False, "traceback"))
-    sys.exit(exit_code)
+    raise NotImplementedError("The command line interface is not yet working.")
+    #
+    # ctx_obj = new_cli_ctx_obj()
+    # try:
+    #     exit_code = cli.main(args=args, obj=ctx_obj, standalone_mode=False)
+    # except Exception as e:
+    #     exit_code = handle_cli_exception(e, traceback_mode=ctx_obj._get(False, "traceback"))
+    # sys.exit(exit_code)
 
 
 if __name__ == '__main__':
