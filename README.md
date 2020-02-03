@@ -3,7 +3,7 @@
 xcube geodb is a geospatial database plugin for [xcube](https://github.com/dcs4cop/xcube).
 geodb reads features from e.g. Shapefiles in the form of a [GeoDataFrame](http://geopandas.org/) and processes
 them in a custom PostgreSQL database provided by [Brockmann Consult](https://www.brockmann-consult.de) and the ECD consortium.
- The processed data can be accessed and queried via a Rest API with full querying capabilities.   
+ The processed data can be accessed and queried via a REST API with full querying capabilities.   
 
 
 Please refer to our [documentation](https://xcube-geodb.readthedocs.io) for further information.
