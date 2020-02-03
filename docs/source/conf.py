@@ -143,7 +143,6 @@ autodoc_mock_imports = [
     'shapely',
     'IPython',
     'IPython.display',
-    'geopandas',
     'matplotlib-base',
     'ipyauth',
     'descartes',
