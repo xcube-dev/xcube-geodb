@@ -11,7 +11,7 @@ import requests
 import json
 from dotenv import load_dotenv, find_dotenv
 
-from xcube_geodb.core.collection import Collection
+from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.message import Message
 from xcube_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS
 
@@ -121,7 +121,7 @@ class GeoDBClient(object):
     def namespace(self) -> str:
         """
         Returns:
-            The current namespace
+            The currentnamespace
         """
         return self._namespace or self.whoami
 
@@ -311,7 +311,7 @@ class GeoDBClient(object):
             raise GeoDBError(r.json()['message'])
         return r
 
-    def create_collections(self, collections: Dict) -> Collection:
+    def create_collections(self, collections: Dict) -> Collections:
         """
 
         Args:
@@ -333,9 +333,9 @@ class GeoDBClient(object):
         self.post(path='/rpc/geodb_create_collections', payload=collections)
 
         self._log(f"Collections {str(collections)} added.", level=logging.DEBUG)
-        return Collection(collections['collections'])
+        return Collections(collections['collections'])
 
-    def create_collection(self, collection: str, properties: Dict, crs: int = 4326) -> Collection:
+    def create_collection(self, collection: str, properties: Dict, crs: int = 4326) -> Collections:
         """
 
         Args:
