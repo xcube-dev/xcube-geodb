@@ -6,7 +6,6 @@ package:
 
 source:
   git_url: https://github.com/dcs4cop/xcube-geodb
-  git_tag: dzelge_webapi
 
 build:
   number: 0
@@ -35,8 +34,8 @@ test:
   imports:
     - xcube_geodb
     - xcube_geodb.core.geodb
-  #commands:
-  #  - xcube --help
+  commands:
+    - geodb --help
 
 about:
   summary: "geodb is a Python package"

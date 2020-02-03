@@ -1,11 +1,14 @@
 # Only need to change these two variables
 export PKG_NAME=xcube_geodb
-export USER=bcdev
+export USER=bc-dev
 
-conda config --set anaconda_upload no
 
-CONDA_PACKAGE=$(conda build -c conda-forge recipe --output)
+if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+  conda config --set anaconda_upload no
 
-echo anaconda -t ${CONDA_UPLOAD_TOKEN} upload  -u ${USER} ${CONDA_PACKAGE} --force
+  CONDA_PACKAGE=$(conda build -c conda-forge recipe --output)
 
-anaconda -t ${CONDA_UPLOAD_TOKEN} upload  -u ${USER} ${CONDA_PACKAGE} --force
+  echo anaconda -t ${CONDA_UPLOAD_TOKEN} upload  -u ${USER} ${CONDA_PACKAGE} --force
+
+  anaconda -t ${CONDA_UPLOAD_TOKEN} upload  -u ${USER} ${CONDA_PACKAGE} --force
+fi
