@@ -4,3 +4,8 @@ recommonmark>=0.6.0
 sphinx_gallery
 nbsphinx
 geopandas
+dotenv
+matplotlib-base
+descartes
+requests
+python-dotenv
