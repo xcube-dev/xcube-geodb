@@ -15,3 +15,4 @@ Please refer to our [documentation](https://xcube-geodb.readthedocs.io) for furt
 - [ProgreSQL](https://www.postgresql.org/)
 - [Postgrest](http://postgrest.org/en/v6.0/)
 - [AWS RDS](https://aws.amazon.com/de/rds/)
+- [docker](https://www.docker.com/)
