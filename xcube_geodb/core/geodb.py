@@ -64,7 +64,7 @@ class GeoDBClient(object):
         self._auth_access_token = None
         self._auth0_config_file = None
         self._auth0_config_folder = '.'
-        self._auth_domain = None
+        self._auth_domain = "https://edc.eu.auth0.com"
         self._auth_aud = None
 
         self.refresh_config_from_env(dotenv_file=dotenv_file, use_dotenv=True)

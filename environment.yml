@@ -7,7 +7,7 @@ dependencies:
   - python >=3.6
   # Required
   - pip
-  - geopandas >=0.5
+  - geopandas
   - matplotlib-base
   - descartes
   - requests

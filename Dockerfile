@@ -27,7 +27,7 @@ RUN conda create -n xcube -c conda-forge xcube=${XCUBE_VERSION}
 RUN git clone https://github.com/dcs4cop/xcube-geodb /workspace/xcube-geodb
 WORKDIR /workspace/xcube-geodb
 
-RUN source activate xcube && conda update -f environment.yml
+RUN source activate xcube && conda env update xcube -f environment.yml
 RUN source activate xcube && python setup.py develop
 
 WORKDIR /workspace
