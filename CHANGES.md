@@ -5,7 +5,7 @@
 This version comprises:
 
 - The Core Python GeoDBClient
-- Sphinx docus
+- Sphinx docs
 - Example notebooks
 - A conda build recipe
 - A Dockerfile
