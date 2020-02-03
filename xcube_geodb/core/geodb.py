@@ -3,7 +3,6 @@ import os
 from typing import Dict, Optional, Union, Sequence, Tuple
 
 import geopandas as gpd
-import psycopg2
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkb
@@ -1125,6 +1124,12 @@ class GeoDBClient(object):
         user = os.getenv('GEODB_DB_USER')
         passwd = os.getenv('GEODB_DB_PASSWD')
         dbname = os.getenv('GEODB_DB_DBNAME')
+
+        try:
+            import psycopg2
+        except ImportError:
+            raise GeoDBError("You need to install psycopg2 first to run this module.")
+
         conn = psycopg2.connect(host=host, port=port, user=user, password=passwd, dbname=dbname)
         cursor = conn.cursor()
 
