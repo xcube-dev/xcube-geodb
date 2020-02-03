@@ -18,10 +18,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import sys
 
 import click
 
-from xcube_geodb.cli.common import cli_option_traceback
+from xcube_geodb.cli.common import cli_option_traceback, new_cli_ctx_obj, handle_cli_exception
 from xcube_geodb.cli.get_by_bbox import get_by_bbox
 from xcube_geodb.version import version
 
@@ -30,25 +31,26 @@ from xcube_geodb.version import version
 @click.group(name='geodb')
 @click.version_option(version)
 @cli_option_traceback
-def cli(traceback=False):
+def geodb(traceback=False):
     """
-    xcube Toolkit
+    xcube geodb Toolkit
     """
+    raise NotImplementedError("The command line interface is not yet working.")
 
 
-cli.add_command(get_by_bbox)
+geodb.add_command(get_by_bbox)
 
 
 def main(args=None):
     # noinspection PyBroadException
-    raise NotImplementedError("The command line interface is not yet working.")
-    #
-    # ctx_obj = new_cli_ctx_obj()
-    # try:
-    #     exit_code = cli.main(args=args, obj=ctx_obj, standalone_mode=False)
-    # except Exception as e:
-    #     exit_code = handle_cli_exception(e, traceback_mode=ctx_obj._get(False, "traceback"))
-    # sys.exit(exit_code)
+
+    ctx_obj = new_cli_ctx_obj()
+    try:
+        exit_code = geodb.main(args=args, obj=ctx_obj, standalone_mode=False)
+    except Exception as e:
+        exit_code = handle_cli_exception(e, traceback_mode=ctx_obj.get(False, "traceback"))
+
+    sys.exit(exit_code)
 
 
 if __name__ == '__main__':
