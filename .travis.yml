@@ -40,10 +40,12 @@ install:
   - python setup.py install
 
 script:
-  - for f in xcube_geodb/sql/*.sql;
-    do
-      pgsanity $f;
-    done
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      for f in xcube_geodb/sql/*.sql;
+      do
+        pgsanity $f;
+      done
+    fi
   - pytest --cov=ocdb --cov-report html
   - conda build -c conda-forge recipe
 
