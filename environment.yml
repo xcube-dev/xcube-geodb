@@ -1,18 +1,31 @@
-name: dcfs-geodb
+name: xcube_geodb
 channels:
   - conda-forge
-  - defaults
+
 dependencies:
   # Python
   - python >=3.6
   # Required
-  - jupyterlab
-  - psycopg2
-  - geopandas >=0.5
+  - pip
+  - geopandas
   - matplotlib-base
   - descartes
-  - postgresql >=11.5 
+  - requests
+  - psycopg2
+  - python-dotenv
+  - pip:
+      - fastjsonschema
+      - gsconfig-py3
+      - testing.postgresql
+      - requests_mock
+      - ipyauth
+      - pgsanity
+  # Exploring
+  - jupyterlab
   # Testing
   - pytest >=4.4
   - pytest-cov >=2.6
+  - httpretty
+
+
 

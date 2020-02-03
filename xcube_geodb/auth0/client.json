@@ -1,0 +1,20 @@
+{
+  "name": "geodb_dochelge2",
+  "description": "description",
+  "grant_types": [
+    "client_credentials"
+  ],
+  "token_endpoint_auth_method": "client_secret_post",
+  "app_type": "non_interactive",
+  "is_first_party": true,
+  "oidc_conformant": false,
+  "jwt_configuration": {
+    "lifetime_in_seconds": 36000,
+    "scopes": {"user:dochelge":  "Access to user schema", "schema:write":  "Write access to schema"},
+    "alg": "RS256"
+  },
+  "sso": false,
+  "sso_disabled": false,
+  "custom_login_page_on": false,
+  "client_metadata": {}
+}
