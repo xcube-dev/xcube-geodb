@@ -22,7 +22,7 @@ import sys
 
 import click
 
-from xcube_geodb.cli.common import cli_option_traceback, new_cli_ctx_obj, handle_cli_exception
+from xcube_geodb.cli.common import cli_option_traceback
 from xcube_geodb.cli.get_by_bbox import get_by_bbox
 from xcube_geodb.version import version
 
@@ -31,25 +31,28 @@ from xcube_geodb.version import version
 @click.group(name='geodb')
 @click.version_option(version)
 @cli_option_traceback
-def geodb(traceback=False):
+def cli(traceback=False):
     """
     xcube geodb Toolkit
     """
-    raise NotImplementedError("The command line interface is not yet working.")
+    # raise NotImplementedError("The command line interface is not yet working.")
 
 
-geodb.add_command(get_by_bbox)
+cli.add_command(get_by_bbox)
 
 
 def main(args=None):
     # noinspection PyBroadException
-
-    ctx_obj = new_cli_ctx_obj()
     try:
-        exit_code = geodb.main(args=args, obj=ctx_obj, standalone_mode=False)
+        exit_code = cli.main(args=args, standalone_mode=False)
+    except click.ClickException as e:
+        e.show()
+        exit_code = 1
     except Exception as e:
-        exit_code = handle_cli_exception(e, traceback_mode=ctx_obj.get(False, "traceback"))
-
+        import traceback
+        traceback.print_exc()
+        exit_code = 2
+        print(f'Error: {e}')
     sys.exit(exit_code)
 
 

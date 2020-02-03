@@ -30,16 +30,18 @@ __author__ = "Helge Dzierzon (Brockmann Consult GmbH)"
 @click.option('--bbox', '-b', 'bbox', metavar='BBOX', help="Comma-separated list of bbox.")
 @click.option('--limit', '-l', 'limit', metavar='LIMIT', help="Limit or rows to be returned")
 @click.option('--offset', '-o', 'offset', metavar='OFFSET', help="Starting point")
-@click.option('--bbox-mode', '-m', 'bbox-mode', metavar='BBOX_MODE', help="Starting point")
+@click.option('--comparison-mode', '-m', 'comparison-mode', metavar='COMPARISON_MODE', help="Can be within or contains")
 @click.option('--bbox-crs', '-c', 'bbox-crs', metavar='BBOX_CRS', help="Starting point")
-def get_by_bbox(dataset, bbox, limit, offset, bbox_mode, bbox_crs):
+def get_by_bbox(dataset, bbox, limit, offset, comparison_mode, bbox_crs):
     from xcube_geodb.core.geodb import GeoDBClient
 
     bbox = bbox.split(',')
 
     api = GeoDBClient()
-    api.get_collection_by_bbox(collection=dataset, bbox=bbox, limit=limit, offset=offset, comparison_mode=bbox_mode,
-                               bbox_crs=bbox_crs)
+    api.get_collection_by_bbox(collection=dataset, bbox=bbox, limit=limit, offset=offset,
+                               comparison_mode=comparison_mode, bbox_crs=bbox_crs)
+
+
 
 
 

@@ -30,6 +30,6 @@ except ImportError:
 
 def init_plugin(ext_registry: extension.ExtensionRegistry):
     """xcube geoDB extension"""
-    ext_registry.add_extension(loader=extension.import_component('xcube_geodb.cli.main:main'),
+    ext_registry.add_extension(loader=extension.import_component('xcube_geodb.cli.main:cli'),
                                point=EXTENSION_POINT_CLI_COMMANDS,
                                name='geodb_cli')
