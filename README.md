@@ -1,24 +1,17 @@
-# dcfs-geodb
+# xcube geodb
 
-Geo DB (incubator) for DCFS
-
-## GeoDB Instance
-
-The PostGreSQL GeoDB is an Amazon AWS RDS instance. 
-
-- PostgreSQl 11
-- Region: eu-central-1
-- AMI: db.m4.large
+xcube geodb is a geospatial database plugin for [xcube](https://github.com/dcs4cop/xcube).
+geodb takes features from e.g. shapefiles in teh form of a [GeoDataFrame](http://geopandas.org/) and processes
+them in a custom PostgreSQL database provided by [Brockmann Consult](https://www.brockmann-consult.de) and the ECD consortium.
+ The processed data can be accessed and queried via a Rest API with full querying capabilities.   
 
 
-## Schema
+Please refer to our [documentation](https://xcube-geodb.readthedocs.io) for further information.
 
-```sql
-CREATE TABLE "public"."land_use" (
-    "id" integer DEFAULT nextval('land_user_id_seq') NOT NULL,
-    "raba_id" integer NOT NULL,
-    "d_od" date NOT NULL,
-    "geometry" geometry NOT NULL,
-    "raba_pid" double precision NOT NULL
-) WITH (oids = false);
-```
+## Technologies used:
+
+- [xcube](https://github.com/dcs4cop/xcube)
+- [xarray](http://xarray.pydata.org/en/stable/)
+- [ProgreSQL](https://www.postgresql.org/)
+- [Postgrest](http://postgrest.org/en/v6.0/)
+- [AWS RDS](https://aws.amazon.com/de/rds/)
