@@ -1,3 +1,7 @@
+-- noinspection SqlResolveForFile
+
+-- noinspection SqlNoDataSourceInspectionForFile
+
 -- Table: public.land_use
 
 -- DROP TABLE public.land_use;
@@ -40,9 +44,21 @@ CREATE ROLE authenticator WITH
     NOCREATEROLE
     NOREPLICATION;
 
-ALTER ROLE authenticator IN DATABASE postgres SET search_path TO public; 
 
-GRANT anonymous, geodb_admin, publicaccess TO authenticator;
+ALTER ROLE authenticator IN DATABASE postgres SET search_path TO public;
+
+
+CREATE ROLE "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva" WITH
+    LOGIN
+    NOSUPERUSER
+    INHERIT
+    NOCREATEDB
+    NOCREATEROLE
+    NOREPLICATION;
+
+GRANT "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva" TO postgres;
+
+GRANT "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva" TO authenticator;
 
 
 CREATE TABLE public.postgres_land_use
@@ -51,6 +67,9 @@ CREATE TABLE public.postgres_land_use
     geometry geometry(Geometry, 3794) NOT NULL
 );
 
+
+
+GRANT anonymous TO postgres;
 
 
 INSERT INTO postgres_land_use(id, geometry)

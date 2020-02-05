@@ -1,3 +1,5 @@
+-- noinspection SqlResolveForFile
+
 -- CREATE EXTENSION postgis;
 
 DROP FUNCTION IF EXISTS update_modified_column();
@@ -18,6 +20,7 @@ AS $BODY$
 DECLARE
     usr text;
     tab text;
+    trigg text;
 BEGIN
     usr := (SELECT geodb_whoami());
 
@@ -32,9 +35,11 @@ BEGIN
 
     PERFORM geodb_add_properties(collection, properties);
 
-    EXECUTE format('CREATE TRIGGER update_%s_modtime
-                    BEFORE UPDATE ON %I_%I
-                    FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', tab, usr, collection);
+    trigg := 'update_' || tab || '_modtime';
+
+    EXECUTE format('CREATE TRIGGER %I
+                    BEFORE UPDATE ON %I
+                    FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', trigg, tab);
 
     EXECUTE format('ALTER TABLE %I OWNER to %I;', tab, usr);
 END
