@@ -5,6 +5,7 @@ import json
 import testing.postgresql
 
 
+# noinspection SqlNoDataSourceInspection
 @unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', False), 'DB Tests skipped')
 class GeoDBSqlTest(unittest.TestCase):
 
@@ -96,46 +97,62 @@ class GeoDBSqlTest(unittest.TestCase):
         self._cursor.execute(sql)
         return self._cursor.fetchone()[0]
 
+    def _set_role(self, user_name: str):
+        sql = f"SET LOCAL ROLE \"{user_name}\""
+        self._cursor.execute(sql)
+
     def test_manage_table(self):
+        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
+        user_table = f"{user_name}_test"
+        self._set_role(user_name)
+
         props = {'tt': 'integer'}
         sql = f"SELECT geodb_create_collection('test', '{json.dumps(props)}', '4326')"
         self._cursor.execute(sql)
 
-        self.assertTrue(self.table_exists('postgres_test'))
+        self.assertTrue(self.table_exists(user_table))
 
-        self.assertTrue(self.column_exists('postgres_test', 'id', 'integer'))
-        self.assertTrue(self.column_exists('postgres_test', 'geometry', 'USER-DEFINED'))
+        self.assertTrue(self.column_exists(user_table, 'id', 'integer'))
+        self.assertTrue(self.column_exists(user_table, 'geometry', 'USER-DEFINED'))
 
         datasets = {'tt1': {'crs': '4326', 'properties': {'tt': 'integer'}},
                     'tt2': {'crs': '4326', 'properties': {'tt': 'integer'}}}
+
         sql = f"SELECT geodb_create_collections('{json.dumps(datasets)}')"
         self._cursor.execute(sql)
 
-        self.assertTrue(self.table_exists('postgres_test'))
+        self.assertTrue(self.table_exists(user_table))
 
-        self.assertTrue(self.column_exists('postgres_test', 'id', 'integer'))
-        self.assertTrue(self.column_exists('postgres_test', 'geometry', 'USER-DEFINED'))
+        self.assertTrue(self.column_exists(user_table, 'id', 'integer'))
+        self.assertTrue(self.column_exists(user_table, 'geometry', 'USER-DEFINED'))
 
         datasets = ['test', 'tt1', 'tt2']
         sql = f"SELECT geodb_drop_collections('{json.dumps(datasets)}')"
         self._cursor.execute(sql)
-        self.assertFalse(self.table_exists('postgres_test'))
+        self.assertFalse(self.table_exists(user_table))
 
     def test_manage_properties(self):
-        # geodb_add_properties
+        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
+        table = "land_use"
+        user_table = f"{user_name}_{table}"
+        self._set_role(user_name)
+
+        props = {'tt': 'integer'}
+        sql = f"SELECT geodb_create_collection('land_use', '{json.dumps(props)}', '4326')"
+        self._cursor.execute(sql)
 
         cols = {'test_col1': 'integer', 'test_col2': 'integer'}
 
-        sql = f"SELECT public.geodb_add_properties('land_use', '{json.dumps(cols)}'::json)"
+        sql = f"SELECT public.geodb_add_properties('{table}', '{json.dumps(cols)}'::json)"
         self._cursor.execute(sql)
 
-        self.assertTrue(self.column_exists('postgres_land_use', 'test_col1', 'integer'))
+        self.assertTrue(self.column_exists(user_table, 'test_col1', 'integer'))
 
         cols = ['test_col1', 'test_col2']
 
-        sql = f"SELECT public.geodb_drop_properties('land_use', '{json.dumps(cols)}')"
+        sql = f"SELECT public.geodb_drop_properties('{table}', '{json.dumps(cols)}')"
         self._cursor.execute(sql)
-        self.assertFalse(self.column_exists('postgres_land_use', 'test_col', 'integer'))
+        self.assertFalse(self.column_exists(user_table, 'test_col', 'integer'))
 
     def test_manage_users(self):
         sql = f"SELECT public.geodb_register_user('test', 'test')"
