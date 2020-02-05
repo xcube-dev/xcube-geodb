@@ -1,3 +1,5 @@
+-- noinspection SqlResolveForFile
+
 -- CREATE EXTENSION postgis;
 
 DROP FUNCTION IF EXISTS update_modified_column();
