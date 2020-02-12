@@ -51,15 +51,6 @@ script:
   - pip install codecov
   - codecov --env TRAVIS_PYTHON_VERSION
 
-deploy:
-  # Deploy to Anaconda.org
-  - provider: script
-    script: bash conda/conda_upload.sh
-    on:
-      tags: true
-    condition: $TRAVIS_OS_NAME = linux
-    skip_cleanup: true
-
 
 
 
