@@ -52,6 +52,7 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.napoleon',
     'sphinx_rtd_theme',
+    'sphinxcontrib.redoc',
     # 'sphinx_gallery.gen_gallery',
     'nbsphinx',
     'recommonmark',
@@ -133,4 +134,13 @@ autodoc_mock_imports = [
     'pandas',
     'shapely',
     'dotenv'
+]
+
+redoc = [
+    {
+        'name': 'GeoDB',
+        'page': 'openapi2',
+        'spec': 'swagger/geodb.json',
+        'embed': True
+    }
 ]
