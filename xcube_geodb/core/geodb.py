@@ -856,87 +856,15 @@ class GeoDBClient(object):
         """
         return f"{self._server_url}/geoserver"
 
-    # The Geoserver connection will be introduced in the next version
-    # def get_catalog(self) -> object:
-    #     """
-    #
-    #     Returns:
-    #         Catalog: A Geoserver catalog instance
-    #     """
-    #     from geoserver.catalog import Catalog
-    #
-    #     return Catalog(self.geoserver_url + "/rest/", username=self._auth_client_id, password=self._auth_client_secret)
+    def get_catalog(self) -> object:
+        """
 
-    # def register_user_to_geoserver(self, user_name: str, password: str) -> Message:
-    #     """
-    #     Registers a user in the PostGres database. Needs admin privileges.
-    #
-    #     Args:
-    #         user_name: User name of the user
-    #         password: Password for the user
-    #
-    #     Returns:
-    #         str: Success message
-    #     """
-    #     admin_user = os.environ.get("GEOSERVER_ADMIN_USER")
-    #     admin_pwd = os.environ.get("GEOSERVER_ADMIN_PASSWORD")
-    #
-    #     geoserver_url = f"{self.geoserver_url}/rest/security/usergroup/users"
-    #
-    #     user = {
-    #         "org.geoserver.rest.security.xml.JaxbUser": {
-    #             "userName": user_name,
-    #             "password": password,
-    #             "enabled": True
-    #         }
-    #     }
-    #
-    #     r = requests.post(geoserver_url, json=user, auth=(admin_user, admin_pwd))
-    #     r.raise_for_status()
-    #
-    #     from geoserver.catalog import Catalog
-    #
-    #     cat = Catalog(self.geoserver_url + "/rest/", username="admin", password="geoserver")
-    #     ws = cat.get_workspace(user_name)
-    #     if not ws:
-    #         cat.create_workspace(user_name)
-    #
-    #     geoserver_url = f"{self.geoserver_url}/rest/workspaces/{user_name}/datastores"
-    #
-    #     db = {
-    #         "dataStore": {
-    #             "name": user_name + "geodb",
-    #             "connectionParameters": {
-    #                 "entry": [
-    #                     {"@key": "host", "$": "db-dcfs-geodb.cbfjgqxk302m.eu-central-1.rds.amazonaws.com"},
-    #                     {"@key": "port", "$": "5432"},
-    #                     {"@key": "database", "$": "geodb"},
-    #                     {"@key": "user", "$": user_name},
-    #                     {"@key": "passwd", "$": password},
-    #                     {"@key": "dbtype", "$": "postgis"}
-    #                 ]
-    #             }
-    #         }
-    #     }
-    #
-    #     r = requests.post(geoserver_url, json=db, auth=(admin_user, admin_pwd))
-    #     r.raise_for_status()
-    #
-    #     rule = {
-    #         "org.geoserver.rest.security.xml.JaxbUser": {
-    #             "rule": {
-    #                 "@resource": "helge2.*.a",
-    #                 "text": "GROUP_ADMIN"
-    #             }
-    #         }
-    #     }
-    #
-    #     geoserver_url = f"{self.geoserver_url}/rest/security/acl/layers"
-    #
-    #     r = requests.post(geoserver_url, json=rule, auth=(admin_user, admin_pwd))
-    #     r.raise_for_status()
-    #
-    #     return Message(f"User {user_name} successfully added")
+        Returns:
+            Catalog: A Geoserver catalog instance
+        """
+        from geoserver.catalog import Catalog
+
+        return Catalog(self.geoserver_url + "/rest/", username=self._auth_client_id, password=self._auth_client_secret)
 
     def _df_from_json(self, js: json) -> Union[GeoDataFrame, DataFrame]:
         """
