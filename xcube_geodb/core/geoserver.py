@@ -12,6 +12,9 @@ class GeoserverUser:
         self._admin_pwd = admin_pwd or os.environ.get("GEOSERVER_ADMIN_PASSWORD")
         self._url = url or os.environ.get("GEOSERVER_URL")
 
+    def __repr__(self):
+        return f"Geoserver at Url: {self.url}"
+
     @property
     def admin_user_name(self):
         return self._admin_user_name
@@ -19,6 +22,14 @@ class GeoserverUser:
     @property
     def url(self):
         return self._url
+
+    def get_catalog(self, user_name: str, password: str) -> object:
+        """
+
+        Returns:
+            Catalog: A Geoserver catalog instance
+        """
+        return Catalog(self._url + "/rest/", username=user_name, password=password)
 
     def register_user(self, user_name: str, password: str) -> Message:
         """
@@ -46,7 +57,7 @@ class GeoserverUser:
 
         return Message(f"User {user_name} successfully added")
 
-    def register_user_catalog_to_geoserver(self, cat_name: str) -> Message:
+    def register_user_catalog(self, cat_name: str) -> Message:
         cat = Catalog(self._url + "/rest/", username=self._admin_user_name, password=self._admin_pwd)
         ws = cat.get_workspace(cat_name)
         if not ws:
@@ -54,11 +65,8 @@ class GeoserverUser:
 
         return Message(f"Catalog {cat_name} successfully added")
 
-    def register_user_datastore_to_geoserver(self, user_name: str, password: str):
-        admin_user = os.environ.get("GEOSERVER_ADMIN_USER")
-        admin_pwd = os.environ.get("GEOSERVER_ADMIN_PASSWORD")
-
-        geoserver_url = f"{self.geoserver_url}/rest/workspaces/{user_name}/datastores"
+    def register_user_datastore(self, user_name: str, password: str) -> Message:
+        geoserver_url = f"{self._url}/rest/workspaces/{user_name}/datastores"
 
         db = {
             "dataStore": {
@@ -76,25 +84,25 @@ class GeoserverUser:
             }
         }
 
-        r = requests.post(geoserver_url, json=db, auth=(admin_user, admin_pwd))
+        r = requests.post(geoserver_url, json=db, auth=(self._admin_user_name, self._admin_pwd))
         r.raise_for_status()
 
-    def register_user_access_to_geoserver(self, user_name: str):
-        admin_user = os.environ.get("GEOSERVER_ADMIN_USER")
-        admin_pwd = os.environ.get("GEOSERVER_ADMIN_PASSWORD")
+        return Message(f"Datastore {user_name} successfully added")
 
+    def register_user_access(self, user_name: str) -> Message:
         rule = {
-            "org.geoserver.rest.security.xml.JaxbUser": {
                 "rule": {
                     "@resource": f"{user_name}.*.a",
                     "text": "GROUP_ADMIN"
                 }
-            }
         }
 
-        geoserver_url = f"{self.geoserver_url}/rest/security/acl/layers"
+        geoserver_url = f"{self._url}/rest/security/acl/layers"
 
-        r = requests.post(geoserver_url, json=rule, auth=(admin_user, admin_pwd))
+        r = requests.post(geoserver_url, json=rule, auth=(self._admin_user_name, self._admin_pwd))
         r.raise_for_status()
 
-        return Message(f"User {user_name} successfully added")
+        return Message(f"User access for {user_name} successfully added")
+
+    def publish_collection(self, collection: str):
+        pass

@@ -847,25 +847,6 @@ class GeoDBClient(object):
         """
         return self._server_url
 
-    @property
-    def geoserver_url(self) -> str:
-        """
-
-        Returns:
-            str: The URL of the corresponding geoserver instance
-        """
-        return f"{self._server_url}/geoserver"
-
-    def get_catalog(self) -> object:
-        """
-
-        Returns:
-            Catalog: A Geoserver catalog instance
-        """
-        from geoserver.catalog import Catalog
-
-        return Catalog(self.geoserver_url + "/rest/", username=self._auth_client_id, password=self._auth_client_secret)
-
     def _df_from_json(self, js: json) -> Union[GeoDataFrame, DataFrame]:
         """
         Converts wkb geometry string to wkt from a PostGrest json result
