@@ -28,6 +28,8 @@ CREATE OR REPLACE FUNCTION public.geodb_get_by_bbox(IN collection text,
 											  IN maxy double precision,
 											  IN bbox_mode VARCHAR(255) DEFAULT 'within',
 											  IN bbox_crs int DEFAULT 4326,
+                                              IN "where" text DEFAULT 'id > 0'::text,
+                                              IN op text DEFAULT 'AND'::text,
 											  IN "limit" int DEFAULT 0,
 											  IN "offset" int DEFAULT 0)
     RETURNS TABLE(src json)
@@ -62,7 +64,7 @@ BEGIN
 	qry := format(
 		'SELECT JSON_AGG(src) as js
 		 FROM (SELECT * FROM %I
-		 WHERE %s(''SRID=%s;POLYGON((' || minx
+		 WHERE (%s) %s %s(''SRID=%s;POLYGON((' || minx
                                        || ' ' || miny
                                        || ', ' || minx
                                        || ' ' || maxy
@@ -75,7 +77,7 @@ BEGIN
                                        || '))'', geometry) '
                                        || 'ORDER BY id '
                                        || lmt_str || ') as src',
-        collection, bbox_func, bbox_crs
+        collection, "where", op, bbox_func, bbox_crs
 	);
 
     RETURN QUERY EXECUTE qry;
