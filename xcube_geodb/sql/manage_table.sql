@@ -1,3 +1,5 @@
+-- noinspection SqlNoDataSourceInspectionForFile
+
 -- noinspection SqlResolveForFile
 
 -- CREATE EXTENSION postgis;

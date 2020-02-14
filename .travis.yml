@@ -30,7 +30,6 @@ install:
   # - conda config --set channel_priority strict
   - conda config --set always_yes yes --set changeps1 no
   - conda update -n base conda
-  - conda install conda-build anaconda-client
   # Useful for debugging any issues with conda
   - conda info -a
 
@@ -47,17 +46,8 @@ script:
       done
     fi
   - py.test -v --cov=xcube_geodb
-  - conda build -c conda-forge recipe
   - pip install codecov
   - codecov --env TRAVIS_PYTHON_VERSION
-
-deploy:
-  # Deploy to Anaconda.org
-  - provider: script
-    script: bash conda/conda_upload.sh
-    on:
-      tags: true
-    skip_cleanup: true
 
 
 
