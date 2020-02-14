@@ -678,10 +678,15 @@ class GeoDBClient(object):
 
         return Message(f"Data inserted into {collection}")
 
-    def get_collection_by_bbox(self, collection: str, bbox: Tuple[float, float, float, float],
-                               comparison_mode: str = 'contains', bbox_crs: int = 4326, limit: int = 0, offset: int = 0,
-                               namespace: Optional[str] = None) \
-            -> GeoDataFrame:
+    def get_collection_by_bbox(self, collection: str,
+                               bbox: Tuple[float, float, float, float],
+                               comparison_mode: str = 'contains',
+                               bbox_crs: int = 4326,
+                               limit: int = 0,
+                               offset: int = 0,
+                               where: Optional[str] = None,
+                               op: str = 'AND',
+                               namespace: Optional[str] = None) -> GeoDataFrame:
         """
 
         Args:
@@ -689,6 +694,8 @@ class GeoDBClient(object):
             bbox (int, int, int, int): minx, maxx, miny, maxy
             comparison_mode: Filter mode. Can be 'contains' or 'within' ['contains']
             bbox_crs: Projection code. [4326]
+            op: Operator for where (AND, OR) ['AND']
+            where: Additional SQL where statement
             limit: Limit for paging
             offset: Offset (start) of rows to return. Used in combination with lmt.
             namespace: By default the API gets in the user's own namespace. To access
@@ -724,6 +731,8 @@ class GeoDBClient(object):
             "bbox_mode": comparison_mode,
             "bbox_crs": bbox_crs,
             "limit": limit,
+            "where": where,
+            "op": op,
             "offset": offset
         })
 

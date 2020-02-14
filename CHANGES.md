@@ -1,6 +1,8 @@
 ## v0.1.2
 
-
+- Added a where option to get_by_bbox to allow further querying
+- Added an op option to get_by_bbox to allow choseing bewteen and and or when using the where
+  option
 
 ## v0.1.1
 
