@@ -20,6 +20,60 @@ END
 $BODY$;
 
 
+CREATE OR REPLACE FUNCTION public.geodb_get_pg(
+    collection text,
+    IN "select" text DEFAULT '*',
+    IN "where" text DEFAULT NULL,
+    IN "group" text DEFAULT NULL,
+    IN "order" text DEFAULT NULL,
+    IN "limit" integer DEFAULT NULL,
+    IN "offset" integer DEFAULT NULL
+)
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+    ROWS 1000
+AS $BODY$
+DECLARE
+    row_ct int;
+    qry text;
+BEGIN
+    qry := format('SELECT %s FROM %I ', "select", "collection");
+
+    IF "where" IS NOT NULL THEN
+        qry := qry || format('WHERE %s ', "where");
+    END IF;
+
+    IF "group" IS NOT NULL THEN
+        qry := qry || format('GROUP BY %s ', "group");
+    END IF;
+
+    IF "order" IS NOT NULL THEN
+        qry := qry || format('ORDER BY %s ', "order");
+    END IF;
+
+    IF "limit" IS NOT NULL THEN
+        qry := qry || format('LIMIT %s  ', "limit");
+    END IF;
+
+    IF "limit"  IS NOT NULL AND "offset"  IS NOT NULL THEN
+        qry := qry || format('OFFSET %s ', "offset");
+    END IF;
+
+    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as src FROM (%s) as src ', qry);
+
+    GET DIAGNOSTICS row_ct = ROW_COUNT;
+
+    IF row_ct < 1 THEN
+        RAISE EXCEPTION 'Empty result';
+    END IF;
+END
+$BODY$;
+
+
+
 DROP FUNCTION IF EXISTS public.geodb_get_by_bbox(text, double precision, double precision, double precision, double precision, VARCHAR, int, int, int);
 CREATE OR REPLACE FUNCTION public.geodb_get_by_bbox(IN collection text,
 											  IN minx double precision,

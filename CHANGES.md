@@ -1,3 +1,7 @@
+## v0.1.3
+
+- Bug fixes
+
 ## v0.1.2
 
 - Added a where option to get_by_bbox to allow further querying
