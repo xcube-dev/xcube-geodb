@@ -120,12 +120,12 @@ BEGIN
 		 FROM (SELECT * FROM %I
 		 WHERE (%s) %s %s(''SRID=%s;POLYGON((' || minx
                                        || ' ' || miny
+                                       || ', ' || maxx
+                                       || ' ' || miny
+                                       || ', ' || maxx
+                                       || ' ' || maxy
                                        || ', ' || minx
-                                       || ' ' || maxy
-                                       || ', ' || maxx
-                                       || ' ' || maxy
-                                       || ', ' || maxx
-                                       || ' ' ||  miny
+                                       || ' ' ||  maxy
                                        || ', ' || minx
                                        || ' ' || miny
                                        || '))'', geometry) '

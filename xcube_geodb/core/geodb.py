@@ -725,10 +725,10 @@ class GeoDBClient(object):
 
         r = self.post('/rpc/geodb_get_by_bbox', headers=headers, payload={
             "collection": dn,
-            "minx": bbox[GeoDBClient.minx],
-            "miny": bbox[GeoDBClient.miny],
-            "maxx": bbox[GeoDBClient.maxx],
-            "maxy": bbox[GeoDBClient.maxy],
+            "minx": bbox[0],
+            "miny": bbox[1],
+            "maxx": bbox[2],
+            "maxy": bbox[3],
             "bbox_mode": comparison_mode,
             "bbox_crs": bbox_crs,
             "limit": limit,
