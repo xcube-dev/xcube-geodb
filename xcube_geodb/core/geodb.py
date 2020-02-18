@@ -23,11 +23,6 @@ class GeoDBError(ValueError):
 
 
 class GeoDBClient(object):
-    minx = 0
-    maxx = 1
-    miny = 2
-    maxy = 3
-
     def __init__(self,
                  namespace: Optional[str] = None,
                  server_url: Optional[str] = None,
