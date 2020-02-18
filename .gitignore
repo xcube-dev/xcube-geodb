@@ -1,5 +1,6 @@
 # PyCharm
 .idea/
+*.iml
 
 docs/source/_auto_examples
 

@@ -621,9 +621,14 @@ class GeoDBClient(object):
     def _gdf_to_csv(self, gpdf: GeoDataFrame, crs: int = None) -> str:
         if crs is None:
             try:
-                crs = gpdf.crs["init"].replace("epsg:", "")
+                if isinstance(gpdf.crs, dict):
+                    crs = gpdf.crs["init"].replace("epsg:", "")
+                else:
+                    import re
+                    m = re.search(r'epsg:([0-9]*)', gpdf.crs.srs)
+                    crs = m.group(1)
             except Exception:
-                raise ValueError("Could not guess the dataframe's crs. Please specify.")
+                raise GeoDBError("Could not guess the dataframe's crs. Please specify.")
 
         def add_srid(point):
             return f'SRID={str(crs)};' + str(point)
