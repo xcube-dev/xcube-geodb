@@ -14,10 +14,6 @@ from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.message import Message
 from xcube_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS
 
-LOGGER = logging.getLogger("geodb.core")
-logging.basicConfig(level=logging.INFO)
-
-
 class GeoDBError(ValueError):
     pass
 
@@ -77,7 +73,7 @@ class GeoDBClient(object):
         self._whoami = None
         self._log_level = logging.INFO
         self._ipython_shell = None
-        LOGGER.setLevel(level=self._log_level)
+        # LOGGER.setLevel(level=self._log_level)
 
         self._mandatory_properties = ["geometry", "id", "created_at", "modified_at"]
 
@@ -1022,7 +1018,8 @@ class GeoDBClient(object):
 
     # noinspection PyMethodMayBeStatic
     def _log(self, message: str, level: Union[int, str] = logging.INFO):
-        LOGGER.log(level, message)
+        # LOGGER.log(level, message)
+        pass
 
     @property
     def log_level(self):
@@ -1044,7 +1041,7 @@ class GeoDBClient(object):
         """
 
         self._log_level = level
-        LOGGER.setLevel(level=level)
+        # LOGGER.setLevel(level=level)
 
     # noinspection PyMethodMayBeStatic
     def setup(self):
