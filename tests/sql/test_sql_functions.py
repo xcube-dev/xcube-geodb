@@ -1,8 +1,6 @@
 import os
 import unittest
-import psycopg2
 import json
-import testing.postgresql
 
 
 # noinspection SqlNoDataSourceInspection
@@ -14,6 +12,8 @@ class GeoDBSqlTest(unittest.TestCase):
         if os.environ.get('SKIP_PSQL_TESTS', False):
             return
 
+        import psycopg2
+        import testing.postgresql
         postgresql = testing.postgresql.PostgresqlFactory(cache_initialized_db=True)
 
         cls._postgresql = postgresql()

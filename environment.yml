@@ -10,6 +10,7 @@ dependencies:
   - geopandas
   - matplotlib-base
   - descartes
+  - psycopg2
   - requests
   - pip:
       - fastjsonschema
