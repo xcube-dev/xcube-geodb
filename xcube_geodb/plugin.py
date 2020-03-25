@@ -23,13 +23,13 @@ from xcube_geodb.core.geodb import GeoDBError
 try:
     from xcube.constants import EXTENSION_POINT_CLI_COMMANDS
     from xcube.util import extension
-except ImportError:
-    raise GeoDBError("In order to run xcube_geodb as a plugin to xcube, you need to install xcube_geodb into a"
-                     "xcube environment")
 
 
-def init_plugin(ext_registry: extension.ExtensionRegistry):
-    """xcube geoDB extension"""
-    ext_registry.add_extension(loader=extension.import_component('xcube_geodb.cli.main:cli'),
-                               point=EXTENSION_POINT_CLI_COMMANDS,
-                               name='geodb_cli')
+    def init_plugin(ext_registry: extension.ExtensionRegistry):
+        """xcube gen Service extensions"""
+        ext_registry.add_extension(loader=extension.import_component('xcube_geodb.cli.main:cli'),
+                                   point=EXTENSION_POINT_CLI_COMMANDS,
+                                   name='gen_cli')
+
+except ImportError as e:
+    raise GeoDBError("You need to install xcube in order to use the geodb client")

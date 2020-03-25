@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime, timedelta
 from typing import Dict, Optional, Union, Sequence, Tuple
 
 import geopandas as gpd
@@ -9,10 +10,12 @@ from shapely import wkb
 import requests
 import json
 from dotenv import load_dotenv, find_dotenv
+from pathlib import Path
 
 from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.message import Message
 from xcube_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS
+
 
 class GeoDBError(ValueError):
     pass
@@ -28,7 +31,8 @@ class GeoDBClient(object):
                  access_token: Optional[str] = None,
                  anonymous: bool = False,
                  dotenv_file: str = ".env",
-                 auth_mode: str = 'silent'):
+                 auth_mode: str = 'silent',
+                 config_file: str = str(Path.home()) + '/.geodb'):
         """
 
         Args:
@@ -39,7 +43,8 @@ class GeoDBClient(object):
             anonymous (bool): Whether the client connection is anonymous (without credentials) [False]
             client_secret (str): Client secret (overrides environment variables)
             client_id (str): Client ID (overrides environment variables)
-            auth_mode (str): Authentication modus [silent]. Can be 'silent' and 'interactive'
+            auth_mode (str): Authentication mode [silent]. Can be 'silent' and 'interactive'
+            config_file (str): Filename that stores config info for the geodb client
         """
 
         self._dotenv_file = dotenv_file
@@ -73,9 +78,10 @@ class GeoDBClient(object):
         self._whoami = None
         self._log_level = logging.INFO
         self._ipython_shell = None
-        # LOGGER.setLevel(level=self._log_level)
 
         self._mandatory_properties = ["geometry", "id", "created_at", "modified_at"]
+
+        self._config_file = config_file
 
         if auth_mode not in ('interactive', 'silent'):
             raise ValueError("auth_mode can only be 'interactive' or 'silent'!")
@@ -300,6 +306,10 @@ class GeoDBClient(object):
         except requests.HTTPError:
             raise GeoDBError(r.json()['message'])
         return r
+
+    def logout(self):
+        self._auth_access_token = ''
+        os.remove(self._config_file)
 
     def create_collections(self, collections: Dict) -> Collections:
         """
@@ -631,7 +641,30 @@ class GeoDBClient(object):
 
         gpdf['geometry'] = gpdf['geometry'].apply(add_srid)
 
-        return gpdf.to_csv(header=True, index=False).lstrip()
+        csv = gpdf.to_csv(header=True, index=False, encoding="utf-8").lstrip()
+        return csv
+
+    def _gdf_to_json(self, gpdf: GeoDataFrame, crs: int = None):
+        if crs is None:
+            try:
+                if isinstance(gpdf.crs, dict):
+                    crs = gpdf.crs["init"].replace("epsg:", "")
+                else:
+                    import re
+                    m = re.search(r'epsg:([0-9]*)', gpdf.crs.srs)
+                    crs = m.group(1)
+            except Exception:
+                raise GeoDBError("Could not guess the dataframe's crs. Please specify.")
+
+        def add_srid(point):
+            return f'SRID={str(crs)};' + str(point)
+
+        gpdf['geometry'] = gpdf['geometry'].apply(add_srid)
+
+        res = gpdf.to_dict('records')
+        print(res)
+        return res
+
 
     def insert_into_collection(self, collection: str, values: GeoDataFrame, upsert: bool = False, crs: int = None) \
             -> Message:
@@ -654,20 +687,22 @@ class GeoDBClient(object):
         # self._collection_exists(collection=collection)
 
         if isinstance(values, GeoDataFrame):
-            headers = {'Content-type': 'text/csv'}
+            # headers = {'Content-type': 'text/csv'}
 
             if 'id' in values.columns and not upsert:
                 values.drop(columns=['id'])
 
             values.columns = map(str.lower, values.columns)
-            values = self._gdf_to_csv(values, crs)
+            values = self._gdf_to_json(values, crs)
         else:
             raise ValueError(f'Format {type(values)} not supported.')
 
         dn = f"{self.namespace}_{collection}"
 
         if upsert:
-            headers['Prefer'] = 'resolution=merge-duplicates'
+            headers = {'Prefer': 'resolution=merge-duplicates'}
+        else:
+            headers = None
 
         self.post(f'/{dn}', payload=values, headers=headers)
 
@@ -778,12 +813,13 @@ class GeoDBClient(object):
         else:
             return DataFrame(columns=["Empty Result"])
 
+    # noinspection PyMethodMayBeStatic
     def _raise_for_injection(self, select: str):
         select = select.lower()
         if "update" in select \
                 or "delete" in select \
                 or "drop" in select \
-                or "create" in select\
+                or "create" in select \
                 or "function" in select:
             raise GeoDBError("Please don't inject!")
 
@@ -942,12 +978,40 @@ class GeoDBClient(object):
             The current authentication access_token
         """
 
+        token = False
         if self._ipython_shell is not None:
-            return self._ipython_shell.user_ns['__auth__'].access_token
+            token = self._ipython_shell.user_ns['__auth__'].access_token
         elif self._auth_access_token is not None:
-            return self._auth_access_token
+            token = self._auth_access_token
         else:
-            return self._get_geodb_client_credentials_accesss_token()
+            token = self._get_token_from_file()
+
+        if not token:
+            token = self._get_geodb_client_credentials_accesss_token()
+
+        return token
+
+    def _get_token_from_file(self) -> Union[str, bool]:
+        if os.path.isfile(self._config_file):
+            with open(self._config_file, 'r') as f:
+                cfg_data = json.load(f)
+                if 'data' not in cfg_data or 'date' not in cfg_data:
+                    return False
+                if 'expires_in' not in cfg_data["data"]:
+                    return False
+
+                now = datetime.now()
+                exp = datetime.strptime(cfg_data['date'], '%Y-%m-%d %H:%M:%S.%f') + timedelta(
+                    seconds=cfg_data['data']['expires_in'])
+                if now > exp:
+                    return False
+                elif 'client' in cfg_data and self._auth_client_id != cfg_data['client']:
+                    return False
+
+                if 'access_token' in cfg_data['data']:
+                    return cfg_data['data']['access_token']
+
+        return False
 
     def _get_geodb_client_credentials_accesss_token(self):
         client_id = self._auth_pub_client_id if self._is_public_client else self._auth_client_id
@@ -966,6 +1030,10 @@ class GeoDBClient(object):
         r.raise_for_status()
 
         data = r.json()
+
+        with open(self._config_file, 'w') as f:
+            cfg_data = {'date': datetime.now(), 'client': self._auth_client_id, 'data': data}
+            json.dump(cfg_data, f, sort_keys=True, default=str)
 
         try:
             return data['access_token']

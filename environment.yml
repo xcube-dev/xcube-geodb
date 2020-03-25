@@ -11,8 +11,6 @@ dependencies:
   - matplotlib-base
   - descartes
   - requests
-  - psycopg2
-  - python-dotenv
   - pip:
       - fastjsonschema
       - gsconfig-py3
@@ -20,6 +18,7 @@ dependencies:
       - requests_mock
       - ipyauth
       - pgsanity
+      - python-dotenv
   # Exploring
   - jupyterlab
   # Testing

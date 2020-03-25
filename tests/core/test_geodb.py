@@ -2,6 +2,7 @@ import json
 import os
 import unittest
 from io import StringIO
+
 import pandas as pd
 import requests_mock
 from geopandas import GeoDataFrame
@@ -22,7 +23,7 @@ class GeoDBClientTest(unittest.TestCase):
         if self._server_test_port > 0:
             self._server_full_address += ':' + str(self._server_test_port)
 
-        self._api = GeoDBClient(dotenv_file="tests/envs/.env_test")
+        self._api = GeoDBClient(dotenv_file="tests/envs/.env_test", config_file="tests/.geodb")
 
         os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'ipyauth-auth0-demo_test.env'
         os.environ['GEODB_AUTH0_CONFIG_FOLDER'] = 'tests/envs/'
@@ -31,10 +32,37 @@ class GeoDBClientTest(unittest.TestCase):
         pass
 
     def set_global_mocks(self, m):
-        m.post(self._server_test_auth_domain + "/oauth/token", json={"access_token": "A long lived token"})
+        m.post(self._server_test_auth_domain + "/oauth/token", json={
+            "access_token": "A long lived token",
+            "expires_in": 12345
+        })
 
         url = f"{self._server_full_address}/rpc/geodb_whoami"
         m.get(url, text=json.dumps("helge"))
+
+    def set_auth_change_mocks(self, m):
+        m.post(self._server_test_auth_domain + "/oauth/token", json={
+            "access_token": "A long lived token but a different user",
+            "expires_in": 12345
+        })
+
+        url = f"{self._server_full_address}/rpc/geodb_whoami"
+        m.get(url, text=json.dumps("pope"))
+
+        self._api._auth_client_id = "fsvsdv"
+
+    def test_auth(self, m):
+        self.set_global_mocks(m)
+
+        cfg_file = "tests/.geodb"
+        expected_response = False
+        auth_access_token = self._api.auth_access_token
+        self.assertEqual("A long lived token", auth_access_token)
+
+        self.set_auth_change_mocks(m)
+        auth_access_token = self._api.auth_access_token
+        self.assertEqual('A long lived token but a different user', auth_access_token)
+
 
     def test_create_collection(self, m):
         expected_response = 'Success'
@@ -138,15 +166,15 @@ class GeoDBClientTest(unittest.TestCase):
 
     # noinspection PyMethodMayBeStatic
     def make_test_df(self):
-        csv = """
-        column1, column2,geometry\n
-        1, 2,POINT(10 10)\n
-        3, 4,POINT(10 10)\n
-        """
+        csv = ("\n"
+               "column1,column2,geometry\n\n"
+               "1,ì,POINT(10 10)\n\n"
+               "3,b,POINT(10 10)\n\n")
         file = StringIO(csv)
-        df = pd.read_csv(file)
+
+        df = pd.read_csv(file, encoding="utf-8")
         df['geometry'] = df['geometry'].apply(wkt.loads)
-        return df
+        return GeoDataFrame(df, crs={'init': 'epsg:4326'}, geometry=df['geometry'])
 
     def test_insert_into_collection(self, m):
         path = '/helge_tt'
@@ -180,7 +208,7 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._server_full_address + '/rpc/geodb_register_user', text="success")
         self.set_global_mocks(m)
 
-        self._api.register_user_to_geoserver('mama', 'mamaspassword')
+        # self._api.register_user_to_geoserver('mama', 'mamaspassword')
 
     def test_filter_raw(self, m):
         m.get(url=self._server_full_address + "/", text=json.dumps({'definitions': ['helge_test'],
