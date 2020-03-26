@@ -86,6 +86,7 @@ class GeoDBSqlTest(unittest.TestCase):
         return self._cursor.fetchone()[0]
 
     def table_exists(self, table: str) -> bool:
+        # noinspection SqlInjection
         sql = f"""SELECT EXISTS 
                         (
                             SELECT 1 
