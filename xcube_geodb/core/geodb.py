@@ -29,7 +29,6 @@ class GeoDBClient(object):
                  client_id: Optional[str] = None,
                  client_secret: Optional[str] = None,
                  access_token: Optional[str] = None,
-                 anonymous: bool = False,
                  dotenv_file: str = ".env",
                  auth_mode: str = 'silent',
                  config_file: str = str(Path.home()) + '/.geodb'):
@@ -40,7 +39,6 @@ class GeoDBClient(object):
             server_url (str): The URL of the PostGrest Rest API service
             server_port (str): The port to the PostGrest Rest API service
             dotenv_file (str): Name of the dotenv file [.env] to set client IDs and secrets
-            anonymous (bool): Whether the client connection is anonymous (without credentials) [False]
             client_secret (str): Client secret (overrides environment variables)
             client_id (str): Client ID (overrides environment variables)
             auth_mode (str): Authentication mode [silent]. Can be 'silent' and 'interactive'
@@ -50,8 +48,6 @@ class GeoDBClient(object):
         self._dotenv_file = dotenv_file
         self._auth_mode = None
         self._namespace = namespace
-        self._auth_pub_client_id = "nF1s2D2fs770KLCY16zVk3i5nuqK6Ptx"
-        self._auth_pub_client_secret = "WQtMECNYySz-1KTM6acEr_SJlped6QU6qxLyo4ahupLTqlfb4zu2Z27PbrwmEMqU"
 
         self._server_url = None
         self._server_port = None
@@ -73,7 +69,6 @@ class GeoDBClient(object):
         self._auth_mode = auth_mode or self._auth_mode
 
         self._capabilities = None
-        self._is_public_client = anonymous
 
         self._whoami = None
         self._log_level = logging.INFO
@@ -1014,8 +1009,8 @@ class GeoDBClient(object):
         return False
 
     def _get_geodb_client_credentials_accesss_token(self):
-        client_id = self._auth_pub_client_id if self._is_public_client else self._auth_client_id
-        client_secret = self._auth_pub_client_secret if self._is_public_client else self._auth_client_secret
+        client_id = self._auth_client_id
+        client_secret = self._auth_client_secret
 
         payload = {
             "client_id": client_id,
