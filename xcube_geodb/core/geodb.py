@@ -959,7 +959,7 @@ class GeoDBClient(object):
         elif self._auth_access_token is not None:
             token = self._auth_access_token
         else:
-            token = self._get_token_from_file
+            token = self._get_token_from_file()
 
         if not token:
             token = self._get_geodb_client_credentials_accesss_token()
@@ -1008,9 +1008,12 @@ class GeoDBClient(object):
 
         data = r.json()
 
-        with open(self._config_file, 'w') as f:
-            cfg_data = {'date': datetime.now(), 'client': self._auth_client_id, 'data': data}
-            json.dump(cfg_data, f, sort_keys=True, default=str)
+        if os.path.isfile(self._config_file):
+            with open(self._config_file, 'w') as f:
+                cfg_data = {'date': datetime.now(), 'client': self._auth_client_id, 'data': data}
+                json.dump(cfg_data, f, sort_keys=True, default=str)
+        else:
+            print("Warning: cache file could not be written")
 
         try:
             return data['access_token']
