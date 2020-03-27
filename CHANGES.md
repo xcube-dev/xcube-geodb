@@ -1,3 +1,13 @@
+## v0.1.5
+
+- Updated the exploring Jupyter Notebook and
+- Assured that somone can use the client from a custom environment (i.e. outside EDC)
+- Bug fixes
+
+## v0.1.4
+
+- Bug fixes
+
 ## v0.1.3
 
 - Bug fixes
