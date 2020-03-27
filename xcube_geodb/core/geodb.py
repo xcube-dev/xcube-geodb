@@ -619,47 +619,32 @@ class GeoDBClient(object):
         return Message(f"{collection} updated")
 
     # noinspection PyMethodMayBeStatic
+    def _gdf_prepare_geom(self, gpdf: GeoDataFrame, crs: int = None) -> GeoDataFrame:
+        if crs is None:
+            try:
+                if isinstance(gpdf.crs, dict):
+                    crs = gpdf.crs["init"].replace("epsg:", "")
+                else:
+                    import re
+                    m = re.search(r'epsg:([0-9]*)', gpdf.crs.srs)
+                    crs = m.group(1)
+            except Exception:
+                raise GeoDBError("Could not guess the dataframe's crs. Please specify.")
+
+        def add_srid(point):
+            return f'SRID={str(crs)};' + str(point)
+
+        gpdf['geometry'] = gpdf['geometry'].apply(add_srid)
+        return gpdf
+
     def _gdf_to_csv(self, gpdf: GeoDataFrame, crs: int = None) -> str:
-        if crs is None:
-            try:
-                if isinstance(gpdf.crs, dict):
-                    crs = gpdf.crs["init"].replace("epsg:", "")
-                else:
-                    import re
-                    m = re.search(r'epsg:([0-9]*)', gpdf.crs.srs)
-                    crs = m.group(1)
-            except Exception:
-                raise GeoDBError("Could not guess the dataframe's crs. Please specify.")
+        gpdf = self._gdf_prepare_geom(gpdf, crs)
+        return gpdf.to_csv(header=True, index=False, encoding="utf-8").lstrip()
 
-        def add_srid(point):
-            return f'SRID={str(crs)};' + str(point)
-
-        gpdf['geometry'] = gpdf['geometry'].apply(add_srid)
-
-        csv = gpdf.to_csv(header=True, index=False, encoding="utf-8").lstrip()
-        return csv
-
-    def _gdf_to_json(self, gpdf: GeoDataFrame, crs: int = None):
-        if crs is None:
-            try:
-                if isinstance(gpdf.crs, dict):
-                    crs = gpdf.crs["init"].replace("epsg:", "")
-                else:
-                    import re
-                    m = re.search(r'epsg:([0-9]*)', gpdf.crs.srs)
-                    crs = m.group(1)
-            except Exception:
-                raise GeoDBError("Could not guess the dataframe's crs. Please specify.")
-
-        def add_srid(point):
-            return f'SRID={str(crs)};' + str(point)
-
-        gpdf['geometry'] = gpdf['geometry'].apply(add_srid)
-
+    def _gdf_to_json(self, gpdf: GeoDataFrame, crs: int = None) -> Dict:
+        gpdf = self._gdf_prepare_geom(gpdf, crs)
         res = gpdf.to_dict('records')
-        print(res)
         return res
-
 
     def insert_into_collection(self, collection: str, values: GeoDataFrame, upsert: bool = False, crs: int = None) \
             -> Message:
@@ -969,13 +954,12 @@ class GeoDBClient(object):
             The current authentication access_token
         """
 
-        token = False
         if self._ipython_shell is not None:
             token = self._ipython_shell.user_ns['__auth__'].access_token
         elif self._auth_access_token is not None:
             token = self._auth_access_token
         else:
-            token = self._get_token_from_file()
+            token = self._get_token_from_file
 
         if not token:
             token = self._get_geodb_client_credentials_accesss_token()
@@ -985,32 +969,34 @@ class GeoDBClient(object):
     def _get_token_from_file(self) -> Union[str, bool]:
         if os.path.isfile(self._config_file):
             with open(self._config_file, 'r') as f:
-                cfg_data = json.load(f)
-                if 'data' not in cfg_data or 'date' not in cfg_data:
-                    return False
-                if 'expires_in' not in cfg_data["data"]:
-                    return False
+                try:
+                    cfg_data = json.load(f)
 
-                now = datetime.now()
-                exp = datetime.strptime(cfg_data['date'], '%Y-%m-%d %H:%M:%S.%f') + timedelta(
-                    seconds=cfg_data['data']['expires_in'])
-                if now > exp:
-                    return False
-                elif 'client' in cfg_data and self._auth_client_id != cfg_data['client']:
-                    return False
+                    if 'data' not in cfg_data or 'date' not in cfg_data:
+                        return False
+                    if 'expires_in' not in cfg_data["data"]:
+                        return False
 
-                if 'access_token' in cfg_data['data']:
-                    return cfg_data['data']['access_token']
+                    now = datetime.now()
+                    exp = datetime.strptime(cfg_data['date'], '%Y-%m-%d %H:%M:%S.%f') + timedelta(
+                        seconds=cfg_data['data']['expires_in'])
+                    if now > exp:
+                        return False
+                    elif 'client' in cfg_data and self._auth_client_id != cfg_data['client']:
+                        return False
+
+                    if 'access_token' in cfg_data['data']:
+                        return cfg_data['data']['access_token']
+                except Exception as e:
+                    print(str(e))
+                    return False
 
         return False
 
     def _get_geodb_client_credentials_accesss_token(self):
-        client_id = self._auth_client_id
-        client_secret = self._auth_client_secret
-
         payload = {
-            "client_id": client_id,
-            "client_secret": client_secret,
+            "client_id": self._auth_client_id,
+            "client_secret": self._auth_client_secret,
             "audience": self._auth_aud,
             "grant_type": "client_credentials"
         }
