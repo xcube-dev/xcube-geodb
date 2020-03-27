@@ -31,6 +31,7 @@ class GeoDBClient(object):
                  access_token: Optional[str] = None,
                  dotenv_file: str = ".env",
                  auth_mode: str = 'silent',
+                 auth_aud: Optional[str] = None,
                  config_file: str = str(Path.home()) + '/.geodb'):
         """
 
@@ -49,15 +50,15 @@ class GeoDBClient(object):
         self._auth_mode = None
         self._namespace = namespace
 
-        self._server_url = None
-        self._server_port = None
+        self._server_url = "https://3.120.53.215.nip.io"
+        self._server_port = 443
         self._auth_client_id = None
         self._auth_client_secret = None
         self._auth_access_token = None
         self._auth0_config_file = None
         self._auth0_config_folder = '.'
         self._auth_domain = "https://edc.eu.auth0.com"
-        self._auth_aud = None
+        self._auth_aud = "https://geodb.brockmann-consult.de"
 
         self.refresh_config_from_env(dotenv_file=dotenv_file, use_dotenv=True)
 
@@ -696,7 +697,7 @@ class GeoDBClient(object):
                                bbox_crs: int = 4326,
                                limit: int = 0,
                                offset: int = 0,
-                               where: Optional[str] = None,
+                               where: Optional[str] = "id>-1",
                                op: str = 'AND',
                                namespace: Optional[str] = None) -> GeoDataFrame:
         """
@@ -1012,8 +1013,8 @@ class GeoDBClient(object):
             with open(self._config_file, 'w') as f:
                 cfg_data = {'date': datetime.now(), 'client': self._auth_client_id, 'data': data}
                 json.dump(cfg_data, f, sort_keys=True, default=str)
-        else:
-            print("Warning: cache file could not be written")
+        #else:
+        #    print("Warning: cache file could not be written")
 
         try:
             return data['access_token']
