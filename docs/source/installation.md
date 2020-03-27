@@ -1,7 +1,11 @@
 
 # Installation
 
-## Installation using conda
+In this chapter we will describe how to install the geoDB Python client. The client accesses 
+a [postgrest]() instance as an web API to a PostGreSQL instance. We will in principle describe 
+how to setup the backend.   
+  
+## Installing the geodb package using conda
 
 Into existing conda environment (>= Python 3.6)
 
@@ -41,20 +45,17 @@ $ git pull --force
 $ python setup.py develop
 ```
     
-Run tests
+Running unit tests
 
 ```bash
 $ pytest
 ```
 
-with coverage
+## Installation of the backend
 
-```bash
-$ pytest --cov=xcube
-```
+- __Step 1__: Setup a PostGreSQL instance
+- __Step 2__: Setup tables and roles 
+- __Step 3__: Setup a PostgREST instance.
+- __Step __: Setup a PostGreSQL instance.
 
-with [coverage report](https://pytest-cov.readthedocs.io/en/latest/reporting.html) in HTML
 
-```bash
-$ pytest --cov-report html --cov=xcube
-```

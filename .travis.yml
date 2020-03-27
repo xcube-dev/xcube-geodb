@@ -36,8 +36,8 @@ install:
   - conda env create --file environment.yml
   - source activate xcube_geodb
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      export SKIP_PSQL_TESTS=0
-      conda install -c conda-forge postgis
+      export SKIP_PSQL_TESTS=0;
+      conda install -c conda-forge postgis;
     fi
   - conda list
   - python setup.py install
