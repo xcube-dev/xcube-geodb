@@ -951,16 +951,12 @@ class GeoDBClient(object):
         self._server_port = GEODB_API_DEFAULT_PARAMETERS.get('server_port')
         self._auth_domain = GEODB_API_DEFAULT_PARAMETERS.get('auth_domain')
         self._auth_aud = GEODB_API_DEFAULT_PARAMETERS.get('auth_aud')
-        self._auth_pub_client_id = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_id')
-        self._auth_pub_client_secret = GEODB_API_DEFAULT_PARAMETERS.get('auth_pub_client_secret')
 
     def _set_from_env(self):
         self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url
         self._server_port = os.getenv('GEODB_API_SERVER_PORT') or self._server_port
         self._auth_client_id = os.getenv('GEODB_AUTH_CLIENT_ID') or self._auth_client_id
         self._auth_client_secret = os.getenv('GEODB_AUTH_CLIENT_SECRET') or self._auth_client_secret
-        self._auth_pub_client_id = os.getenv('GEODB_AUTH_PUB_CLIENT_ID') or self._auth_pub_client_id
-        self._auth_pub_client_secret = os.getenv('GEODB_AUTH_PUB_CLIENT_SECRET') or self._auth_pub_client_secret
         self._auth_domain = os.getenv('GEODB_AUTH_DOMAIN') or self._auth_domain
         self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
         self._auth_mode = os.getenv('GEODB_AUTH_MODE') or self._auth_mode
