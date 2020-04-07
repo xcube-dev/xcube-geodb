@@ -166,3 +166,20 @@ class GeoDBSqlTest(unittest.TestCase):
         r = self._cursor.execute(sql)
 
         print(r)
+
+    def test_get_my_usage(self):
+        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
+        self._set_role(user_name)
+
+        props = {'tt': 'integer'}
+        sql = f"SELECT geodb_create_collection('test_usage', '{json.dumps(props)}', '4326')"
+        self._cursor.execute(sql)
+
+        sql = f"SELECT public.geodb_get_my_usage()"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+
+        sql = f"SELECT current_user"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+        print(res)

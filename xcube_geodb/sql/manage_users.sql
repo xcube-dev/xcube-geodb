@@ -94,3 +94,87 @@ BEGIN
     END IF;
 END
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION public.geodb_get_user_usage(
+	user_name text)
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+    ROWS 1000
+AS $BODY$
+DECLARE sz BIGINT;
+BEGIN
+	RETURN QUERY SELECT JSON_AGG(vals) as src
+	FROM (
+		SELECT SUM(pg_relation_size(quote_ident(table_name))) AS "usage"
+		FROM information_schema.tables
+		WHERE table_schema = 'public'
+		AND table_name LIKE user_name || '%'
+		) AS vals;
+END
+$BODY$;
+
+
+CREATE OR REPLACE FUNCTION public.geodb_get_user_usage(
+	user_name text,
+	pretty boolean)
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+    ROWS 1000
+AS $BODY$
+DECLARE sz BIGINT;
+BEGIN
+	RETURN QUERY SELECT JSON_AGG(vals) as src
+	FROM (
+		SELECT pg_size_pretty(SUM(pg_relation_size(quote_ident(table_name)))) AS "usage"
+		FROM information_schema.tables
+		WHERE table_schema = 'public'
+		AND table_name LIKE user_name || '%'
+		) AS vals;
+END
+$BODY$;
+
+
+-- FUNCTION: public.geodb_get_my_usage()
+
+-- DROP FUNCTION public.geodb_get_my_usage();
+
+CREATE OR REPLACE FUNCTION public.geodb_get_my_usage(
+	)
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+    ROWS 1000
+AS $BODY$
+DECLARE sz BIGINT;
+		me TEXT;
+BEGIN
+	SELECT geodb_whoami() INTO me;
+	RETURN QUERY EXECUTE format('SELECT geodb_get_user_usage(''%I'')', me);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_get_my_usage(
+	pretty boolean)
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+    ROWS 1000
+AS $BODY$
+DECLARE sz BIGINT;
+		me TEXT;
+BEGIN
+	SELECT geodb_whoami() INTO me;
+	RETURN QUERY EXECUTE format('SELECT geodb_get_user_usage(''%I'', TRUE)', me);
+END
+$BODY$;

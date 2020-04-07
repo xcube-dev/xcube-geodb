@@ -108,6 +108,16 @@ class GeoDBClient(object):
         else:
             raise ValueError(f"Table {collection} does not exist.")
 
+    def get_my_collections(self) -> Sequence:
+        """
+
+        Returns:
+            An array of collection names
+        """
+        payload = {}
+        r = self.post(path='/rpc/geodb_get_my_collections', payload=payload)
+        return r.json()[0]['src']
+
     def _get_common_headers(self):
         return {
             'Prefer': 'return=representation',

@@ -56,7 +56,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         expected_response = {'usage': "10MB"}
         server_response = [{'src': [expected_response]}]
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_user_space_myusage"
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_my_usage"
         m.post(url, text=json.dumps(server_response))
 
         res = self._api.get_my_usage()
@@ -64,11 +64,36 @@ class GeoDBClientTest(unittest.TestCase):
 
         expected_response = {'usage': "10000"}
         server_response = [{'src': [expected_response]}]
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_user_space_myusage"
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_my_usage"
         m.post(url, text=json.dumps(server_response))
 
         res = self._api.get_my_usage(pretty=False)
         self.assertDictEqual(expected_response, res)
+
+    def test_get_my_collections(self, m):
+        self.set_global_mocks(m)
+
+        expected_response = [
+            {
+                "table_name": "geodb_admin_land_use",
+                "grantee": "geodb_admin"
+            },
+            {
+                "table_name": "geodb_admin_land_use",
+                "grantee": "PUBLIC"
+            },
+        ]
+
+        server_response = [
+            {
+                "src": expected_response
+            }
+        ]
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_my_collections"
+        m.post(url, text=json.dumps(server_response))
+
+        res = self._api.get_my_collections()
+        self.assertSequenceEqual(expected_response, res)
 
     def test_auth(self, m):
         self.set_global_mocks(m)
@@ -81,7 +106,6 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_auth_change_mocks(m)
         auth_access_token = self._api.auth_access_token
         self.assertEqual('A long lived token but a different user', auth_access_token)
-
 
     def test_create_collection(self, m):
         expected_response = 'Success'
@@ -335,7 +359,3 @@ class GeoDBClientTest(unittest.TestCase):
 
         geodb = GeoDBClient(namespace='test')
         self.assertEqual('test', geodb.namespace)
-
-
-
-
