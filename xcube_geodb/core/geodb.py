@@ -307,6 +307,18 @@ class GeoDBClient(object):
         self._auth_access_token = ''
         os.remove(self._config_file)
 
+    def get_my_usage(self, pretty=True) -> Dict:
+        """
+        Args:
+            pretty: Whether to return in human readable form or in bytes
+
+        Returns:
+            A dict containing the usage in bytes (int) or as a human readable string
+        """
+        payload = {'pretty': pretty} if pretty else {}
+        r = self.post(path='/rpc/geodb_get_my_usage', payload=payload)
+        return r.json()[0]['src'][0]
+
     def create_collections(self, collections: Dict) -> Collections:
         """
 

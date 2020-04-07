@@ -51,6 +51,25 @@ class GeoDBClientTest(unittest.TestCase):
 
         self._api._auth_client_id = "fsvsdv"
 
+    def test_my_usage(self, m):
+        self.set_global_mocks(m)
+
+        expected_response = {'usage': "10MB"}
+        server_response = [{'src': [expected_response]}]
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_user_space_myusage"
+        m.post(url, text=json.dumps(server_response))
+
+        res = self._api.get_my_usage()
+        self.assertDictEqual(expected_response, res)
+
+        expected_response = {'usage': "10000"}
+        server_response = [{'src': [expected_response]}]
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_user_space_myusage"
+        m.post(url, text=json.dumps(server_response))
+
+        res = self._api.get_my_usage(pretty=False)
+        self.assertDictEqual(expected_response, res)
+
     def test_auth(self, m):
         self.set_global_mocks(m)
 
