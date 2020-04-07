@@ -14,7 +14,7 @@ from pathlib import Path
 
 from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.message import Message
-from xcube_geodb.defaults import GEODB_API_DEFAULT_PARAMETERS
+from xcube_geodb.defaults import GEODB_DEFAULTS
 
 
 class GeoDBError(ValueError):
@@ -43,31 +43,37 @@ class GeoDBClient(object):
             client_secret (str): Client secret (overrides environment variables)
             client_id (str): Client ID (overrides environment variables)
             auth_mode (str): Authentication mode [silent]. Can be 'silent' and 'interactive'
+            auth_aud (str): Authentication audience
             config_file (str): Filename that stores config info for the geodb client
         """
 
         self._dotenv_file = dotenv_file
-        self._auth_mode = None
         self._namespace = namespace
+        # Access token is set here or on request
 
-        self._server_url = "https://3.120.53.215.nip.io"
-        self._server_port = 443
-        self._auth_client_id = None
-        self._auth_client_secret = None
-        self._auth_access_token = None
-        self._auth0_config_file = None
-        self._auth0_config_folder = '.'
-        self._auth_domain = "https://edc.eu.auth0.com"
-        self._auth_aud = "https://geodb.brockmann-consult.de"
+        # defaults
+        self._server_url = GEODB_DEFAULTS["server_url"]
+        self._server_port = GEODB_DEFAULTS["server_port"]
+        self._auth_client_id = GEODB_DEFAULTS["auth_client_id"]
+        self._auth_client_secret = GEODB_DEFAULTS["auth_client_secret"]
+        self._auth_access_token = GEODB_DEFAULTS["auth_access_token"]
+        self._auth0_config_file = GEODB_DEFAULTS["auth0_config_file"]
+        self._auth0_config_folder = GEODB_DEFAULTS["auth0_config_folder"]
+        self._auth_domain = GEODB_DEFAULTS["auth_domain"]
+        self._auth_aud = GEODB_DEFAULTS["auth_aud"]
+        self._auth_mode = GEODB_DEFAULTS["auth_mode"]
 
+        # override defaults by .env
         self.refresh_config_from_env(dotenv_file=dotenv_file, use_dotenv=True)
 
+        # override defaults and .env if given in constructor
         self._server_url = server_url or self._server_url
         self._server_port = server_port or self._server_port
         self._auth_client_id = client_id or self._auth_client_id
         self._auth_client_secret = client_secret or self._auth_client_secret
-        self._auth_access_token = access_token
         self._auth_mode = auth_mode or self._auth_mode
+        self._auth_aud = auth_aud or self._auth_aud
+        self._auth_access_token = access_token or self._auth_access_token
 
         self._capabilities = None
 
@@ -816,20 +822,26 @@ class GeoDBClient(object):
                 or "function" in select:
             raise GeoDBError("Please don't inject!")
 
-    def get_collection_pg(self, collection: str, select: str = "*", where: Optional[str] = None,
-                          group: Optional[str] = None, order: Optional[str] = None, limit: Optional[int] = None,
-                          offset: Optional[int] = None, namespace: Optional[str] = None) \
-            -> Union[GeoDataFrame, DataFrame]:
+    # noinspection SqlDialectInspection,SqlNoDataSourceInspection,SqlInjection
+    def get_collection_pg(self,
+                          collection: str,
+                          select: str = "*",
+                          where: Optional[str] = None,
+                          group: Optional[str] = None,
+                          order: Optional[str] = None,
+                          limit: Optional[int] = None,
+                          offset: Optional[int] = None,
+                          namespace: Optional[str] = None) -> Union[GeoDataFrame, DataFrame]:
         """
 
         Args:
-            collection: Collection to query
-            select: Properties (columns) to return. Can contain aggregation functions
-            where: SQL WHERE statement
-            group: SQL GROUP statement
-            order: SQL ORDER statement
-            limit: Limit for paging
-            offset: Offset (start) of rows to return. Used in combination with limit.
+            collection(str): Collection to query
+            select(str): Properties (columns) to return. Can contain aggregation functions
+            where(Optional[str]): SQL WHERE statement
+            group(Optional[str]): SQL GROUP statement
+            order(Optional[str]): SQL ORDER statement
+            limit(Optional[int]): Limit for paging
+            offset(Optional[int]): Offset (start) of rows to return. Used in combination with limit.
             namespace: By default the API gets in the user's own namespace. To access
                        collections the user has grant set the namespace accordingly.
 
@@ -844,6 +856,7 @@ class GeoDBClient(object):
             >>> df = geodb.get_collection_pg(collection='[MyCollection]', where='raba_id=1410', group='d_od', \
                 select='COUNT(d_od) as ct, d_od')
         """
+
         tab_prefix = namespace or self.namespace
 
         dn = f"{tab_prefix}_{collection}"
@@ -855,7 +868,6 @@ class GeoDBClient(object):
 
         self._raise_for_injection(select)
 
-        # noinspection SqlInjection
         qry = f"SELECT {select} FROM {dn} "
 
         if where:
@@ -944,17 +956,14 @@ class GeoDBClient(object):
             d['geometry'] = wkb.loads(d['geometry'], hex=True)
         return d
 
-    def _set_defaults(self):
-        self._server_url = GEODB_API_DEFAULT_PARAMETERS.get('server_url')
-        self._server_port = GEODB_API_DEFAULT_PARAMETERS.get('server_port')
-        self._auth_domain = GEODB_API_DEFAULT_PARAMETERS.get('auth_domain')
-        self._auth_aud = GEODB_API_DEFAULT_PARAMETERS.get('auth_aud')
-
     def _set_from_env(self):
         self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url
         self._server_port = os.getenv('GEODB_API_SERVER_PORT') or self._server_port
         self._auth_client_id = os.getenv('GEODB_AUTH_CLIENT_ID') or self._auth_client_id
         self._auth_client_secret = os.getenv('GEODB_AUTH_CLIENT_SECRET') or self._auth_client_secret
+        self._auth_access_token = os.getenv('GEODB_AUTH_ACCESS_TOKEN') or self._auth_access_token
+        self._auth0_config_file = os.getenv('GEODB_AUTH0_CONFIG_FILE') or self._auth0_config_file
+        self._auth0_config_folder = os.getenv('GEODB_AUTH0_CONFIG_FOLDER') or self._auth0_config_folder
         self._auth_domain = os.getenv('GEODB_AUTH_DOMAIN') or self._auth_domain
         self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
         self._auth_mode = os.getenv('GEODB_AUTH_MODE') or self._auth_mode
@@ -1025,8 +1034,6 @@ class GeoDBClient(object):
             with open(self._config_file, 'w') as f:
                 cfg_data = {'date': datetime.now(), 'client': self._auth_client_id, 'data': data}
                 json.dump(cfg_data, f, sort_keys=True, default=str)
-        #else:
-        #    print("Warning: cache file could not be written")
 
         try:
             return data['access_token']
