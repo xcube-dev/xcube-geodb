@@ -19,4 +19,3 @@ class Collections:
             p.text(pprint.pformat(self._config))
         else:
             p.text(pprint.pformat(self._config))
-

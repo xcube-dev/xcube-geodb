@@ -3,6 +3,7 @@ import os
 import unittest
 from io import StringIO
 
+import pandas
 import pandas as pd
 import requests_mock
 from geopandas import GeoDataFrame
@@ -73,7 +74,7 @@ class GeoDBClientTest(unittest.TestCase):
     def test_get_my_collections(self, m):
         self.set_global_mocks(m)
 
-        expected_response = [
+        server_response = [
             {
                 "table_name": "geodb_admin_land_use",
                 "grantee": "geodb_admin"
@@ -84,16 +85,57 @@ class GeoDBClientTest(unittest.TestCase):
             },
         ]
 
-        server_response = [
-            {
-                "src": expected_response
-            }
-        ]
+        server_response = [{"src": server_response}]
+
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_my_collections"
         m.post(url, text=json.dumps(server_response))
 
         res = self._api.get_my_collections()
-        self.assertSequenceEqual(expected_response, res)
+        self.assertIsInstance(res, pandas.DataFrame)
+        res = res.to_dict()
+        expected_response = {'table_name': {0: 'geodb_admin_land_use', 1: 'geodb_admin_land_use'},
+                             'grantee': {0: 'geodb_admin', 1: 'PUBLIC'}}
+        self.assertDictEqual(expected_response, res)
+
+    def test_get_collection(self, m):
+        self.set_global_mocks(m)
+        expected_response = [
+            {"id": 1, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
+             "geometry": "0103000020D20E000001000000110000007593188402B51B4"
+                         "1B6F3FDD4423FF6405839B4C802B51B412B8716D9EC3EF6406"
+                         "F1283C0EBB41B41A8C64B37C53EF640B6F3FDD4E4B41B419A999"
+                         "999A33EF6400E2DB29DCFB41B41EE7C3F35B63EF6407F6ABC"
+                         "74C0B41B41EE7C3F35B63EF6407B14AE47BDB41B41AAF1D24D"
+                         "043FF6408B6CE77B64B41B413F355EBA8F3FF6402B8716D970"
+                         "B41B41986E1283EC3FF640A4703D0A76B41B4179E92631AE3F"
+                         "F6404260E5D08AB41B4123DBF97E923FF6409EEFA7C69CB41"
+                         "B4100000000AC3FF6405839B448B3B41B411D5A643B973FF6"
+                         "408195438BC6B41B41666666666C3FF640D122DBF9E3B41B4"
+                         "139B4C876383FF640E9263188F8B41B41333333333D3FF64075"
+                         "93188402B51B41B6F3FDD4423FF640",
+             "d_od": "2019-03-26"},
+             {"id": 2, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
+              "geometry": "0103000020D20E000001000000110000007593188402B51B4"
+                          "1B6F3FDD4423FF6405839B4C802B51B412B8716D9EC3EF6406"
+                          "F1283C0EBB41B41A8C64B37C53EF640B6F3FDD4E4B41B419A999"
+                          "999A33EF6400E2DB29DCFB41B41EE7C3F35B63EF6407F6ABC"
+                          "74C0B41B41EE7C3F35B63EF6407B14AE47BDB41B41AAF1D24D"
+                          "043FF6408B6CE77B64B41B413F355EBA8F3FF6402B8716D970"
+                          "B41B41986E1283EC3FF640A4703D0A76B41B4179E92631AE3F"
+                          "F6404260E5D08AB41B4123DBF97E923FF6409EEFA7C69CB41"
+                          "B4100000000AC3FF6405839B448B3B41B411D5A643B973FF6"
+                          "408195438BC6B41B41666666666C3FF640D122DBF9E3B41B4"
+                          "139B4C876383FF640E9263188F8B41B41333333333D3FF64075"
+                          "93188402B51B41B6F3FDD4423FF640",
+              "d_od": "2019-03-26"},
+        ]
+        url = f"{self._server_test_url}:{self._server_test_port}/helge_test"
+        m.get(url, text=json.dumps(expected_response))
+
+        r = self._api.get_collection('test')
+        self.assertIsInstance(r, GeoDataFrame)
+
+        self.assertTrue('geometry' in r)
 
     def test_auth(self, m):
         self.set_global_mocks(m)
@@ -256,10 +298,10 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_filter_raw(self, m):
         m.get(url=self._server_full_address + "/", text=json.dumps({'definitions': ['helge_test'],
-                                                                    'paths': ['/rpc/geodb_get_raw']}))
+                                                                    'paths': ['/rpc/geodb_get_pg']}))
 
         expected_result = {'src': []}
-        m.post(self._server_full_address + '/rpc/geodb_get_raw', json=expected_result)
+        m.post(self._server_full_address + '/rpc/geodb_get_pg', json=expected_result)
 
         self.set_global_mocks(m)
 
@@ -269,7 +311,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual("Collection helge_tesdsct does not exist", str(e.exception))
 
         expected_result = {'src': [{'count': 142, 'D_OD': '2019-03-21'}, {'count': 114, 'D_OD': '2019-02-20'}]}
-        m.post(self._server_full_address + '/rpc/geodb_get_raw', json=expected_result)
+        m.post(self._server_full_address + '/rpc/geodb_get_pg', json=expected_result)
 
         r = self._api.get_collection_pg('test', select='count(D_OD)', group='D_OD', limit=1, offset=2)
         self.assertIsInstance(r, DataFrame)
@@ -289,7 +331,7 @@ class GeoDBClientTest(unittest.TestCase):
             'RABA_PID': 5983161,
             'RABA_ID': 1100,
             'D_OD': '2019-03-11'}]}
-        m.post(self._server_full_address + '/rpc/geodb_get_raw', json=expected_result)
+        m.post(self._server_full_address + '/rpc/geodb_get_pg', json=expected_result)
 
         r = self._api.get_collection_pg('test', limit=1, offset=2)
         self.assertIsInstance(r, GeoDataFrame)
@@ -355,7 +397,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         geodb = GeoDBClient()
-        self.assertEqual('helge', geodb.namespace)
+        self.assertEqual('helge', geodb.database)
 
-        geodb = GeoDBClient(namespace='test')
-        self.assertEqual('test', geodb.namespace)
+        geodb = GeoDBClient(database='test')
+        self.assertEqual('test', geodb.database)

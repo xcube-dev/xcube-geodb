@@ -7,34 +7,8 @@
 -- DROP TABLE public.land_use;
 
 CREATE EXTENSION postgis;
+CREATE EXTENSION geodb;
 
-CREATE ROLE geodb_admin WITH
-    NOLOGIN
-    NOSUPERUSER
-    INHERIT
-    NOCREATEDB
-    CREATEROLE
-    NOREPLICATION;
-
-ALTER ROLE geodb_admin IN DATABASE postgres SET search_path TO public;
-
-CREATE ROLE publicaccess WITH
-    LOGIN
-    NOSUPERUSER
-    INHERIT
-    NOCREATEDB
-    NOCREATEROLE
-    NOREPLICATION;
-
-ALTER ROLE publicaccess IN DATABASE postgres SET search_path TO public;
-
-CREATE ROLE anonymous WITH
-    NOLOGIN
-    NOSUPERUSER
-    INHERIT
-    NOCREATEDB
-    NOCREATEROLE
-    NOREPLICATION;
 
 CREATE ROLE authenticator WITH
     LOGIN
@@ -47,6 +21,8 @@ CREATE ROLE authenticator WITH
 
 ALTER ROLE authenticator IN DATABASE postgres SET search_path TO public;
 
+ALTER ROLE geodb_admin IN DATABASE postgres SET search_path TO public;
+GRANT geodb_admin TO authenticator;
 
 CREATE ROLE "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva" WITH
     LOGIN

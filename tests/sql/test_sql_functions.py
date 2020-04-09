@@ -2,6 +2,31 @@ import os
 import unittest
 import json
 
+GEODB_EXT_INSTALLED = False
+
+
+def get_app_dir():
+    import inspect
+    import xcube_geodb.version as version
+    # noinspection PyTypeChecker
+    version_path = inspect.getfile(version)
+    return os.path.dirname(version_path)
+
+
+def make_install_geodb():
+    global GEODB_EXT_INSTALLED
+    if not GEODB_EXT_INSTALLED:
+        GEODB_EXT_INSTALLED = True
+        from subprocess import call
+        import os
+        cwd = os.getcwd()
+
+        app_path = get_app_dir()
+        os.chdir(os.path.join(app_path, 'sql'))
+        call(["make", "install"])
+
+        os.chdir(cwd)
+
 
 # noinspection SqlNoDataSourceInspection
 @unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', False), 'DB Tests skipped')
@@ -12,6 +37,8 @@ class GeoDBSqlTest(unittest.TestCase):
         if os.environ.get('SKIP_PSQL_TESTS', False):
             return
 
+        make_install_geodb()
+
         import psycopg2
         import testing.postgresql
         postgresql = testing.postgresql.PostgresqlFactory(cache_initialized_db=True)
@@ -19,24 +46,10 @@ class GeoDBSqlTest(unittest.TestCase):
         cls._postgresql = postgresql()
         conn = psycopg2.connect(**cls._postgresql.dsn())
         cls._cursor = conn.cursor()
-        with open('tests/sql/setup.sql') as sql_file:
+        app_path = get_app_dir()
+        fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup.sql')
+        with open(fn) as sql_file:
             cls._cursor.execute(sql_file.read())
-
-        with open('xcube_geodb/sql/get_by_bbox.sql') as sql_file:
-            sql_create = sql_file.read()
-            cls._cursor.execute(sql_create)
-
-        with open('xcube_geodb/sql/manage_table.sql') as sql_file:
-            sql_create = sql_file.read()
-            cls._cursor.execute(sql_create)
-
-        with open('xcube_geodb/sql/manage_properties.sql') as sql_file:
-            sql_create = sql_file.read()
-            cls._cursor.execute(sql_create)
-
-        with open('xcube_geodb/sql/manage_users.sql') as sql_file:
-            sql_create = sql_file.read()
-            cls._cursor.execute(sql_create)
 
     def tearDown(self) -> None:
         if os.environ.get('SKIP_PSQL_TESTS', False):
@@ -104,7 +117,7 @@ class GeoDBSqlTest(unittest.TestCase):
 
     def test_manage_table(self):
         user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
-        user_table = f"{user_name}_test"
+        user_table = "test"
         self._set_role(user_name)
 
         props = {'tt': 'integer'}
@@ -135,7 +148,6 @@ class GeoDBSqlTest(unittest.TestCase):
     def test_manage_properties(self):
         user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
         table = "land_use"
-        user_table = f"{user_name}_{table}"
         self._set_role(user_name)
 
         props = {'tt': 'integer'}
@@ -147,20 +159,20 @@ class GeoDBSqlTest(unittest.TestCase):
         sql = f"SELECT public.geodb_add_properties('{table}', '{json.dumps(cols)}'::json)"
         self._cursor.execute(sql)
 
-        self.assertTrue(self.column_exists(user_table, 'test_col1', 'integer'))
+        self.assertTrue(self.column_exists(table, 'test_col1', 'integer'))
 
         cols = ['test_col1', 'test_col2']
 
         sql = f"SELECT public.geodb_drop_properties('{table}', '{json.dumps(cols)}')"
         self._cursor.execute(sql)
-        self.assertFalse(self.column_exists(user_table, 'test_col', 'integer'))
+        self.assertFalse(self.column_exists(table, 'test_col', 'integer'))
 
     def test_manage_users(self):
         sql = f"SELECT public.geodb_register_user('test', 'test')"
-        r = self._cursor.execute(sql)
+        self._cursor.execute(sql)
 
         sql = f"SELECT public.geodb_user_exists('test')"
-        r = self._cursor.execute(sql)
+        self._cursor.execute(sql)
 
         sql = f"SELECT public.geodb_drop_user('test')"
         r = self._cursor.execute(sql)
@@ -177,7 +189,7 @@ class GeoDBSqlTest(unittest.TestCase):
 
         sql = f"SELECT public.geodb_get_my_usage()"
         self._cursor.execute(sql)
-        res = self._cursor.fetchone()
+        self._cursor.fetchone()
 
         sql = f"SELECT current_user"
         self._cursor.execute(sql)
