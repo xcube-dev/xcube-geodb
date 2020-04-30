@@ -439,7 +439,7 @@ CREATE FUNCTION public.geodb_get_my_collections(user_name text)
 AS $BODY$
 BEGIN
     RETURN QUERY EXECUTE format('SELECT JSON_AGG(vals) as src FROM (
-		SELECT table_name, grantor, grantee FROM information_schema.table_privileges
+		SELECT table_name, grantor as database, grantee FROM information_schema.table_privileges
 			WHERE table_schema = ''public''
 			AND (grantee = ''PUBLIC'' OR grantee = ''%I'')
 			AND grantor <> ''rdsadmin''
