@@ -1,7 +1,13 @@
+## v0.1.6
+
+- When publishing collections geoDB shifts the data now to the database 'public'
+- Functions were added to list collections a user has access to
+- The Dockerfile uses now the xcube base image
+
 ## v0.1.5
 
 - Updated the exploring Jupyter Notebook and
-- Assured that somone can use the client from a custom environment (i.e. outside EDC)
+- Assured that someone can use the client from a custom environment (i.e. outside EDC)
 - Bug fixes
 
 ## v0.1.4
