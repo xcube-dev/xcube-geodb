@@ -418,6 +418,7 @@ class GeoDBClient(object):
         Examples:
             >>> geodb = GeoDBClient()
             >>> geodb.drop_collection(collection='[MyCollection]')
+            :param database:
         """
 
         database = database or self.database
@@ -467,6 +468,7 @@ class GeoDBClient(object):
     def _rename_collection(self, database: str, collection: str, new_database: str, new_name: str):
         old_dn = f"{database}_{collection}"
         new_dn = f"{new_database}_{new_name}"
+
         self.post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
 
     def publish_collection(self, collection: str) -> Message:
@@ -485,8 +487,8 @@ class GeoDBClient(object):
                                     collection=collection,
                                     new_database=database,
                                     new_name=collection)
-        except:
-            return Message(f"Access could not be granted. List grants with geodb.list_grants()")
+        except GeoDBError as e:
+            return Message(f"Access could not be granted. List grants with geodb.list_grants()" + str(e))
 
         return Message(f"Access granted on {collection} to {database}")
 

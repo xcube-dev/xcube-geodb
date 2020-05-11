@@ -40,4 +40,10 @@ setup(
     author='xcube Development Team',
     packages=packages,
     install_requires=requirements,
+    entry_points={
+        'console_scripts': [
+            # xcube's CLI
+            'geodb = xcube_geodb.cli.main:main',
+        ]
+    }
 )
