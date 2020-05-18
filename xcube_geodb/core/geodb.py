@@ -644,7 +644,7 @@ class GeoDBClient(object):
         if len(common_props) > 0:
             raise ValueError("Don't delete the following columns: " + str(common_props))
 
-    def get_properties(self, collection: str) -> DataFrame:
+    def get_properties(self, collection: str, database: Optional[str] = None) -> DataFrame:
         """
 
         Args:
@@ -654,7 +654,10 @@ class GeoDBClient(object):
             DataFrame: A list of properties
 
         """
-        r = self.post(path='/rpc/geodb_get_properties', payload={'collection': collection})
+        database = database or self.database
+        collection = database + '_' + collection
+
+        r = self.post(path='/rpc/geodb_get_properties', payload={'collection': collection, "version": "0.1.6"})
 
         js = r.json()[0]['src']
 
@@ -670,7 +673,6 @@ class GeoDBClient(object):
             DataFrame: A list of collections the user owns
 
         """
-
         r = self.post(path='/rpc/geodb_list_collections', payload={})
 
         js = r.json()[0]['src']
