@@ -31,7 +31,6 @@ class GeoDBClient(object):
                  dotenv_file: str = ".env",
                  auth_mode: str = 'silent',
                  auth_aud: Optional[str] = None,
-                 auth_domain: Optional[str] = None,
                  config_file: str = str(Path.home()) + '/.geodb',
                  database: Optional[str] = None):
         """
@@ -446,11 +445,12 @@ class GeoDBClient(object):
 
         return Message(f"Collection {str(collections)} deleted")
 
-    def grant_access_to_collection(self, collection: str, database: str = "public") -> Message:
+    def grant_access_to_collection(self, collection: str, usr: str, database: str = "public") -> Message:
         """
 
         Args:
             collection: Collection to grant access to
+            usr: User to grant access to
             database: The namespace to grant access to [public]. By default, public access is granted
 
         Returns:
@@ -459,13 +459,13 @@ class GeoDBClient(object):
         database = database or self.database
         dn = f"{self.database}_{collection}"
 
-        self.post(path='/rpc/geodb_grant_access_to_collection', payload={'collection': dn, 'usr': database})
+        self.post(path='/rpc/geodb_grant_access_to_collection', payload={'collection': dn, 'usr': usr})
 
         self._log(message=f"Access granted on {collection} to {database}", level=logging.DEBUG)
 
         return Message(f"Access granted on {collection} to {database}")
 
-    def _rename_collection(self, database: str, collection: str, new_database: str, new_name: str):
+    def rename_collection(self, database: str, collection: str, new_database: str, new_name: str):
         old_dn = f"{database}_{collection}"
         new_dn = f"{new_database}_{new_name}"
 
@@ -480,17 +480,12 @@ class GeoDBClient(object):
         Returns:
             str: Message
         """
-        database = 'public'
         try:
-            self.grant_access_to_collection(collection=collection, database=database)
-            self._rename_collection(database=self.database,
-                                    collection=collection,
-                                    new_database=database,
-                                    new_name=collection)
+            self.grant_access_to_collection(collection=collection, usr='public', database=self.database)
         except GeoDBError as e:
             return Message(f"Access could not be granted. List grants with geodb.list_grants()" + str(e))
 
-        return Message(f"Access granted on {collection} to {database}")
+        return Message(f"Access granted on {collection} to {self.database}")
 
     def unpublish_collection(self, collection: str) -> Message:
         """
@@ -502,23 +497,19 @@ class GeoDBClient(object):
             str: Message
         """
 
-        database = 'public'
         try:
-            self.revoke_access_from_collection(collection=collection, database=database)
-            self._rename_collection(database=database,
-                                    collection=collection,
-                                    new_database=self.database,
-                                    new_name=collection)
-        except GeoDBError:
-            return Message('Collection already unpublished')
+            self.revoke_access_from_collection(collection=collection, usr='public', database=self.database)
+        except GeoDBError as e:
+            return Message('Collection already unpublished' + str(e))
 
-        return Message(f"Access revoked for {collection} from {database}")
+        return Message(f"Access revoked for {collection} from {self.database}")
 
-    def revoke_access_from_collection(self, collection: str, database: str = 'public') -> Message:
+    def revoke_access_from_collection(self, collection: str, usr: str, database: str = 'public') -> Message:
         """
 
         Args:
             collection: Collection to grant access to
+            usr: User to revoke access from
             database: The user to revoke access from [public].
 
         Returns:
@@ -527,13 +518,11 @@ class GeoDBClient(object):
         database = database or self.database
         dn = f"{database}_{collection}"
 
-        self.post(path='/rpc/geodb_revoke_access_to_collection', payload={'collection': dn, 'usr': database})
-
-        self._log(f"Access revoked from {collection} of {database}", level=logging.DEBUG)
+        self.post(path='/rpc/geodb_revoke_access_to_collection', payload={'collection': dn, 'usr': usr})
 
         return Message(f"Access revoked from {collection} of {database}")
 
-    def list_grants(self) -> Sequence:
+    def list_grants(self) -> DataFrame:
         """
 
         Returns:
@@ -541,11 +530,14 @@ class GeoDBClient(object):
 
         """
         r = self.post(path='/rpc/geodb_list_grants', payload={})
-        js = r.json()[0]['src']
-        if js:
-            return self._df_from_json(js)
-        else:
-            return DataFrame(columns=["table_name"])
+        try:
+            js = r.json()
+            if isinstance(js, list) and len(js) > 0:
+                return self._df_from_json(js[0]['src'])
+            else:
+                return DataFrame(columns=["table_name"])
+        except Exception as e:
+            raise GeoDBError("Could not read response from GeoDB. " + str(e))
 
     def add_property(self, collection: str, prop: str, typ: str, database: Optional[str] = None) -> Message:
         """
@@ -562,7 +554,6 @@ class GeoDBClient(object):
             >>> geodb = GeoDBClient()
             >>> geodb.add_property(collection='[MyCollection]', name='[MyProperty]', type='[PostgresType]')
         """
-
         prop = {prop: typ}
         return self.add_properties(collection=collection, properties=prop, database=database)
 

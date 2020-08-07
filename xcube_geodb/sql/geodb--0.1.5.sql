@@ -1,3 +1,22 @@
+CREATE SCHEMA IF NOT EXISTS geodb_user_info;
+
+
+CREATE SEQUENCE IF NOT EXISTS geodb_user_info.seq_geodb_user_info_id
+    INCREMENT 1
+    START 2
+    MINVALUE 1
+    MAXVALUE 9223372036854775807
+    CACHE 1;
+
+
+CREATE TABLE IF NOT EXISTS "geodb_user_info"."geodb_user_info"(
+    id INT NOT NULL PRIMARY KEY DEFAULT nextval('geodb_user_info.seq_geodb_user_info_id'),
+    user_name CHARACTER VARYING (255) NOT NULL UNIQUE,
+    start_date DATE NOT NULL,
+    subscription TEXT NOT NULL,
+    permissions TEXT NOT NULL
+);
+
 
 CREATE FUNCTION public.geodb_add_properties(IN collection text, IN properties json)
     RETURNS void

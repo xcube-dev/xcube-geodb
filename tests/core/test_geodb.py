@@ -10,7 +10,7 @@ from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkt
 
-from xcube_geodb.core.geodb import GeoDBClient
+from xcube_geodb.core.geodb import GeoDBClient, GeoDBError
 
 
 @requests_mock.mock(real_http=True)
@@ -283,11 +283,39 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual(str(e.exception), "Format <class 'list'> not supported.")
 
-        # values = GeoDataFrame(df, geometry=df['geometry'])
-        # with self.assertRaises(ValueError) as e:
-        #     self._api.insert_into_collection('tt', values)
-        #
-        # self.assertEqual(str(e.exception), "Could not guess the dataframe's crs. Please specify.")
+    def test_list_grants(self, m):
+        path = '/rpc/geodb_list_grants'
+        expected_response = [{'src': [{'table_name': 'test', 'grantee': 'ernie'}]}]
+
+        m.post(self._server_full_address + path, json=expected_response)
+        self.set_global_mocks(m)
+
+        r = self._api.list_grants()
+
+        self.assertEqual('test', r.table_name[0])
+        self.assertEqual('ernie', r.grantee[0])
+        self.assertIsInstance(r, DataFrame)
+
+        expected_response = []
+
+        m.post(self._server_full_address + path, json=expected_response)
+        self.set_global_mocks(m)
+
+        r = self._api.list_grants()
+
+        self.assertEqual(0, len(r.table_name))
+        self.assertIsInstance(r, DataFrame)
+
+        expected_response = 'vijdasovjidasjo'
+
+        m.post(self._server_full_address + path, text=expected_response)
+        self.set_global_mocks(m)
+
+        with self.assertRaises(GeoDBError) as e:
+            self._api.list_grants()
+
+        self.assertEqual("Could not read response from GeoDB. Expecting value: line 1 column 1 (char 0)",
+                         str(e.exception))
 
     @unittest.skip("Not yet implemented")
     def test_register_user_to_geoserver(self, m):
