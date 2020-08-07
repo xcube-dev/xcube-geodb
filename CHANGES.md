@@ -1,3 +1,7 @@
+## v0.1.8
+
+- Fixed error message when attempting to publish a collection
+
 ## v0.1.6
 
 - When publishing collections geoDB shifts the data now to the database 'public'
