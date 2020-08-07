@@ -1,28 +1,34 @@
-ARG XCUBE_DOCKER_BASE_VERSION=0.4.2
+# Image from https://hub.docker.com (syntax: repo/image:version)
+FROM continuumio/miniconda3:latest
 
-FROM quay.io/bcdev/xcube-python-base:${XCUBE_DOCKER_BASE_VERSION}
-
-ARG XCUBE_VERSION=0.4.0.dev0
-ARG XCUBE_GEN_VERSION=1.0.1
-ARG XCUBE_USER_NAME=xcube
-
+# Person responsible
 LABEL maintainer="helge.dzierzon@brockmann-consult.de"
-LABEL name="xcube geoDB"
-LABEL xcube_version=${XCUBE_VERSION}
-LABEL xcube_gen_version=${XCUBE_GEN_VERSION}
+LABEL name=xcube_geodb
+ENV XCUBE_VERSION=0.3.0
+ENV XCUBE_GEODB_VERSION=0.1.0
+
+LABEL version=${XCUBE_GEODB_VERSION}
+
+# Ensure usage of bash (simplifies source activate calls)
+SHELL ["/bin/bash", "-c"]
 
 # Update system and install dependencies
-USER root
 RUN apt-get -y update && apt-get -y upgrade && apt-get -y install curl vim
 
-USER ${XCUBE_USER_NAME}
-RUN mkdir /home/xcube/geodb
-WORKDIR /home/xcube/geodb
-ADD --chown=1000:1000 environment.yml environment.yml
-RUN conda env update -n xcube
+RUN groupadd -g 1000 xcube
+RUN useradd -u 1000 -g 1000 -ms /bin/bash xcube
+RUN mkdir /workspace && chown xcube.xcube /workspace
+RUN chown -R xcube.xcube /opt/conda
 
-ADD --chown=1000:1000 ./ .
-RUN source activate xcube && python setup.py install
+USER xcube
+
+RUN conda create -n xcube -c conda-forge xcube=${XCUBE_VERSION}
+
+RUN git clone https://github.com/dcs4cop/xcube-geodb /workspace/xcube-geodb
+WORKDIR /workspace/xcube-geodb
+
+RUN source activate xcube && conda env update xcube -f environment.yml
+RUN source activate xcube && python setup.py develop
 
 WORKDIR /workspace
 
