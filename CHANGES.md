@@ -1,6 +1,7 @@
 ## v0.1.8
 
 - Fixed error message when attempting to publish a collection
+- Fixed errors when inserting big datasets. They are now sent as packages.
 
 ## v0.1.6
 
