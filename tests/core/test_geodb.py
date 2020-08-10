@@ -255,6 +255,9 @@ class GeoDBClientTest(unittest.TestCase):
                "column1,column2,geometry\n\n"
                "1,ì,POINT(10 10)\n\n"
                "3,b,POINT(10 10)\n\n")
+
+        for i in range(11000):
+            csv += f"{i},b,POINT(10 10)\n\n"
         file = StringIO(csv)
 
         df = pd.read_csv(file)
@@ -275,7 +278,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         r = self._api.insert_into_collection('tt', values)
 
-        self.assertTrue(r)
+        self.assertEqual('<h1>11002 rows inserted into tt</h1>', str(r))
 
         with self.assertRaises(ValueError) as e:
             # noinspection PyTypeChecker

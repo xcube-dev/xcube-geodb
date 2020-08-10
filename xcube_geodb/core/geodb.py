@@ -378,9 +378,9 @@ class GeoDBClient(object):
         """
 
         Args:
-            collection: Collection to be created
             properties: Property definitions for the collection
-            crs:
+            collection: Collection to be created
+            crs: sfdv
             database: name of database if not default [user name].
 
         Returns:
@@ -390,8 +390,6 @@ class GeoDBClient(object):
             >>> geodb = GeoDBClient()
             >>> properties = {'[MyProp1]': 'float', '[MyProp2]': 'date'}
             >>> geodb.create_collection(collection='[MyCollection]', crs=3794, properties=properties)
-            :type collection: object
-
         """
         collections = {
             collection:
@@ -410,6 +408,7 @@ class GeoDBClient(object):
 
         Args:
             collection: Collection to be dropped
+            database:
 
         Returns:
             bool: Success
@@ -417,7 +416,6 @@ class GeoDBClient(object):
         Examples:
             >>> geodb = GeoDBClient()
             >>> geodb.drop_collection(collection='[MyCollection]')
-            :param database:
         """
 
         database = database or self.database
@@ -427,6 +425,7 @@ class GeoDBClient(object):
         """
 
         Args:
+            database:
             collections: Collections to be dropped
 
         Returns:
@@ -465,9 +464,15 @@ class GeoDBClient(object):
 
         return Message(f"Access granted on {collection} to {database}")
 
-    def rename_collection(self, database: str, collection: str, new_database: str, new_name: str):
+    def rename_collection(self, database: str, collection: str, new_name: str):
         old_dn = f"{database}_{collection}"
-        new_dn = f"{new_database}_{new_name}"
+        new_dn = f"{database}_{new_name}"
+
+        self.post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
+
+    def move_collection(self, database: str, collection: str, new_database: str):
+        old_dn = f"{database}_{collection}"
+        new_dn = f"{new_database}_{collection}"
 
         self.post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
 
@@ -546,6 +551,7 @@ class GeoDBClient(object):
             collection: Collection to add a property to
             prop: Property name
             typ: Type of property (Postgres type)
+            database:
 
         Returns:
             Success Message
@@ -563,7 +569,7 @@ class GeoDBClient(object):
         Args:
             collection: Collection to add properties to
             properties: Property definitions as json array
-
+            database:
         Returns:
             bool: Success
 
@@ -590,6 +596,7 @@ class GeoDBClient(object):
         Args:
             collection: Collection to drop the property from
             prop: Property to delete
+            database:
 
         Returns:
             bool: Success
@@ -607,7 +614,7 @@ class GeoDBClient(object):
         Args:
             collection: Collection to delete properties from
             properties: A json object containing the property definitions
-
+            database:
         Returns:
             bool: Success
 
@@ -640,6 +647,7 @@ class GeoDBClient(object):
 
         Args:
             collection: Collection to retrieve a list of properties from
+            database:
 
         Returns:
             DataFrame: A list of properties
@@ -678,7 +686,7 @@ class GeoDBClient(object):
         Args:
             collection: Collection to delete from  
             query: Filter which records to delete. Follow the http://postgrest.org/en/v6.0/api.html query convention.
-
+            database:
         Returns:
             bool: Success
 
@@ -703,7 +711,7 @@ class GeoDBClient(object):
             collection: Collection to be updated
             values: Values to update
             query: Filter which values to be updated. Follow the http://postgrest.org/en/v6.0/api.html query convention.
-
+            database:
         Returns:
             bool: Success
         """
@@ -741,8 +749,9 @@ class GeoDBClient(object):
         def add_srid(point):
             return f'SRID={str(crs)};' + str(point)
 
-        gpdf['geometry'] = gpdf['geometry'].apply(add_srid)
-        return gpdf
+        gpdf2 = gpdf.copy()
+        gpdf2['geometry'] = gpdf2['geometry'].apply(add_srid)
+        return gpdf2
 
     def _gdf_to_csv(self, gpdf: GeoDataFrame, crs: int = None) -> str:
         gpdf = self._gdf_prepare_geom(gpdf, crs)
@@ -763,6 +772,7 @@ class GeoDBClient(object):
         """
 
         Args:
+            database:
             collection: Collection to be inserted to
             values: Values to be inserted
             upsert: Whether the insert shall replace existing rows (by PK)
@@ -780,27 +790,32 @@ class GeoDBClient(object):
 
         if isinstance(values, GeoDataFrame):
             # headers = {'Content-type': 'text/csv'}
-
+            values = self._gdf_prepare_geom(values, crs)
             ct = 0
             cont = True
-            max_transfer_nrows = 10000
+            max_transfer_num_rows = 10000
+            total_rows = values.shape[0]
 
             while cont:
                 frm = ct
-                to = ct+max_transfer_nrows-1
+                to = ct+max_transfer_num_rows-1
                 ngdf = values.loc[frm:to]
-                print(f'Processing rows from {frm} to {to}')
-                ct += max_transfer_nrows
+                ct += max_transfer_num_rows
 
                 nct = ngdf.shape[0]
                 cont = nct > 0
-                if not cont: break
+                if not cont:
+                    break
 
+                if nct < max_transfer_num_rows:
+                    to = frm + nct
+
+                print(f'Processing rows from {frm+1} to {to}')
                 if 'id' in ngdf.columns and not upsert:
                     ngdf.drop(columns=['id'])
 
                 ngdf.columns = map(str.lower, ngdf.columns)
-                js = self._gdf_to_json(ngdf, crs)
+                js = self._gdf_to_json(ngdf)
 
                 database = database or self.database
                 dn = database + '_' + collection
@@ -814,7 +829,7 @@ class GeoDBClient(object):
         else:
             raise ValueError(f'Format {type(values)} not supported.')
 
-        return Message(f"Data inserted into {collection}")
+        return Message(f"{total_rows} rows inserted into {collection}")
 
     def get_collection_by_bbox(self, collection: str,
                                bbox: Tuple[float, float, float, float],
@@ -1013,7 +1028,7 @@ class GeoDBClient(object):
             ValueError: When the geometry field is missing
 
         """
-        data = [self._load_geo(d) for d in js]
+        # data = [self._load_geo(d) for d in js]
 
         gpdf = gpd.GeoDataFrame(js)
         if 'geometry' in gpdf:
