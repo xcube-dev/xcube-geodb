@@ -783,7 +783,7 @@ class GeoDBClient(object):
 
             ct = 0
             cont = True
-            max_transfer_nrows = 1000
+            max_transfer_nrows = 10000
 
             while cont:
                 frm = ct
