@@ -758,7 +758,7 @@ class GeoDBClient(object):
                                values: GeoDataFrame,
                                upsert: bool = False,
                                crs: int = None,
-                               database: Optional[str] = None) \
+                               database: Optional[str] = None,) \
             -> Message:
         """
 
@@ -781,23 +781,38 @@ class GeoDBClient(object):
         if isinstance(values, GeoDataFrame):
             # headers = {'Content-type': 'text/csv'}
 
-            if 'id' in values.columns and not upsert:
-                values.drop(columns=['id'])
+            ct = 0
+            cont = True
+            max_transfer_nrows = 1000
 
-            values.columns = map(str.lower, values.columns)
-            values = self._gdf_to_json(values, crs)
+            while cont:
+                frm = ct
+                to = ct+max_transfer_nrows-1
+                ngdf = values.loc[frm:to]
+                print(f'Processing rows from {frm} to {to}')
+                ct += max_transfer_nrows
+
+                nct = ngdf.shape[0]
+                cont = nct > 0
+                if not cont: break
+
+                if 'id' in ngdf.columns and not upsert:
+                    ngdf.drop(columns=['id'])
+
+                ngdf.columns = map(str.lower, ngdf.columns)
+                js = self._gdf_to_json(ngdf, crs)
+
+                database = database or self.database
+                dn = database + '_' + collection
+
+                if upsert:
+                    headers = {'Prefer': 'resolution=merge-duplicates'}
+                else:
+                    headers = None
+
+                self.post(f'/{dn}', payload=js, headers=headers)
         else:
             raise ValueError(f'Format {type(values)} not supported.')
-
-        database = database or self.database
-        dn = database + '_' + collection
-
-        if upsert:
-            headers = {'Prefer': 'resolution=merge-duplicates'}
-        else:
-            headers = None
-
-        self.post(f'/{dn}', payload=values, headers=headers)
 
         return Message(f"Data inserted into {collection}")
 
