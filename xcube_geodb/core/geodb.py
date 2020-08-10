@@ -1028,9 +1028,9 @@ class GeoDBClient(object):
             ValueError: When the geometry field is missing
 
         """
-        # data = [self._load_geo(d) for d in js]
+        data = [self._load_geo(d) for d in js]
 
-        gpdf = gpd.GeoDataFrame(js)
+        gpdf = gpd.GeoDataFrame(data)
         if 'geometry' in gpdf:
             return gpdf.set_geometry('geometry')
         else:
