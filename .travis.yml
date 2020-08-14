@@ -30,10 +30,11 @@ install:
   # - conda config --set channel_priority strict
   - conda config --set always_yes yes --set changeps1 no
   - conda update -n base conda
+  - conda install -c conda-forge mamba
   # Useful for debugging any issues with conda
   - conda info -a
 
-  - conda env create --file environment.yml
+  - mamba env create
   - source activate xcube_geodb
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       export SKIP_PSQL_TESTS=0;

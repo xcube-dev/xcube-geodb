@@ -1,4 +1,3 @@
-import logging
 import os
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Union, Sequence, Tuple
@@ -15,6 +14,7 @@ from pathlib import Path
 from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.message import Message
 from xcube_geodb.defaults import GEODB_DEFAULTS
+from xcube_geodb.version import version
 
 
 class GeoDBError(ValueError):
@@ -79,7 +79,6 @@ class GeoDBClient(object):
         self._capabilities = None
 
         self._whoami = None
-        self._log_level = logging.INFO
         self._ipython_shell = None
 
         self._mandatory_properties = ["geometry", "id", "created_at", "modified_at"]
@@ -353,9 +352,9 @@ class GeoDBClient(object):
         Examples:
 
             >>> geodb = GeoDBClient()
-            >>> collections = {'[MyCollection]': {'crs': 1234, 'properties': \
+            >>> colls = {'[MyCollection]': {'crs': 1234, 'properties': \
                 {'[MyProp1]': 'float', '[MyProp2]': 'date'}}}
-            >>> geodb.create_collections(collections)
+            >>> geodb.create_collections(colls)
         """
 
         self._refresh_capabilities()
@@ -459,8 +458,6 @@ class GeoDBClient(object):
         dn = f"{self.database}_{collection}"
 
         self.post(path='/rpc/geodb_grant_access_to_collection', payload={'collection': dn, 'usr': usr})
-
-        self._log(message=f"Access granted on {collection} to {database}", level=logging.DEBUG)
 
         return Message(f"Access granted on {collection} to {database}")
 
@@ -586,8 +583,6 @@ class GeoDBClient(object):
 
         self.post(path='/rpc/geodb_add_properties', payload={'collection': collection, 'properties': properties})
 
-        self._log(f"Properties added", level=logging.DEBUG)
-
         return Message(f"Properties added")
 
     def drop_property(self, collection: str, prop: str, database: Optional[str] = None) -> Message:
@@ -632,8 +627,6 @@ class GeoDBClient(object):
         self._raise_for_stored_procedure_exists('geodb_drop_properties')
 
         self.post(path='/rpc/geodb_drop_properties', payload={'collection': collection, 'properties': properties})
-
-        self._log(f"Properties {str(properties)} dropped from {collection}", level=logging.DEBUG)
 
         return Message(f"Properties {str(properties)} dropped from {collection}")
 
@@ -700,8 +693,6 @@ class GeoDBClient(object):
 
         self._delete(f'/{dn}?{query}')
 
-        self._log(f"Data from {collection} deleted", level=logging.DEBUG)
-
         return Message(f"Data from {collection} deleted")
 
     def update_collection(self, collection: str, values: Dict, query: str, database: Optional[str] = None) -> Message:
@@ -728,8 +719,6 @@ class GeoDBClient(object):
             raise ValueError(f'Format {type(values)} not supported.')
 
         self._patch(f'/{dn}?{query}', payload=values)
-
-        self._log(f"{collection} updated", level=logging.DEBUG)
 
         return Message(f"{collection} updated")
 
@@ -767,7 +756,7 @@ class GeoDBClient(object):
                                values: GeoDataFrame,
                                upsert: bool = False,
                                crs: int = None,
-                               database: Optional[str] = None,) \
+                               database: Optional[str] = None, ) \
             -> Message:
         """
 
@@ -798,7 +787,7 @@ class GeoDBClient(object):
 
             while cont:
                 frm = ct
-                to = ct+max_transfer_num_rows-1
+                to = ct + max_transfer_num_rows - 1
                 ngdf = values.loc[frm:to]
                 ct += max_transfer_num_rows
 
@@ -810,7 +799,7 @@ class GeoDBClient(object):
                 if nct < max_transfer_num_rows:
                     to = frm + nct
 
-                print(f'Processing rows from {frm+1} to {to}')
+                print(f'Processing rows from {frm + 1} to {to}')
                 if 'id' in ngdf.columns and not upsert:
                     ngdf.drop(columns=['id'])
 
@@ -893,6 +882,30 @@ class GeoDBClient(object):
             return self._df_from_json(js)
         else:
             return GeoDataFrame(columns=["Empty Result"])
+
+    def head_collection(self, collection: str, num_lines: int = 10, database: Optional[str] = None) -> Union[
+        GeoDataFrame, DataFrame]:
+        """
+
+        Args:
+            collection: The collection's name
+            num_lines: A query. Follow the http://postgrest.org/en/v6.0/api.html query convention.
+            database: By default the API gets in the user's own database. To access
+                       collections the user has grant set the namespace accordingly.
+
+        Returns:
+            GeoDataFrame or DataFrame: results
+
+        Raises:
+            HttpError: When the database raises an error
+
+        Examples:
+            >>> geodb = GeoDBClient()
+            >>> geodb.head_collection(collection='[MyCollection]', num_lines=10)
+
+        """
+
+        return self.get_collection(collection=collection, query=f'limit={num_lines}', database=database)
 
     def get_collection(self, collection: str, query: Optional[str] = None, database: Optional[str] = None) \
             -> Union[GeoDataFrame, DataFrame]:
@@ -985,8 +998,6 @@ class GeoDBClient(object):
         self._raise_for_stored_procedure_exists('geodb_get_pg')
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
-
-        # self._raise_for_injection(select)
 
         r = self.post("/rpc/geodb_get_pg", headers=headers, payload={
             'select': select,
@@ -1195,33 +1206,6 @@ class GeoDBClient(object):
             raise ValueError(f"Stored procedure {stored_procedure} does not exist")
 
     # noinspection PyMethodMayBeStatic
-    def _log(self, message: str, level: Union[int, str] = logging.INFO):
-        # LOGGER.log(level, message)
-        pass
-
-    @property
-    def log_level(self):
-        return self._log_level
-
-    @log_level.setter
-    def log_level(self, level: Union[int, str]):
-        """
-
-        Args:
-            level: logging level. See https://docs.python.org/2/library/logging.html#levels for levels
-
-        Examples:
-            >>> import logging
-            >>> geodb = GeoDBClient()
-            >>> geodb.log_level = logging.DEBUG
-            or
-            >>> geodb.log_level = "DEBUG"
-        """
-
-        self._log_level = level
-        # LOGGER.setLevel(level=level)
-
-    # noinspection PyMethodMayBeStatic
     def setup(self):
         """
             Sets up  the datase. Needs DB credentials and the database user requires CREATE TABLE/FUNCTION grants.
@@ -1240,19 +1224,7 @@ class GeoDBClient(object):
         conn = psycopg2.connect(host=host, port=port, user=user, password=passwd, dbname=dbname)
         cursor = conn.cursor()
 
-        with open('dcfs_geodb/sql/manage_users.sql') as sql_file:
-            sql_create = sql_file.read()
-            cursor.execute(sql_create)
-
-        with open('dcfs_geodb/sql/query_pg.sql') as sql_file:
-            sql_create = sql_file.read()
-            cursor.execute(sql_create)
-
-        with open('dcfs_geodb/sql/manage_properties.sql') as sql_file:
-            sql_create = sql_file.read()
-            cursor.execute(sql_create)
-
-        with open('dcfs_geodb/sql/manage_table.sql') as sql_file:
+        with open(f'dcfs_geodb/sql/geodb--{version}.sql') as sql_file:
             sql_create = sql_file.read()
             cursor.execute(sql_create)
 
