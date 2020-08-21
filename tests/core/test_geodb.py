@@ -169,6 +169,24 @@ class GeoDBClientTest(unittest.TestCase):
         auth_access_token = self._api.auth_access_token
         self.assertEqual('A long lived token but a different user', auth_access_token)
 
+    def test_create_database(self, m):
+        expected_response = True
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
+        m.post(url, text=json.dumps(expected_response))
+        self.set_global_mocks(m)
+
+        res = self._api.create_database(database='test')
+        self.assertTrue(res)
+
+    def test_truncate_database(self, m):
+        expected_response = True
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_truncate_database"
+        m.post(url, text=json.dumps(expected_response))
+        self.set_global_mocks(m)
+
+        res = self._api.truncate_database(database='test')
+        self.assertEqual('<h1>Database test truncated</h1>', str(res))
+
     def test_create_collection(self, m):
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"

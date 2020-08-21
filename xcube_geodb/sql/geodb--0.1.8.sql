@@ -1,7 +1,7 @@
 CREATE SCHEMA IF NOT EXISTS geodb_user_info;
 
 
-CREATE SEQUENCE IF NOT EXISTS geodb_user_info.seq_geodb_user_info_id
+CREATE SEQUENCE IF NOT EXISTS public.geodb_user_info_id_seq
     INCREMENT 1
     START 2
     MINVALUE 1
@@ -9,13 +9,91 @@ CREATE SEQUENCE IF NOT EXISTS geodb_user_info.seq_geodb_user_info_id
     CACHE 1;
 
 
-CREATE TABLE IF NOT EXISTS "geodb_user_info"."geodb_user_info"(
-    id INT NOT NULL PRIMARY KEY DEFAULT nextval('geodb_user_info.seq_geodb_user_info_id'),
+CREATE TABLE IF NOT EXISTS public."geodb_user_info"(
+    id INT NOT NULL PRIMARY KEY DEFAULT nextval('geodb_user_info_id_seq'),
     user_name CHARACTER VARYING (255) NOT NULL UNIQUE,
     start_date DATE NOT NULL,
     subscription TEXT NOT NULL,
     permissions TEXT NOT NULL
 );
+
+
+CREATE OR REPLACE FUNCTION public.geodb_register_user_trg_func()
+    RETURNS trigger
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE NOT LEAKPROOF
+AS $BODY$
+BEGIN
+        IF NEW.user_name IS NOT NULL THEN
+            EXECUTE format('SELECT geodb_register_user(''%s''::text, ''bla''::text)', NEW.user_name);
+        END IF;
+
+        RETURN NEW;
+    END;
+$BODY$;
+
+
+CREATE TRIGGER geodb_register_user_trg
+    AFTER INSERT ON "geodb_user_info"
+    FOR EACH ROW
+    EXECUTE PROCEDURE geodb_register_user_trg_func();
+
+
+CREATE SEQUENCE public.geodb_user_databases_seq
+    INCREMENT 1
+    START 1
+    MINVALUE 1
+    MAXVALUE 9223372036854775807
+    CACHE 1;
+
+
+CREATE TABLE public.geodb_user_databases
+(
+    id bigint NOT NULL DEFAULT nextval('geodb_user_databases_seq'::regclass),
+    name character varying COLLATE pg_catalog."default" NOT NULL,
+    owner character varying COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT geodb_user_databases_pkey PRIMARY KEY (id),
+    CONSTRAINT unique_db_name_owner UNIQUE (name, owner)
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE pg_default;
+
+CREATE FUNCTION public.geodb_create_database(
+	database text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+AS $BODY$
+DECLARE usr text;
+BEGIN
+    usr := (SELECT geodb_whoami());
+
+    EXECUTE format('INSERT INTO geodb_user_databases(name, owner) VALUES(''%s'', ''%s'')
+				   ', "database", usr);
+END
+$BODY$;
+
+
+CREATE FUNCTION public.geodb_truncate_database(
+	database text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+AS $BODY$
+DECLARE usr text;
+BEGIN
+    usr := (SELECT geodb_whoami());
+
+    EXECUTE format('DELETE FROM geodb_user_databases WHERE name=''%s'' and owner=''%s''', "database", usr);
+END
+$BODY$;
 
 
 CREATE FUNCTION public.geodb_add_properties(IN collection text, IN properties json)

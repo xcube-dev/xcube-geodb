@@ -21,6 +21,7 @@ class GeoDBError(ValueError):
     pass
 
 
+# noinspection PyShadowingNames
 class GeoDBClient(object):
     def __init__(self,
                  server_url: Optional[str] = None,
@@ -359,12 +360,13 @@ class GeoDBClient(object):
 
         self._refresh_capabilities()
         database = database or self.database
+        # self.create_database(database)
 
-        tt = {}
+        buffer = {}
         for collection in collections:
-            tt[database + '_' + collection] = collections[collection]
+            buffer[database + '_' + collection] = collections[collection]
 
-        collections = {"collections": tt}
+        collections = {"collections": buffer}
         self.post(path='/rpc/geodb_create_collections', payload=collections)
 
         return Collections(collections)
@@ -658,6 +660,40 @@ class GeoDBClient(object):
         else:
             return DataFrame(columns=["table_name", "column_name", "data_type"])
 
+    def create_database(self, database: str) -> bool:
+        """
+
+        Returns:
+            DataFrame: A list of collections the user owns
+
+        """
+
+        self.post(path='/rpc/geodb_create_database', payload={'database': database})
+
+        return True
+
+    def truncate_database(self, database: str) -> Message:
+        """
+
+        Returns:
+            DataFrame: A list of collections the user owns
+
+        """
+
+        self.post(path='/rpc/geodb_truncate_database', payload={'database': database})
+
+        return Message(f"Database {database} truncated")
+
+    def get_my_databases(self):
+        """
+
+        Returns:
+            DataFrame: A list of databases the user owns
+
+        """
+
+        return self.get_collection(collection='user_databases', database='geodb', query=f'owner=eq.{self.whoami}')
+
     def get_collections(self) -> DataFrame:
         """
 
@@ -665,6 +701,7 @@ class GeoDBClient(object):
             DataFrame: A list of collections the user owns
 
         """
+
         r = self.post(path='/rpc/geodb_list_collections', payload={})
 
         js = r.json()[0]['src']
@@ -756,7 +793,7 @@ class GeoDBClient(object):
                                values: GeoDataFrame,
                                upsert: bool = False,
                                crs: int = None,
-                               database: Optional[str] = None, ) \
+                               database: Optional[str] = None) \
             -> Message:
         """
 
@@ -883,8 +920,8 @@ class GeoDBClient(object):
         else:
             return GeoDataFrame(columns=["Empty Result"])
 
-    def head_collection(self, collection: str, num_lines: int = 10, database: Optional[str] = None) -> Union[
-        GeoDataFrame, DataFrame]:
+    def head_collection(self, collection: str, num_lines: int = 10, database: Optional[str] = None) -> \
+            Union[GeoDataFrame, DataFrame]:
         """
 
         Args:
