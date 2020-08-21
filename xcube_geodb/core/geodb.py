@@ -757,7 +757,11 @@ class GeoDBClient(object):
                 raise GeoDBError("Could not guess the dataframe's crs. Please specify.")
 
         def add_srid(point):
-            return f'SRID={str(crs)};' + str(point)
+            point_str = str(point)
+            if 'SRID' not in point_str:
+                return f'SRID={str(crs)};' + str(point)
+            else:
+                return str(point)
 
         gpdf2 = gpdf.copy()
         gpdf2['geometry'] = gpdf2['geometry'].apply(add_srid)
