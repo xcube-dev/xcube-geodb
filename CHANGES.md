@@ -1,3 +1,19 @@
+## v0.1.8
+
+- Added support for creating and deleting databases
+- Listing tables now omits prefixes
+- A new head_collection function has been introduced
+- Removed the function get_collections. Use get_my_collections instead
+- When inserting new data, rows are streamed to avoid issues with larger datasets 
+- Fixed error message when attempting to publish a collection
+
+
+## v0.1.6
+
+- When publishing collections geoDB shifts the data now to the database 'public'
+- Functions were added to list collections a user has access to
+- The Dockerfile uses now the xcube base image
+
 ## v0.1.5
 
 - Updated the exploring Jupyter Notebook and

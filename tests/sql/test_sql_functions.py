@@ -195,3 +195,35 @@ class GeoDBSqlTest(unittest.TestCase):
         self._cursor.execute(sql)
         res = self._cursor.fetchone()
         print(res)
+
+    def test_create_database(self):
+        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
+        self._set_role(user_name)
+
+        sql = f"SELECT geodb_create_database('test')"
+        self._cursor.execute(sql)
+
+        sql = f"SELECT * FROM geodb_user_databases WHERE name='test' AND owner = '{user_name}'"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchall()
+
+        self.assertEqual(1, len(res))
+        res = res[0]
+        self.assertEqual('test', res[1])
+        self.assertEqual(user_name, res[2])
+
+    def test_truncate_database(self):
+        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
+        self._set_role(user_name)
+
+        sql = f"INSERT INTO geodb_user_databases(name, owner) VALUES('test_truncate', '{user_name}')"
+        self._cursor.execute(sql)
+
+        sql = f"SELECT geodb_truncate_database('test_truncate')"
+        self._cursor.execute(sql)
+
+        sql = f"SELECT * FROM geodb_user_databases WHERE name='test_truncate' AND owner = '{user_name}'"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchall()
+
+        self.assertEqual(0, len(res))

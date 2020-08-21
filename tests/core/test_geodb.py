@@ -12,6 +12,19 @@ from shapely import wkt
 
 from xcube_geodb.core.geodb import GeoDBClient, GeoDBError
 
+TEST_GEOM = "0103000020D20E000001000000110000007593188402B51B4" \
+            "1B6F3FDD4423FF6405839B4C802B51B412B8716D9EC3EF6406" \
+            "F1283C0EBB41B41A8C64B37C53EF640B6F3FDD4E4B41B419A999" \
+            "999A33EF6400E2DB29DCFB41B41EE7C3F35B63EF6407F6ABC" \
+            "74C0B41B41EE7C3F35B63EF6407B14AE47BDB41B41AAF1D24D" \
+            "043FF6408B6CE77B64B41B413F355EBA8F3FF6402B8716D970" \
+            "B41B41986E1283EC3FF640A4703D0A76B41B4179E92631AE3F" \
+            "F6404260E5D08AB41B4123DBF97E923FF6409EEFA7C69CB41" \
+            "B4100000000AC3FF6405839B448B3B41B411D5A643B973FF6" \
+            "408195438BC6B41B41666666666C3FF640D122DBF9E3B41B4" \
+            "139B4C876383FF640E9263188F8B41B41333333333D3FF64075" \
+            "93188402B51B41B6F3FDD4423FF640"
+
 
 @requests_mock.mock(real_http=True)
 class GeoDBClientTest(unittest.TestCase):
@@ -99,43 +112,50 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_get_collection(self, m):
         self.set_global_mocks(m)
+        global TEST_GEOM
         expected_response = [
             {"id": 1, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
-             "geometry": "0103000020D20E000001000000110000007593188402B51B4"
-                         "1B6F3FDD4423FF6405839B4C802B51B412B8716D9EC3EF6406"
-                         "F1283C0EBB41B41A8C64B37C53EF640B6F3FDD4E4B41B419A999"
-                         "999A33EF6400E2DB29DCFB41B41EE7C3F35B63EF6407F6ABC"
-                         "74C0B41B41EE7C3F35B63EF6407B14AE47BDB41B41AAF1D24D"
-                         "043FF6408B6CE77B64B41B413F355EBA8F3FF6402B8716D970"
-                         "B41B41986E1283EC3FF640A4703D0A76B41B4179E92631AE3F"
-                         "F6404260E5D08AB41B4123DBF97E923FF6409EEFA7C69CB41"
-                         "B4100000000AC3FF6405839B448B3B41B411D5A643B973FF6"
-                         "408195438BC6B41B41666666666C3FF640D122DBF9E3B41B4"
-                         "139B4C876383FF640E9263188F8B41B41333333333D3FF64075"
-                         "93188402B51B41B6F3FDD4423FF640",
+             "geometry": TEST_GEOM,
              "d_od": "2019-03-26"},
-             {"id": 2, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
-              "geometry": "0103000020D20E000001000000110000007593188402B51B4"
-                          "1B6F3FDD4423FF6405839B4C802B51B412B8716D9EC3EF6406"
-                          "F1283C0EBB41B41A8C64B37C53EF640B6F3FDD4E4B41B419A999"
-                          "999A33EF6400E2DB29DCFB41B41EE7C3F35B63EF6407F6ABC"
-                          "74C0B41B41EE7C3F35B63EF6407B14AE47BDB41B41AAF1D24D"
-                          "043FF6408B6CE77B64B41B413F355EBA8F3FF6402B8716D970"
-                          "B41B41986E1283EC3FF640A4703D0A76B41B4179E92631AE3F"
-                          "F6404260E5D08AB41B4123DBF97E923FF6409EEFA7C69CB41"
-                          "B4100000000AC3FF6405839B448B3B41B411D5A643B973FF6"
-                          "408195438BC6B41B41666666666C3FF640D122DBF9E3B41B4"
-                          "139B4C876383FF640E9263188F8B41B41333333333D3FF64075"
-                          "93188402B51B41B6F3FDD4423FF640",
-              "d_od": "2019-03-26"},
+            {"id": 2, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
+             "geometry": TEST_GEOM,
+             "d_od": "2019-03-26"},
+            {"id": 3, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
+             "geometry": TEST_GEOM,
+             "d_od": "2019-03-26"},
+            {"id": 4, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
+             "geometry": TEST_GEOM,
+             "d_od": "2019-03-26"},
+            {"id": 5, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
+             "geometry": TEST_GEOM,
+             "d_od": "2019-03-26"},
+            {"id": 6, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
+             "geometry": TEST_GEOM,
+             "d_od": "2019-03-26"},
+            {"id": 7, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
+             "geometry": TEST_GEOM,
+             "d_od": "2019-03-26"},
+            {"id": 8, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
+             "geometry": TEST_GEOM,
+             "d_od": "2019-03-26"},
+            {"id": 9, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
+             "geometry": TEST_GEOM,
+             "d_od": "2019-03-26"},
+            {"id": 10, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
+             "geometry": TEST_GEOM,
+             "d_od": "2019-03-26"},
         ]
         url = f"{self._server_test_url}:{self._server_test_port}/helge_test"
         m.get(url, text=json.dumps(expected_response))
 
         r = self._api.get_collection('test')
         self.assertIsInstance(r, GeoDataFrame)
-
         self.assertTrue('geometry' in r)
+
+        r = self._api.head_collection('test')
+        self.assertIsInstance(r, GeoDataFrame)
+        self.assertTrue('geometry' in r)
+        self.assertEqual(10, r.shape[0])
 
     def test_auth(self, m):
         self.set_global_mocks(m)
@@ -148,6 +168,24 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_auth_change_mocks(m)
         auth_access_token = self._api.auth_access_token
         self.assertEqual('A long lived token but a different user', auth_access_token)
+
+    def test_create_database(self, m):
+        expected_response = True
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
+        m.post(url, text=json.dumps(expected_response))
+        self.set_global_mocks(m)
+
+        res = self._api.create_database(database='test')
+        self.assertTrue(res)
+
+    def test_truncate_database(self, m):
+        expected_response = True
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_truncate_database"
+        m.post(url, text=json.dumps(expected_response))
+        self.set_global_mocks(m)
+
+        res = self._api.truncate_database(database='test')
+        self.assertEqual('<h1>Database test truncated</h1>', str(res))
 
     def test_create_collection(self, m):
         expected_response = 'Success'
@@ -255,6 +293,9 @@ class GeoDBClientTest(unittest.TestCase):
                "column1,column2,geometry\n\n"
                "1,ì,POINT(10 10)\n\n"
                "3,b,POINT(10 10)\n\n")
+
+        for i in range(11000):
+            csv += f"{i},b,POINT(10 10)\n\n"
         file = StringIO(csv)
 
         df = pd.read_csv(file)
@@ -275,7 +316,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         r = self._api.insert_into_collection('tt', values)
 
-        self.assertTrue(r)
+        self.assertEqual('<h1>11002 rows inserted into tt</h1>', str(r))
 
         with self.assertRaises(ValueError) as e:
             # noinspection PyTypeChecker
@@ -290,7 +331,7 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._server_full_address + path, json=expected_response)
         self.set_global_mocks(m)
 
-        r = self._api.list_grants()
+        r = self._api.list_my_grants()
 
         self.assertEqual('test', r.table_name[0])
         self.assertEqual('ernie', r.grantee[0])
@@ -301,9 +342,9 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._server_full_address + path, json=expected_response)
         self.set_global_mocks(m)
 
-        r = self._api.list_grants()
+        r = self._api.list_my_grants()
 
-        self.assertEqual(0, len(r.table_name))
+        self.assertEqual('No Grants', r.Grants[0])
         self.assertIsInstance(r, DataFrame)
 
         expected_response = 'vijdasovjidasjo'
@@ -312,7 +353,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         with self.assertRaises(GeoDBError) as e:
-            self._api.list_grants()
+            self._api.list_my_grants()
 
         self.assertEqual("Could not read response from GeoDB. Expecting value: line 1 column 1 (char 0)",
                          str(e.exception))

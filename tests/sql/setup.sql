@@ -33,9 +33,10 @@ CREATE ROLE "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva" WITH
     NOREPLICATION;
 
 GRANT "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva" TO postgres;
-
 GRANT "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva" TO authenticator;
 
+GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE public.geodb_user_databases TO "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva";
+GRANT SELECT, UPDATE, USAGE ON SEQUENCE public.geodb_user_databases_seq TO "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva";
 
 CREATE TABLE public.postgres_land_use
 (
