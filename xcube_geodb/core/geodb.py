@@ -536,10 +536,10 @@ class GeoDBClient(object):
         r = self.post(path='/rpc/geodb_list_grants', payload={})
         try:
             js = r.json()
-            if isinstance(js, list) and len(js) > 0:
+            if isinstance(js, list) and len(js) > 0 and 'src' in js[0] and js[0]['src']:
                 return self._df_from_json(js[0]['src'])
             else:
-                return DataFrame(columns=["table_name"])
+                return DataFrame(data={'Grants': ['No Grants']})
         except Exception as e:
             raise GeoDBError("Could not read response from GeoDB. " + str(e))
 
@@ -1060,6 +1060,9 @@ class GeoDBClient(object):
             ValueError: When the geometry field is missing
 
         """
+        if js is None:
+            return DataFrame()
+
         data = [self._load_geo(d) for d in js]
 
         gpdf = gpd.GeoDataFrame(data)
