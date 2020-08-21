@@ -331,7 +331,7 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._server_full_address + path, json=expected_response)
         self.set_global_mocks(m)
 
-        r = self._api.list_grants()
+        r = self._api.list_my_grants()
 
         self.assertEqual('test', r.table_name[0])
         self.assertEqual('ernie', r.grantee[0])
@@ -342,7 +342,7 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._server_full_address + path, json=expected_response)
         self.set_global_mocks(m)
 
-        r = self._api.list_grants()
+        r = self._api.list_my_grants()
 
         self.assertEqual(0, len(r.table_name))
         self.assertIsInstance(r, DataFrame)
@@ -353,7 +353,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         with self.assertRaises(GeoDBError) as e:
-            self._api.list_grants()
+            self._api.list_my_grants()
 
         self.assertEqual("Could not read response from GeoDB. Expecting value: line 1 column 1 (char 0)",
                          str(e.exception))

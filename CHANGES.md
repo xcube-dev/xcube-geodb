@@ -1,7 +1,12 @@
 ## v0.1.8
 
+- Added support for creating and deleting databases
+- Listing tables now omits prefixes
+- A new head_collection function has been introduced
+- Removed the function get_collections. Use get_my_collections instead
+- When inserting new data, rows are streamed to avoid issues with larger datasets 
 - Fixed error message when attempting to publish a collection
-- Fixed errors when inserting big datasets. They are now sent as packages.
+
 
 ## v0.1.6
 

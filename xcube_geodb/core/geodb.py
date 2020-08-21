@@ -109,13 +109,13 @@ class GeoDBClient(object):
         else:
             raise ValueError(f"Table {collection} does not exist.")
 
-    def get_my_collections(self) -> Sequence:
+    def get_my_collections(self, database: Optional[str] = None) -> Sequence:
         """
 
         Returns:
             An array of collection names
         """
-        payload = {}
+        payload = {'database': database}
         r = self.post(path='/rpc/geodb_get_my_collections', payload=payload)
         js = r.json()[0]['src']
         if js:
@@ -526,7 +526,7 @@ class GeoDBClient(object):
 
         return Message(f"Access revoked from {collection} of {database}")
 
-    def list_grants(self) -> DataFrame:
+    def list_my_grants(self) -> DataFrame:
         """
 
         Returns:
@@ -693,22 +693,6 @@ class GeoDBClient(object):
         """
 
         return self.get_collection(collection='user_databases', database='geodb', query=f'owner=eq.{self.whoami}')
-
-    def get_collections(self) -> DataFrame:
-        """
-
-        Returns:
-            DataFrame: A list of collections the user owns
-
-        """
-
-        r = self.post(path='/rpc/geodb_list_collections', payload={})
-
-        js = r.json()[0]['src']
-        if js:
-            return self._df_from_json(js)
-        else:
-            return DataFrame(columns=["table_name"])
 
     def delete_from_collection(self, collection: str, query: str, database: Optional[str] = None) -> Message:
         """
@@ -926,7 +910,7 @@ class GeoDBClient(object):
 
         Args:
             collection: The collection's name
-            num_lines: A query. Follow the http://postgrest.org/en/v6.0/api.html query convention.
+            num_lines: The number of line to return
             database: By default the API gets in the user's own database. To access
                        collections the user has grant set the namespace accordingly.
 

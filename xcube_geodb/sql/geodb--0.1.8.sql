@@ -254,13 +254,19 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_list_collections()
+CREATE FUNCTION public.geodb_get_my_collections(
+    "database" TEXT DEFAULT NULL
+)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 AS $BODY$
 DECLARE usr text;
 BEGIN
     usr := (SELECT geodb_whoami());
+    IF database IS NULL
+    THEN
+        database := usr;
+    END IF;
 
     RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js ' ||
                                 'FROM (SELECT
@@ -269,8 +275,35 @@ BEGIN
                                            pg_catalog.pg_tables
                                         WHERE
                                            schemaname = ''public''
-                                            AND tableowner = ''%s'') AS src',
-                                usr, usr);
+                                           AND tablename LIKE ''%s_%%''
+                                           AND tableowner = ''%s'') AS src',
+                                "database", "database", usr);
+
+END
+$BODY$;
+
+
+CREATE FUNCTION public.geodb_list_grants(
+	database TEXT
+	)
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+    ROWS 1000
+AS $BODY$
+DECLARE usr text;
+BEGIN
+    usr := (SELECT geodb_whoami());
+
+    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js
+                                FROM (SELECT
+								regexp_replace(table_name, ''%s_'', '''') as table_name,
+								grantee
+                                FROM information_schema.role_table_grants
+                                WHERE grantor = ''%s'' AND grantee != ''%s'') AS src',
+                                database, usr, usr);
 
 END
 $BODY$;
@@ -279,18 +312,20 @@ $BODY$;
 CREATE FUNCTION public.geodb_list_grants()
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+    ROWS 1000
 AS $BODY$
 DECLARE usr text;
 BEGIN
     usr := (SELECT geodb_whoami());
-    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js ' ||
-                                'FROM (SELECT table_name, grantee ' ||
-                                'FROM information_schema.role_table_grants ' ||
-                                'WHERE grantor = ''%s'' AND grantee != ''%s'') AS src',
-                                usr, usr);
+
+    RETURN QUERY SELECT geodb_list_grants(usr);
 
 END
 $BODY$;
+
 
 
 CREATE FUNCTION public.geodb_rename_collection(
@@ -509,43 +544,6 @@ BEGIN
 	RETURN QUERY EXECUTE format('SELECT geodb_get_user_usage(''%I'', TRUE)', me);
 END
 $BODY$;
-
-CREATE FUNCTION public.geodb_get_my_collections()
-    RETURNS TABLE(src json)
-    LANGUAGE 'plpgsql'
-
-    COST 100
-    VOLATILE
-    ROWS 1000
-AS $BODY$
-DECLARE me TEXT;
-BEGIN
-    SELECT geodb_whoami() INTO me;
-    RETURN QUERY SELECT geodb_get_my_collections(me);
-END
-$BODY$;
-
-
-CREATE FUNCTION public.geodb_get_my_collections(user_name text)
-    RETURNS TABLE(src json)
-    LANGUAGE 'plpgsql'
-
-    COST 100
-    VOLATILE
-    ROWS 1000
-AS $BODY$
-BEGIN
-    RETURN QUERY EXECUTE format('SELECT JSON_AGG(vals) as src FROM (
-		SELECT table_name, grantor as database, grantee FROM information_schema.table_privileges
-			WHERE table_schema = ''public''
-			AND (grantee = ''PUBLIC'' OR grantee = ''%I'')
-			AND grantor <> ''rdsadmin''
-			AND grantor <> ''postgres''
-            AND privilege_type = ''SELECT''
-		) as vals', user_name);
-END
-$BODY$;
-
 
 
 CREATE OR REPLACE FUNCTION public.geodb_get_pg(
