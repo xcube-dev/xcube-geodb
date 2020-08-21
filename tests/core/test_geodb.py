@@ -344,7 +344,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         r = self._api.list_my_grants()
 
-        self.assertEqual(0, len(r.table_name))
+        self.assertEqual('No Grants', r.Grants[0])
         self.assertIsInstance(r, DataFrame)
 
         expected_response = 'vijdasovjidasjo'
