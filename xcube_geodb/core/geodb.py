@@ -15,6 +15,25 @@ from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.message import Message
 from xcube_geodb.defaults import GEODB_DEFAULTS
 from xcube_geodb.version import version
+import warnings
+import functools
+
+
+def deprecated(msg: Optional[str] = None):
+    def decorator(func):
+        """This is a decorator which can be used to mark functions
+        as deprecated. It will result in a warning being emitted
+        when the function is used."""
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            warnings.simplefilter('always', DeprecationWarning)  # turn off filter
+            warnings.warn("Call to deprecated function {}. {}".format(func.__name__, msg + '.' if msg else ''),
+                          category=DeprecationWarning,
+                          stacklevel=2)
+            warnings.simplefilter('default', DeprecationWarning)  # reset filter
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 class GeoDBError(ValueError):
@@ -108,6 +127,10 @@ class GeoDBClient(object):
             return capabilities['definitions'][collection]
         else:
             raise ValueError(f"Table {collection} does not exist.")
+
+    @deprecated(msg='Use get_my_collections')
+    def get_collections(self, database: Optional[str] = None):
+        return self.get_my_collections(database)
 
     def get_my_collections(self, database: Optional[str] = None) -> Sequence:
         """
@@ -487,7 +510,7 @@ class GeoDBClient(object):
         try:
             self.grant_access_to_collection(collection=collection, usr='public', database=self.database)
         except GeoDBError as e:
-            return Message(f"Access could not be granted. List grants with geodb.list_grants()" + str(e))
+            return Message(f"Access could not be granted. List grants with geodb.list_my_grants()" + str(e))
 
         return Message(f"Access granted on {collection} to {self.database}")
 
@@ -525,6 +548,10 @@ class GeoDBClient(object):
         self.post(path='/rpc/geodb_revoke_access_to_collection', payload={'collection': dn, 'usr': usr})
 
         return Message(f"Access revoked from {collection} of {database}")
+
+    @deprecated(msg='Use list_my_grants')
+    def list_grants(self) -> DataFrame:
+        return self.list_my_grants()
 
     def list_my_grants(self) -> DataFrame:
         """
