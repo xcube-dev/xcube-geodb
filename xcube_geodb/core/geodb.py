@@ -19,7 +19,7 @@ import warnings
 import functools
 
 
-def deprecated(msg: Optional[str] = None):
+def deprecated_func(msg: Optional[str] = None):
     def decorator(func):
         """This is a decorator which can be used to mark functions
         as deprecated. It will result in a warning being emitted
@@ -27,10 +27,34 @@ def deprecated(msg: Optional[str] = None):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             warnings.simplefilter('always', DeprecationWarning)  # turn off filter
-            warnings.warn("Call to deprecated function {}. {}".format(func.__name__, msg + '.' if msg else ''),
+            warnings.warn("Call to deprecated function '{}'. {}".format(func.__name__, msg + '.' if msg else ''),
                           category=DeprecationWarning,
                           stacklevel=2)
             warnings.simplefilter('default', DeprecationWarning)  # reset filter
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def deprecated_kwarg(deprecated_arg: str, new_arg: Optional[str], msg: Optional[str] = None):
+    def decorator(func):
+        """This is a decorator which can be used to mark functions
+        as deprecated. It will result in a warning being emitted
+        when the function is used."""
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if deprecated_arg in kwargs:
+                new_arg_msg = ''
+                if new_arg:
+                    kwargs[new_arg] = kwargs[deprecated_arg]
+                    new_arg_msg = "Use '" + new_arg + "' instead."
+
+                warnings.simplefilter('always', DeprecationWarning)  # turn off filter
+                warnings.warn(f"Call to deprecated parameter '{deprecated_arg}' in "
+                              f"function '{func.__name__}'. {new_arg_msg} {msg + '.' if msg else ''}",
+                              category=DeprecationWarning,
+                              stacklevel=2)
+                warnings.simplefilter('default', DeprecationWarning)  # reset filter
             return func(*args, **kwargs)
         return wrapper
     return decorator
@@ -40,7 +64,7 @@ class GeoDBError(ValueError):
     pass
 
 
-# noinspection PyShadowingNames
+# noinspection PyShadowingNames,PyUnusedLocal
 class GeoDBClient(object):
     def __init__(self,
                  server_url: Optional[str] = None,
@@ -128,7 +152,7 @@ class GeoDBClient(object):
         else:
             raise ValueError(f"Table {collection} does not exist.")
 
-    @deprecated(msg='Use get_my_collections')
+    @deprecated_func(msg='Use get_my_collections')
     def get_collections(self, database: Optional[str] = None):
         return self.get_my_collections(database)
 
@@ -363,7 +387,9 @@ class GeoDBClient(object):
         r = self.post(path='/rpc/geodb_get_my_usage', payload=payload)
         return r.json()[0]['src'][0]
 
-    def create_collections(self, collections: Dict, database: Optional[str] = None) -> Collections:
+    # noinspection PyUnusedLocal
+    @deprecated_kwarg('namespace', 'database')
+    def create_collections(self, collections: Dict, database: Optional[str] = None, **kwargs) -> Collections:
         """
 
         Args:
@@ -394,11 +420,13 @@ class GeoDBClient(object):
 
         return Collections(collections)
 
+    @deprecated_kwarg('namespace', 'database')
     def create_collection(self,
                           collection: str,
                           properties: Dict,
                           crs: int = 4326,
-                          database: Optional[str] = None) -> Collections:
+                          database: Optional[str] = None,
+                          **kwargs) -> Collections:
         """
 
         Args:
@@ -427,7 +455,8 @@ class GeoDBClient(object):
 
         return self.create_collections(collections=collections, database=database)
 
-    def drop_collection(self, collection: str, database: Optional[str] = None) -> Message:
+    @deprecated_kwarg('namespace', 'database')
+    def drop_collection(self, collection: str, database: Optional[str] = None, **kwargs) -> Message:
         """
 
         Args:
@@ -445,7 +474,8 @@ class GeoDBClient(object):
         database = database or self.database
         return self.drop_collections([collection], database)
 
-    def drop_collections(self, collections: Sequence[str], database: Optional[str] = None) -> Message:
+    @deprecated_kwarg('namespace', 'database')
+    def drop_collections(self, collections: Sequence[str], database: Optional[str] = None, **kwargs) -> Message:
         """
 
         Args:
@@ -468,7 +498,9 @@ class GeoDBClient(object):
 
         return Message(f"Collection {str(collections)} deleted")
 
-    def grant_access_to_collection(self, collection: str, usr: str, database: str = "public") -> Message:
+    @deprecated_kwarg('namespace', 'database')
+    def grant_access_to_collection(self, collection: str, usr: str, database: Optional[str] = None,
+                                   **kwargs) -> Message:
         """
 
         Args:
@@ -531,7 +563,9 @@ class GeoDBClient(object):
 
         return Message(f"Access revoked for {collection} from {self.database}")
 
-    def revoke_access_from_collection(self, collection: str, usr: str, database: str = 'public') -> Message:
+    @deprecated_kwarg('namespace', 'database')
+    def revoke_access_from_collection(self, collection: str, usr: str, database: Optional[str] = None,
+                                      **kwargs) -> Message:
         """
 
         Args:
@@ -545,11 +579,11 @@ class GeoDBClient(object):
         database = database or self.database
         dn = f"{database}_{collection}"
 
-        self.post(path='/rpc/geodb_revoke_access_to_collection', payload={'collection': dn, 'usr': usr})
+        self.post(path='/rpc/geodb_revoke_access_from_collection', payload={'collection': dn, 'usr': usr})
 
         return Message(f"Access revoked from {collection} of {database}")
 
-    @deprecated(msg='Use list_my_grants')
+    @deprecated_func(msg='Use list_my_grants')
     def list_grants(self) -> DataFrame:
         return self.list_my_grants()
 
@@ -570,7 +604,8 @@ class GeoDBClient(object):
         except Exception as e:
             raise GeoDBError("Could not read response from GeoDB. " + str(e))
 
-    def add_property(self, collection: str, prop: str, typ: str, database: Optional[str] = None) -> Message:
+    @deprecated_kwarg('namespace', 'database')
+    def add_property(self, collection: str, prop: str, typ: str, database: Optional[str] = None, **kwargs) -> Message:
         """
         Add a property to an existing collection
         Args:
@@ -589,7 +624,8 @@ class GeoDBClient(object):
         prop = {prop: typ}
         return self.add_properties(collection=collection, properties=prop, database=database)
 
-    def add_properties(self, collection: str, properties: Dict, database: Optional[str] = None) -> Message:
+    @deprecated_kwarg('namespace', 'database')
+    def add_properties(self, collection: str, properties: Dict, database: Optional[str] = None, **kwargs) -> Message:
         """
 
         Args:
@@ -614,7 +650,8 @@ class GeoDBClient(object):
 
         return Message(f"Properties added")
 
-    def drop_property(self, collection: str, prop: str, database: Optional[str] = None) -> Message:
+    @deprecated_kwarg('namespace', 'database')
+    def drop_property(self, collection: str, prop: str, database: Optional[str] = None, **kwargs) -> Message:
         """
 
         Args:
@@ -632,7 +669,9 @@ class GeoDBClient(object):
 
         return self.drop_properties(collection=collection, properties=[prop], database=database)
 
-    def drop_properties(self, collection: str, properties: Sequence[str], database: Optional[str] = None) -> Message:
+    @deprecated_kwarg('namespace', 'database')
+    def drop_properties(self, collection: str, properties: Sequence[str], database: Optional[str] = None,
+                        **kwargs) -> Message:
         """
 
         Args:
@@ -664,7 +703,8 @@ class GeoDBClient(object):
         if len(common_props) > 0:
             raise ValueError("Don't delete the following columns: " + str(common_props))
 
-    def get_properties(self, collection: str, database: Optional[str] = None) -> DataFrame:
+    @deprecated_kwarg('namespace', 'database')
+    def get_properties(self, collection: str, database: Optional[str] = None, **kwargs) -> DataFrame:
         """
 
         Args:
@@ -721,7 +761,8 @@ class GeoDBClient(object):
 
         return self.get_collection(collection='user_databases', database='geodb', query=f'owner=eq.{self.whoami}')
 
-    def delete_from_collection(self, collection: str, query: str, database: Optional[str] = None) -> Message:
+    @deprecated_kwarg('namespace', 'database')
+    def delete_from_collection(self, collection: str, query: str, database: Optional[str] = None, **kwargs) -> Message:
         """
 
         Args:
@@ -743,7 +784,9 @@ class GeoDBClient(object):
 
         return Message(f"Data from {collection} deleted")
 
-    def update_collection(self, collection: str, values: Dict, query: str, database: Optional[str] = None) -> Message:
+    @deprecated_kwarg('namespace', 'database')
+    def update_collection(self, collection: str, values: Dict, query: str, database: Optional[str] = None,
+                          **kwargs) -> Message:
         """
 
         Args:
@@ -803,12 +846,14 @@ class GeoDBClient(object):
         res = gpdf.to_dict('records')
         return res
 
+    @deprecated_kwarg('namespace', 'database')
     def insert_into_collection(self,
                                collection: str,
                                values: GeoDataFrame,
                                upsert: bool = False,
                                crs: int = None,
-                               database: Optional[str] = None) \
+                               database: Optional[str] = None,
+                               **kwargs) \
             -> Message:
         """
 
@@ -872,6 +917,7 @@ class GeoDBClient(object):
 
         return Message(f"{total_rows} rows inserted into {collection}")
 
+    @deprecated_kwarg('namespace', 'database')
     def get_collection_by_bbox(self, collection: str,
                                bbox: Tuple[float, float, float, float],
                                comparison_mode: str = 'contains',
@@ -880,7 +926,8 @@ class GeoDBClient(object):
                                offset: int = 0,
                                where: Optional[str] = "id>-1",
                                op: str = 'AND',
-                               database: Optional[str] = None) -> GeoDataFrame:
+                               database: Optional[str] = None,
+                               **kwargs) -> GeoDataFrame:
         """
 
         Args:
@@ -935,7 +982,8 @@ class GeoDBClient(object):
         else:
             return GeoDataFrame(columns=["Empty Result"])
 
-    def head_collection(self, collection: str, num_lines: int = 10, database: Optional[str] = None) -> \
+    @deprecated_kwarg('namespace', 'database')
+    def head_collection(self, collection: str, num_lines: int = 10, database: Optional[str] = None, **kwargs) -> \
             Union[GeoDataFrame, DataFrame]:
         """
 
@@ -959,7 +1007,9 @@ class GeoDBClient(object):
 
         return self.get_collection(collection=collection, query=f'limit={num_lines}', database=database)
 
-    def get_collection(self, collection: str, query: Optional[str] = None, database: Optional[str] = None) \
+    @deprecated_kwarg('namespace', 'database')
+    def get_collection(self, collection: str, query: Optional[str] = None, database: Optional[str] = None,
+                       **kwargs) \
             -> Union[GeoDataFrame, DataFrame]:
         """
 
@@ -1009,6 +1059,7 @@ class GeoDBClient(object):
             raise GeoDBError("Please don't inject!")
 
     # noinspection SqlDialectInspection,SqlNoDataSourceInspection,SqlInjection
+    @deprecated_kwarg('namespace', 'database')
     def get_collection_pg(self,
                           collection: str,
                           select: str = "*",
@@ -1017,7 +1068,8 @@ class GeoDBClient(object):
                           order: Optional[str] = None,
                           limit: Optional[int] = None,
                           offset: Optional[int] = None,
-                          database: Optional[str] = None) -> Union[GeoDataFrame, DataFrame]:
+                          database: Optional[str] = None,
+                          **kwargs) -> Union[GeoDataFrame, DataFrame]:
         """
 
         Args:

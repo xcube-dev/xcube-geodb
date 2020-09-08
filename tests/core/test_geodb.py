@@ -10,6 +10,7 @@ from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkt
 
+from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.geodb import GeoDBClient, GeoDBError
 
 TEST_GEOM = "0103000020D20E000001000000110000007593188402B51B4" \
@@ -29,15 +30,15 @@ TEST_GEOM = "0103000020D20E000001000000110000007593188402B51B4" \
 @requests_mock.mock(real_http=True)
 class GeoDBClientTest(unittest.TestCase):
     def setUp(self) -> None:
-        self._server_test_url = "https://test"
-        self._server_test_auth_domain = "https://auth"
-        self._server_test_port = 3000
-        self._server_full_address = self._server_test_url
+        self._api = GeoDBClient(dotenv_file="tests/envs/.env_test", config_file="tests/.geodb")
 
-        if self._server_test_port > 0:
+        self._server_test_url = self._api._server_url
+        self._server_test_port = self._api._server_port
+        self._server_full_address = self._server_test_url
+        if self._server_test_port:
             self._server_full_address += ':' + str(self._server_test_port)
 
-        self._api = GeoDBClient(dotenv_file="tests/envs/.env_test", config_file="tests/.geodb")
+        self._server_test_auth_domain = "https://auth"
 
         os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'ipyauth-auth0-demo_test.env'
         os.environ['GEODB_AUTH0_CONFIG_FOLDER'] = 'tests/envs/'
@@ -46,19 +47,21 @@ class GeoDBClientTest(unittest.TestCase):
         pass
 
     def set_global_mocks(self, m):
-        m.post(self._server_test_auth_domain + "/oauth/token", json={
-            "access_token": "A long lived token",
-            "expires_in": 12345
-        })
+        if self._server_test_auth_domain:
+            m.post(self._server_test_auth_domain + "/oauth/token", json={
+                "access_token": "A long lived token",
+                "expires_in": 12345
+            })
 
         url = f"{self._server_full_address}/rpc/geodb_whoami"
         m.get(url, text=json.dumps("helge"))
 
     def set_auth_change_mocks(self, m):
-        m.post(self._server_test_auth_domain + "/oauth/token", json={
-            "access_token": "A long lived token but a different user",
-            "expires_in": 12345
-        })
+        if self._server_test_auth_domain:
+            m.post(self._server_test_auth_domain + "/oauth/token", json={
+                "access_token": "A long lived token but a different user",
+                "expires_in": 12345
+            })
 
         url = f"{self._server_full_address}/rpc/geodb_whoami"
         m.get(url, text=json.dumps("pope"))
@@ -66,7 +69,12 @@ class GeoDBClientTest(unittest.TestCase):
         self._api._auth_client_id = "fsvsdv"
 
     def test_my_usage(self, m):
-        self.set_global_mocks(m)
+        # self.set_global_mocks(m)
+
+        m.post(self._server_test_auth_domain + "/oauth/token", json={
+            "access_token": "A long lived token",
+            "expires_in": 12345
+        })
 
         expected_response = {'usage': "10MB"}
         server_response = [{'src': [expected_response]}]
@@ -195,6 +203,38 @@ class GeoDBClientTest(unittest.TestCase):
 
         res = self._api.create_collection(collection='test', properties={'test_col': 'inger'})
         self.assertTrue(res)
+
+    def test_create_collections(self, m):
+        expected_response = {'collections': {'helge_land_use3': {'crs': 3794,
+                                                                       'properties': {'D_OD': 'date',
+                                                                                      'RABA_ID': 'float',
+                                                                                      'RABA_PID': 'float'}}}}
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
+        m.post(url, text=json.dumps(expected_response))
+        self.set_global_mocks(m)
+
+        collections = {
+            "land_use3":
+                {
+                    "crs": 3794,
+                    "properties":
+                        {
+                            "RABA_PID": "float",
+                            "RABA_ID": "float",
+                            "D_OD": "date"
+                        }
+                }
+        }
+
+        res = self._api.create_collections(collections=collections)
+        self.assertIsInstance(res, Collections)
+        self.assertDictEqual(expected_response, res.config)
+
+        with self.assertWarns(DeprecationWarning) as e:
+            self._api.create_collections(collections=collections, namespace='ee')
+        msg = "Call to deprecated parameter 'namespace' in function 'create_collections'. Use 'database' instead. "
+        self.assertEqual(msg, str(e.warning))
 
     def test_drop_collection(self, m):
         expected_response = 'Success'

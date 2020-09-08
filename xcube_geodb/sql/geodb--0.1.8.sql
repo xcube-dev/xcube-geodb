@@ -243,7 +243,7 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_revoke_access_to_collection(collection text, usr text)
+CREATE FUNCTION public.geodb_revoke_access_from_collection(collection text, usr text)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
@@ -254,30 +254,43 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_get_my_collections(
-    "database" TEXT DEFAULT NULL
-)
+CREATE OR REPLACE FUNCTION public.geodb_get_my_collections(
+    database text DEFAULT NULL::text)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+    ROWS 1000
 AS $BODY$
 DECLARE usr text;
+        database_cond text;
 BEGIN
     usr := (SELECT geodb_whoami());
     IF database IS NULL
     THEN
-        database := usr;
+        database_cond := '';
+    ELSE
+        database_cond := format(' AND name = ''%s''', database);
     END IF;
 
     RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js ' ||
                                 'FROM (SELECT
-                                           regexp_replace(tablename, ''%s_'', '''') as table_name
-                                        FROM
-                                           pg_catalog.pg_tables
-                                        WHERE
-                                           schemaname = ''public''
-                                           AND tablename LIKE ''%s_%%''
-                                           AND tableowner = ''%s'') AS src',
-                                "database", "database", usr);
+										name as database,
+										   regexp_replace(tablename, name || ''_'', '''') as table_name
+										FROM
+										   pg_catalog.pg_tables
+										LEFT JOIN geodb_user_databases
+											ON tablename LIKE name || ''_%%''
+												AND owner = ''%s''
+										WHERE
+										   schemaname = ''public''
+										   AND tableowner = ''%s''
+										   AND name IS NOT NULL
+										   %s
+										ORDER BY name, table_name
+							   ) AS src',
+                                usr, usr, database_cond);
 
 END
 $BODY$;
@@ -463,6 +476,8 @@ DECLARE
     permissions json;
     ct integer;
 BEGIN
+    -- noinspection SqlSignature
+
     permissions := (SELECT current_setting('request.jwt.claim.permissions', TRUE)::json);
 
     ct := (SELECT COUNT(*) FROM json_array_elements(permissions) as ps WHERE ps::text = '"' || grt || '"');
@@ -494,9 +509,11 @@ END
 $BODY$;
 
 
+-- noinspection SqlUnused
+
 CREATE FUNCTION public.geodb_get_user_usage(
 	user_name text,
-	pretty boolean)
+	pretty BOOLEAN)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 
@@ -541,7 +558,7 @@ AS $BODY$
 DECLARE me TEXT;
 BEGIN
 	SELECT geodb_whoami() INTO me;
-	RETURN QUERY EXECUTE format('SELECT geodb_get_user_usage(''%I'', TRUE)', me);
+	RETURN QUERY EXECUTE format('SELECT geodb_get_user_usage(''%I'', %s)', me, pretty);
 END
 $BODY$;
 

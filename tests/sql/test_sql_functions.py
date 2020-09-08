@@ -2,6 +2,7 @@ import os
 import unittest
 import json
 
+
 GEODB_EXT_INSTALLED = False
 
 
@@ -83,18 +84,18 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertDictEqual(res[0][0]['geometry'], exp_geo)
 
     def column_exists(self, table: str, column: str, data_type: str) -> bool:
-        sql = f"""
-                    SELECT EXISTS
-                    (
-                        SELECT 1
-                        FROM information_schema.columns
-                        WHERE table_schema = 'public'
-                          AND table_name   = '{table}'
-                          AND column_name = '{column}'
-                          AND data_type = '{data_type}'
-                    )
-                         ;
-            """
+        sql = (f'\n'
+               f'                    SELECT EXISTS\n'
+               f'                    (\n'
+               f'                        SELECT 1\n'
+               f'                        FROM "information_schema".columns\n'
+               f'                        WHERE "table_schema" = \'public\'\n'
+               f'                          AND "table_name"   = \'{table}\'\n'
+               f'                          AND "column_name" = \'{column}\'\n'
+               f'                          AND "data_type" = \'{data_type}\'\n'
+               f'                    )\n'
+               f'                         ;\n'
+               f'            ')
         self._cursor.execute(sql)
         return self._cursor.fetchone()[0]
 
@@ -227,3 +228,14 @@ class GeoDBSqlTest(unittest.TestCase):
         res = self._cursor.fetchall()
 
         self.assertEqual(0, len(res))
+
+    def test_grant_access(self):
+        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
+        self._set_role(user_name)
+
+        sql = f"SELECT geodb_grant_access_to_collection('geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva_land_use', " \
+              f"'public')"
+        self._cursor.execute(sql)
+
+
+
