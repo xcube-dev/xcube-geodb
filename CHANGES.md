@@ -1,3 +1,14 @@
+## v0.1.9
+
+### Fixes:
+
+- get_collection functions is now retaining teh crs/srid
+- a new operation get_collection_srid was added
+- corrected message when access to a collection is granted
+- publish and unpublish collection has now a database parameter
+- grant access now uses the correct database when specified in the parameters
+- Added decorators to allow deprecation notices on functions and parameters
+
 ## v0.1.8
 
 - Added support for creating and deleting databases
