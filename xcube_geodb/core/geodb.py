@@ -909,7 +909,7 @@ class GeoDBClient(object):
                 if nct < max_transfer_num_rows:
                     to = frm + nct
 
-                print(f'Processing rows from {frm + 1} to {to}')
+                print(f'Processing rows from {frm} to {to}')
                 if 'id' in ngdf.columns and not upsert:
                     ngdf.drop(columns=['id'])
 
@@ -1151,7 +1151,6 @@ class GeoDBClient(object):
         tab_prefix = database or self.database
         dn = f"{tab_prefix}_{collection}"
 
-        print("Collecting", dn)
         r = self.post(path='/rpc/geodb_get_collection_srid', payload={'collection': dn}, raise_for_status=False)
         if r.status_code == 200:
             js = r.json()[0]['src'][0]

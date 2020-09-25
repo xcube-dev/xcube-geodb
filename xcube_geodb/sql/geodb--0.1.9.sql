@@ -440,6 +440,7 @@ AS $BODY$
 BEGIN
     EXECUTE format('CREATE ROLE %I LOGIN; ALTER ROLE %I PASSWORD ''%s'';ALTER ROLE %I SET search_path = public;' ||
                    'GRANT %s TO authenticator;', user_name, user_name, password, user_name, user_name);
+    EXECUTE format('INSERT INTO geodb_user_databases(name, owner) VALUES(''%s'',''%s'')', user_name, user_name);
     RETURN 'success';
 END
 $BODY$;
