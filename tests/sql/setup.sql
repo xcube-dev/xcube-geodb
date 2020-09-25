@@ -55,7 +55,7 @@ VALUES (2, '0103000020D20E00000100000005000000508D976EFF97184125068195F771F240D9
 
 CREATE TABLE public."geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva_land_use"
 (
-    id       integer PRIMARY KEY,
+    id       SERIAL PRIMARY KEY,
     geometry geometry(Geometry, 3794) NOT NULL
 );
 
@@ -72,3 +72,12 @@ INSERT INTO public."geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva_land_use"(id, geo
 VALUES (2, '0103000020D20E00000100000005000000508D976EFF97184125068195F771F240D9CEF753F6961841621058395E72F240D9CEF753F696184114AE47E1FC72F2402731082C01981841FA7E6ABCA872F240508D976EFF97184125068195F771F240');
 
 
+CREATE TABLE public."geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva_tt"
+(
+    id       SERIAL PRIMARY KEY,
+    geometry geometry(Geometry, 3794) NOT NULL
+);
+
+
+ALTER TABLE public."geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva_tt"
+    OWNER to "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva";

@@ -4,8 +4,8 @@ FROM continuumio/miniconda3:latest
 # Person responsible
 LABEL maintainer="helge.dzierzon@brockmann-consult.de"
 LABEL name=xcube_geodb
-ENV XCUBE_VERSION=0.3.0
-ENV XCUBE_GEODB_VERSION=0.1.0
+ENV XCUBE_VERSION=0.5.0
+ENV XCUBE_GEODB_VERSION=0.1.9
 
 LABEL version=${XCUBE_GEODB_VERSION}
 
@@ -22,12 +22,13 @@ RUN chown -R xcube.xcube /opt/conda
 
 USER xcube
 
-RUN conda create -n xcube -c conda-forge xcube=${XCUBE_VERSION}
+RUN conda install -c conda-forge mamba
+RUN mamba create -n xcube -c conda-forge xcube=${XCUBE_VERSION}
 
-RUN git clone https://github.com/dcs4cop/xcube-geodb /workspace/xcube-geodb
+ADD . /workspace/xcube-geodb
 WORKDIR /workspace/xcube-geodb
 
-RUN source activate xcube && conda env update xcube -f environment.yml
+RUN source activate xcube && mamba env update xcube -f environment.yml
 RUN source activate xcube && python setup.py develop
 
 WORKDIR /workspace

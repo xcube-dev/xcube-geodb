@@ -26,6 +26,7 @@ dependencies:
   - pytest >=4.4
   - pytest-cov >=2.6
   - httpretty
+  # - postgis
 
 
 

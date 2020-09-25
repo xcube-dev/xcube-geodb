@@ -232,24 +232,43 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_grant_access_to_collection(collection text, usr text)
+CREATE OR REPLACE FUNCTION public.geodb_grant_access_to_collection(
+    collection text,
+    usr text)
     RETURNS void
     LANGUAGE 'plpgsql'
-AS $BODY$
-BEGIN
-    EXECUTE format('GRANT SELECT ON TABLE %I TO %I;', collection, usr);
 
+    COST 100
+    VOLATILE
+AS $BODY$
+DECLARE seq_name text;
+BEGIN
+    --seq_name = collection || '_id_seq';
+    select replace(pg_get_serial_sequence(collection, 'id'), 'public.','') into seq_name;
+    IF seq_name IS NULL
+    THEN
+        raise exception 'No sequence for collection %', collection;
+    END IF;
+    EXECUTE format('GRANT SELECT ON TABLE %I TO %I;', collection, usr);
+    EXECUTE format('GRANT USAGE, SELECT ON SEQUENCE %I TO %I', seq_name, usr);
 END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_revoke_access_from_collection(collection text, usr text)
+CREATE OR REPLACE FUNCTION public.geodb_revoke_access_from_collection(
+    collection text,
+    usr text)
     RETURNS void
     LANGUAGE 'plpgsql'
-AS $BODY$
-BEGIN
-    EXECUTE format('REVOKE SELECT ON TABLE %I FROM %I;', collection, usr);
 
+    COST 100
+    VOLATILE
+AS $BODY$
+DECLARE seq_name TEXT;
+BEGIN
+    select replace(pg_get_serial_sequence(collection, 'id'), 'public.','') into seq_name;
+    EXECUTE format('REVOKE SELECT ON TABLE %I FROM %I;', collection, usr);
+    EXECUTE format('REVOKE USAGE, SELECT ON SEQUENCE %I FROM %I', seq_name, usr);
 END
 $BODY$;
 
@@ -265,6 +284,7 @@ CREATE OR REPLACE FUNCTION public.geodb_get_my_collections(
 AS $BODY$
 DECLARE usr text;
         database_cond text;
+        qry text;
 BEGIN
     usr := (SELECT geodb_whoami());
     IF database IS NULL
@@ -274,24 +294,30 @@ BEGIN
         database_cond := format(' AND name = ''%s''', database);
     END IF;
 
-    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js ' ||
-                                'FROM (SELECT
-										name as database,
-										   regexp_replace(tablename, name || ''_'', '''') as table_name
-										FROM
-										   pg_catalog.pg_tables
-										LEFT JOIN geodb_user_databases
-											ON tablename LIKE name || ''_%%''
-												AND owner = ''%s''
-										WHERE
-										   schemaname = ''public''
-										   AND tableowner = ''%s''
-										   AND name IS NOT NULL
-										   %s
-										ORDER BY name, table_name
-							   ) AS src',
-                                usr, usr, database_cond);
+    qry := format('SELECT JSON_AGG(src) as js ' ||
+                  'FROM (SELECT owner,
+                              name as database,
+                              regexp_replace(table_name, name || ''_'', '''') as table_name
+                          FROM information_schema."tables"
+                          LEFT JOIN geodb_user_databases
+                              ON table_name LIKE name || ''_%%''
+                          WHERE table_schema = ''public''
+                              AND table_name NOT LIKE ''geodb_user%%''
+                              AND table_name NOT LIKE ''geodb_functions%%''
+                              AND table_name NOT LIKE ''geodb_size_log%%''
+                              AND table_name != ''spatial_ref_sys''
+                              AND table_name != ''geography_columns''
+                              AND table_name != ''geometry_columns''
+                              AND table_name != ''raster_columns''
+                              AND table_name != ''raster_overviews''
+                              AND table_name NOT LIKE ''pg_%%''
+                              AND owner IS NOT NULL
+                            ORDER BY owner, database, table_name
 
+                 ) AS src',
+                  usr, usr, database_cond);
+
+    RETURN QUERY EXECUTE qry;
 END
 $BODY$;
 
@@ -682,5 +708,85 @@ BEGIN
     IF row_ct < 1 THEN
 	   RAISE EXCEPTION 'Only % rows!', row_ct;
     END IF;
+END
+$BODY$;
+
+
+CREATE OR REPLACE FUNCTION public.geodb_get_nearest(
+    collection text,
+    x double precision,
+    y double precision,
+    point_crs integer DEFAULT 4326,
+    "select" text DEFAULT '*'::text,
+    "where" text DEFAULT NULL::text,
+    "group" text DEFAULT NULL::text,
+    "limit" integer DEFAULT NULL::integer,
+    "offset" integer DEFAULT NULL::integer)
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+    ROWS 1000
+AS $BODY$
+DECLARE qry text;
+    DECLARE row_ct int;
+BEGIN
+    qry := format(
+            'SELECT
+                %s,
+                ST_AsText(geometry) as aoi,
+                ST_Distance(geometry,''SRID=%s;POINT(%s %s)''::geometry) AS distance
+            FROM
+                %I
+            ',
+            "select", point_crs, x , y, collection
+        );
+
+    IF "where" IS NOT NULL THEN
+        qry := qry || format('WHERE %s ', "where");
+    END IF;
+
+    IF "group" IS NOT NULL THEN
+        qry := qry || format('GROUP BY %s ', "group");
+    END IF;
+
+    qry := qry || format(' ORDER BY geometry <#> ''SRID=%s;POINT(%s %s)''::geometry ', point_crs, x , y);
+
+    IF "limit" IS NOT NULL THEN
+        qry := qry || format('LIMIT %s  ', "limit");
+    END IF;
+
+    IF "limit"  IS NOT NULL AND "offset"  IS NOT NULL THEN
+        qry := qry || format('OFFSET %s ', "offset");
+    END IF;
+
+    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as src FROM (%s) as src ', qry);
+
+    GET DIAGNOSTICS row_ct = ROW_COUNT;
+
+    IF row_ct < 1 THEN
+        RAISE EXCEPTION 'Only % rows!', row_ct;
+    END IF;
+END
+$BODY$;
+
+
+CREATE OR REPLACE FUNCTION public.geodb_get_collection_srid(
+    collection text)
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE
+    ROWS 1000
+AS $BODY$
+DECLARE res INTEGER;
+BEGIN
+    SELECT Find_SRID('public', collection, 'geometry') INTO res;
+    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js ' ||
+                                'FROM (SELECT %s AS srid
+                               ) AS src',
+                                res);
 END
 $BODY$;

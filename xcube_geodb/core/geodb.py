@@ -250,7 +250,7 @@ class GeoDBClient(object):
         self._set_from_env()
 
     def post(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
-             headers: Optional[Dict] = None) -> requests.models.Response:
+             headers: Optional[Dict] = None, raise_for_status: bool = True) -> requests.models.Response:
 
         """
 
@@ -259,7 +259,7 @@ class GeoDBClient(object):
             path: API path
             payload: Post body as Dict. Will be dumped to JSON
             params: Request parameters
-
+            raise_for_status: raise or not if status is not 200-299
         Returns:
             requests.models.Response: A Request object
 
@@ -279,7 +279,8 @@ class GeoDBClient(object):
                 r = requests.post(self._get_full_url(path=path), data=payload, params=params, headers=common_headers)
             else:
                 r = requests.post(self._get_full_url(path=path), json=payload, params=params, headers=common_headers)
-            r.raise_for_status()
+            if raise_for_status:
+                r.raise_for_status()
         except requests.exceptions.HTTPError:
             raise GeoDBError(r.text)
 
@@ -512,11 +513,11 @@ class GeoDBClient(object):
             bool: Success
         """
         database = database or self.database
-        dn = f"{self.database}_{collection}"
+        dn = f"{database}_{collection}"
 
         self.post(path='/rpc/geodb_grant_access_to_collection', payload={'collection': dn, 'usr': usr})
 
-        return Message(f"Access granted on {collection} to {database}")
+        return Message(f"Access granted on {collection} to {usr}")
 
     def rename_collection(self, database: str, collection: str, new_name: str):
         old_dn = f"{database}_{collection}"
@@ -530,7 +531,7 @@ class GeoDBClient(object):
 
         self.post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
 
-    def publish_collection(self, collection: str) -> Message:
+    def publish_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
 
         Args:
@@ -540,13 +541,16 @@ class GeoDBClient(object):
             str: Message
         """
         try:
-            self.grant_access_to_collection(collection=collection, usr='public', database=self.database)
+            database = database or self.database
+            dn = f"{database}_{collection}"
+
+            self.grant_access_to_collection(collection=collection, usr='public', database=database)
         except GeoDBError as e:
             return Message(f"Access could not be granted. List grants with geodb.list_my_grants()" + str(e))
 
         return Message(f"Access granted on {collection} to {self.database}")
 
-    def unpublish_collection(self, collection: str) -> Message:
+    def unpublish_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
 
         Args:
@@ -557,11 +561,15 @@ class GeoDBClient(object):
         """
 
         try:
+            usr = self.whoami
+            database = database or self.database
+            dn = f"{database}_{collection}"
+
             self.revoke_access_from_collection(collection=collection, usr='public', database=self.database)
         except GeoDBError as e:
-            return Message('Collection already unpublished' + str(e))
+            return Message('Error: ' + str(e))
 
-        return Message(f"Access revoked for {collection} from {self.database}")
+        return Message(f"Access revoked from user {usr} on {collection}")
 
     @deprecated_kwarg('namespace', 'database')
     def revoke_access_from_collection(self, collection: str, usr: str, database: Optional[str] = None,
@@ -581,7 +589,7 @@ class GeoDBClient(object):
 
         self.post(path='/rpc/geodb_revoke_access_from_collection', payload={'collection': dn, 'usr': usr})
 
-        return Message(f"Access revoked from {collection} of {database}")
+        return Message(f"Access revoked from {self.whoami} on {collection}")
 
     @deprecated_func(msg='Use list_my_grants')
     def list_grants(self) -> DataFrame:
@@ -814,7 +822,7 @@ class GeoDBClient(object):
         return Message(f"{collection} updated")
 
     # noinspection PyMethodMayBeStatic
-    def _gdf_prepare_geom(self, gpdf: GeoDataFrame, crs: int = None) -> GeoDataFrame:
+    def _gdf_prepare_geom(self, gpdf: GeoDataFrame, crs: int = None) -> DataFrame:
         if crs is None:
             try:
                 if isinstance(gpdf.crs, dict):
@@ -833,7 +841,7 @@ class GeoDBClient(object):
             else:
                 return str(point)
 
-        gpdf2 = gpdf.copy()
+        gpdf2 = DataFrame(gpdf.copy())
         gpdf2['geometry'] = gpdf2['geometry'].apply(add_srid)
         return gpdf2
 
@@ -873,10 +881,15 @@ class GeoDBClient(object):
         """
 
         # self._collection_exists(collection=collection)
+        srid = self.get_collection_srid(collection, database)
+        if crs and srid and srid != crs:
+            raise ValueError(f"crs {crs} is not compatible with collection's crs {srid}")
+
+        crs = crs or srid
 
         if isinstance(values, GeoDataFrame):
             # headers = {'Content-type': 'text/csv'}
-            values = self._gdf_prepare_geom(values, crs)
+            # values = self._gdf_prepare_geom(values, crs)
             ct = 0
             cont = True
             max_transfer_num_rows = 10000
@@ -978,7 +991,8 @@ class GeoDBClient(object):
 
         js = r.json()['src']
         if js:
-            return self._df_from_json(js)
+            srid = self.get_collection_srid(collection, database)
+            return self._df_from_json(js, srid)
         else:
             return GeoDataFrame(columns=["Empty Result"])
 
@@ -1031,6 +1045,8 @@ class GeoDBClient(object):
 
         """
 
+        srid = self.get_collection_srid(collection=collection, database=database)
+
         tab_prefix = database or self.database
         dn = f"{tab_prefix}_{collection}"
 
@@ -1044,7 +1060,7 @@ class GeoDBClient(object):
         js = r.json()
 
         if js:
-            return self._df_from_json(js)
+            return self._df_from_json(js, srid)
         else:
             return DataFrame(columns=["Empty Result"])
 
@@ -1117,7 +1133,8 @@ class GeoDBClient(object):
         js = r.json()['src']
 
         if js:
-            return self._df_from_json(js)
+            srid = self.get_collection_srid(collection, database)
+            return self._df_from_json(js, srid)
         else:
             return DataFrame(columns=["Empty Result"])
 
@@ -1130,7 +1147,21 @@ class GeoDBClient(object):
         """
         return self._server_url
 
-    def _df_from_json(self, js: json) -> Union[GeoDataFrame, DataFrame]:
+    def get_collection_srid(self, collection: str, database: Optional[str] = None):
+        tab_prefix = database or self.database
+        dn = f"{tab_prefix}_{collection}"
+
+        print("Collecting", dn)
+        r = self.post(path='/rpc/geodb_get_collection_srid', payload={'collection': dn}, raise_for_status=False)
+        if r.status_code == 200:
+            js = r.json()[0]['src'][0]
+
+            if js:
+                return js['srid']
+
+        return None
+
+    def _df_from_json(self, js: json, srid: Optional[int] = None) -> Union[GeoDataFrame, DataFrame]:
         """
         Converts wkb geometry string to wkt from a PostGrest json result
         Args:
@@ -1149,7 +1180,10 @@ class GeoDBClient(object):
         data = [self._load_geo(d) for d in js]
 
         gpdf = gpd.GeoDataFrame(data)
+
         if 'geometry' in gpdf:
+            crs = f"EPSG:{srid}" if srid else None
+            gpdf.crs = crs
             return gpdf.set_geometry('geometry')
         else:
             return DataFrame(gpdf)

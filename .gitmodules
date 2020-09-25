@@ -1,4 +1,0 @@
-[submodule "xcube-services"]
-	path = xcube-services
-	url = git@github.com:bcdev/xcube-services.git
-	branch = master

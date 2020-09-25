@@ -233,8 +233,7 @@ class GeoDBSqlTest(unittest.TestCase):
         user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
         self._set_role(user_name)
 
-        sql = f"SELECT geodb_grant_access_to_collection('geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva_land_use', " \
-              f"'public')"
+        sql = "SELECT geodb_grant_access_to_collection('geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva_tt', 'public')"
         self._cursor.execute(sql)
 
 
