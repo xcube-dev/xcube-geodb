@@ -6,6 +6,7 @@
 - a new operation get_collection_srid was added
 - corrected message when access to a collection is granted
 - publish and unpublish collection has now a database parameter
+- fixed grant access function raising a sequence not found error 
 - grant access now uses the correct database when specified in the parameters
 - Added decorators to allow deprecation notices on functions and parameters
 
