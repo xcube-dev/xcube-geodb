@@ -1,3 +1,9 @@
+## v0.1.10
+
+### Fixes:
+
+- insert_into_collection does now honour the crs parameter correctly 
+
 ## v0.1.9
 
 ### Fixes:
