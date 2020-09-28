@@ -2,6 +2,9 @@
 
 ### Fixes:
 
+- fixed publish collection message
+- list_grants has now a database column
+- `geodb.get_my_collections(database="some_db")` does now work
 - create_collection is now creating a database when the database parameter is given and the database not exists
 - get_collection functions is now retaining the crs/srid
 - a new operation get_collection_srid was added

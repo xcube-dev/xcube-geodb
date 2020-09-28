@@ -551,7 +551,7 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return Message(f"Access could not be granted. List grants with geodb.list_my_grants()" + str(e))
 
-        return Message(f"Access granted on {collection} to {self.database}")
+        return Message(f"Access granted on {collection} to public.")
 
     def unpublish_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
@@ -572,7 +572,7 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return Message('Error: ' + str(e))
 
-        return Message(f"Access revoked from user {usr} on {collection}")
+        return Message(f"Access revoked from user public on {collection}")
 
     @deprecated_kwarg('namespace', 'database')
     def revoke_access_from_collection(self, collection: str, usr: str, database: Optional[str] = None,

@@ -129,21 +129,20 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_get_properties(collection text)
+CREATE FUNCTION public.geodb_get_properties(collection text, version text)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 AS $BODY$
-DECLARE usr text;
 BEGIN
-    usr := (SELECT geodb_whoami());
-    collection := usr || '_' || collection;
-
     RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js ' ||
                                 'FROM (SELECT
-                                           regexp_replace(table_name, ''%s_'', '''') as table_name, ' ||
-                                '           column_name, ' ||
-                                '           data_type
+                                             name as database,
+                                             regexp_replace(table_name, name || ''_'','''') as table_name,
+                                             column_name,
+                                             data_type
                                         FROM information_schema.columns
+										LEFT JOIN geodb_user_databases
+											ON table_name LIKE name || ''_%%''
                                         WHERE
                                            table_schema = ''public''
                                             AND table_name = ''%s'') AS src',
@@ -311,10 +310,11 @@ BEGIN
                               AND table_name != ''raster_overviews''
                               AND table_name NOT LIKE ''pg_%%''
                               AND owner IS NOT NULL
+                              %s
                             ORDER BY owner, database, table_name
 
                  ) AS src',
-                  usr, usr, database_cond);
+                database_cond);
 
     RETURN QUERY EXECUTE qry;
 END
