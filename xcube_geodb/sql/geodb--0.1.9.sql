@@ -243,14 +243,13 @@ CREATE OR REPLACE FUNCTION public.geodb_grant_access_to_collection(
 AS $BODY$
 DECLARE seq_name text;
 BEGIN
-    --seq_name = collection || '_id_seq';
     select replace(pg_get_serial_sequence(collection, 'id'), 'public.','') into seq_name;
     IF seq_name IS NULL
     THEN
         raise exception 'No sequence for collection %', collection;
     END IF;
     EXECUTE format('GRANT SELECT ON TABLE %I TO %I;', collection, usr);
-    EXECUTE format('GRANT USAGE, SELECT ON SEQUENCE %I TO %I', seq_name, usr);
+    EXECUTE format('GRANT USAGE, SELECT ON SEQUENCE %s TO %I', seq_name, usr);
 END
 $BODY$;
 

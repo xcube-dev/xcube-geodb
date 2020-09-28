@@ -220,14 +220,15 @@ class GeoDBClient(object):
         if not os.path.isfile(os.path.join(auth0_config_folder, auth0_config_file)):
             raise FileExistsError("Mandatory auth configuration file ipyauth-auth0-demo.env must exist")
 
-        auth_params = ParamsAuth0(dotenv_file=auth0_config_file, dotenv_folder=auth0_config_folder)
-        auth = Auth(params=auth_params)
-
         self._ipython_shell = IPython.get_ipython()
 
         if self._ipython_shell is None:
             raise ValueError("You do not seem to be in an interactive ipython session. Interactive login cannot "
                              "be used.")
+
+        auth_params = ParamsAuth0(dotenv_file=auth0_config_file, dotenv_folder=auth0_config_folder)
+        auth = Auth(params=auth_params)
+
 
         self._ipython_shell.push({'__auth__': auth}, interactive=True)
         # noinspection PyTypeChecker
