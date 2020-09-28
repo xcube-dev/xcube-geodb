@@ -2,7 +2,7 @@
 
 ### Fixes:
 
-- get_collection functions is now retaining teh crs/srid
+- get_collection functions is now retaining the crs/srid
 - a new operation get_collection_srid was added
 - corrected message when access to a collection is granted
 - publish and unpublish collection has now a database parameter
