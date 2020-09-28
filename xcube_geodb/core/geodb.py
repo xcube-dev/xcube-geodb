@@ -827,15 +827,14 @@ class GeoDBClient(object):
     # noinspection PyMethodMayBeStatic
     def _gdf_prepare_geom(self, gpdf: GeoDataFrame, crs: int = None) -> DataFrame:
         if crs is None:
-            try:
-                if isinstance(gpdf.crs, dict):
-                    crs = gpdf.crs["init"].replace("epsg:", "")
-                else:
-                    import re
-                    m = re.search(r'epsg:([0-9]*)', gpdf.crs.srs)
-                    crs = m.group(1)
-            except Exception:
-                raise GeoDBError("Could not guess the dataframe's crs. Please specify.")
+            if isinstance(gpdf.crs, dict):
+                crs = gpdf.crs["init"].replace("epsg:", "")
+            elif gpdf.crs and gpdf.crs.srs:
+                import re
+                m = re.search(r'epsg:([0-9]*)', gpdf.crs.srs)
+                crs = m.group(1)
+            else:
+                crs = 4326
 
         def add_srid(point):
             point_str = str(point)
@@ -917,7 +916,7 @@ class GeoDBClient(object):
                     ngdf.drop(columns=['id'])
 
                 ngdf.columns = map(str.lower, ngdf.columns)
-                js = self._gdf_to_json(ngdf)
+                js = self._gdf_to_json(ngdf, crs)
 
                 database = database or self.database
                 dn = database + '_' + collection
