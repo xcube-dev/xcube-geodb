@@ -27,7 +27,7 @@ TEST_GEOM = "0103000020D20E000001000000110000007593188402B51B4" \
             "93188402B51B41B6F3FDD4423FF640"
 
 
-@requests_mock.mock(real_http=True)
+@requests_mock.mock(real_http=False)
 class GeoDBClientTest(unittest.TestCase):
     def setUp(self) -> None:
         self._api = GeoDBClient(dotenv_file="tests/envs/.env_test", config_file="tests/.geodb")
@@ -200,6 +200,8 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_create_collection(self, m):
         expected_response = 'Success'
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
+        m.post(url, text=json.dumps(expected_response))
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
         m.post(url, text=json.dumps(expected_response))
         self.set_global_mocks(m)
@@ -209,10 +211,11 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_create_collections(self, m):
         expected_response = {'collections': {'helge_land_use3': {'crs': 3794,
-                                                                       'properties': {'D_OD': 'date',
-                                                                                      'RABA_ID': 'float',
-                                                                                      'RABA_PID': 'float'}}}}
-
+                                                                 'properties': {'D_OD': 'date',
+                                                                                'RABA_ID': 'float',
+                                                                                'RABA_PID': 'float'}}}}
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
+        m.post(url, text=json.dumps(expected_response))
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
         m.post(url, text=json.dumps(expected_response))
         self.set_global_mocks(m)
