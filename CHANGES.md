@@ -2,6 +2,7 @@
 
 ### Fixes:
 
+- create_collection os now creating a database when the database parameter is given and the database not exists
 - get_collection functions is now retaining the crs/srid
 - a new operation get_collection_srid was added
 - corrected message when access to a collection is granted

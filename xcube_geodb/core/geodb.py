@@ -410,6 +410,8 @@ class GeoDBClient(object):
         """
 
         self._refresh_capabilities()
+        if database:
+            self.create_database(database)
         database = database or self.database
         # self.create_database(database)
 

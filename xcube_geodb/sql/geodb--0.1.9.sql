@@ -73,7 +73,7 @@ DECLARE usr text;
 BEGIN
     usr := (SELECT geodb_whoami());
 
-    EXECUTE format('INSERT INTO geodb_user_databases(name, owner) VALUES(''%s'', ''%s'')
+    EXECUTE format('INSERT INTO geodb_user_databases(name, owner) VALUES(''%s'', ''%s'') ON CONFLICT DO NOTHING
 				   ', "database", usr);
 END
 $BODY$;
