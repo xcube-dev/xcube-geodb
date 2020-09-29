@@ -882,6 +882,7 @@ class GeoDBClient(object):
             bool: Success
         """
 
+        # self._collection_exists(collection=collection)
         srid = self.get_collection_srid(collection, database)
         if crs and srid and srid != crs:
             raise ValueError(f"crs {crs} is not compatible with collection's crs {srid}")
