@@ -49,10 +49,10 @@ deploy:
             --repo https://dcs4cop.github.io/xcube-k8s xcube-geodb \
             -f values.yaml -f values-stage.yaml --version 0.1.2
     on:
-      branch: master
+      all_branches: true
+#      branch: master
   - provider: script
     script: docker push quay.io/bcdev/xcube-geodb:latest
     on:
-      branch: master
-
-
+      all_branches: true
+#      branch: master
