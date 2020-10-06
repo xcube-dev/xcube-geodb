@@ -29,7 +29,7 @@ install:
   - python setup.py install
 
   - git clone https://github.com/bcdev/service-eurodatacube
-  - cd service-eurodatacube &6 git checkout dzelge_kubernetes
+  - cd service-eurodatacube && git checkout dzelge_kubernetes && cd ..
 
 script:
   - for f in xcube_geodb/sql/*.sql;
