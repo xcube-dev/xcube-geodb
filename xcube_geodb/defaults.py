@@ -28,6 +28,7 @@ GEODB_DEFAULTS = {
     "auth_domain": "https://edc.eu.auth0.com",
     "auth_mode": "silent",
     "auth_aud": "https://geodb.brockmann-consult.de",
+    "auth_access_token_uri": "/oauth/token"
 }
 
 

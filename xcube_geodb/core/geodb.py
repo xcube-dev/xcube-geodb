@@ -76,7 +76,8 @@ class GeoDBClient(object):
                  auth_mode: str = 'silent',
                  auth_aud: Optional[str] = None,
                  config_file: str = str(Path.home()) + '/.geodb',
-                 database: Optional[str] = None):
+                 database: Optional[str] = None,
+                 access_token_uri: Optional[str] = None):
         """
 
         Args:
@@ -105,7 +106,7 @@ class GeoDBClient(object):
         self._auth_domain = GEODB_DEFAULTS["auth_domain"]
         self._auth_aud = GEODB_DEFAULTS["auth_aud"]
         self._auth_mode = GEODB_DEFAULTS["auth_mode"]
-
+        self._auth_access_token_uri = GEODB_DEFAULTS["auth_access_token_uri"]
         # override defaults by .env
         self.refresh_config_from_env(dotenv_file=dotenv_file, use_dotenv=True)
 
@@ -118,6 +119,7 @@ class GeoDBClient(object):
         self._auth_aud = auth_aud or self._auth_aud
         self._auth_domain = auth_aud or self._auth_domain
         self._auth_access_token = access_token or self._auth_access_token
+        self._auth_access_token_uri = access_token_uri or self._auth_access_token_uri
         self._database = database
 
         self._capabilities = None
@@ -228,7 +230,6 @@ class GeoDBClient(object):
 
         auth_params = ParamsAuth0(dotenv_file=auth0_config_file, dotenv_folder=auth0_config_folder)
         auth = Auth(params=auth_params)
-
 
         self._ipython_shell.push({'__auth__': auth}, interactive=True)
         # noinspection PyTypeChecker
@@ -1229,6 +1230,7 @@ class GeoDBClient(object):
         self._auth_domain = os.getenv('GEODB_AUTH_DOMAIN') or self._auth_domain
         self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
         self._auth_mode = os.getenv('GEODB_AUTH_MODE') or self._auth_mode
+        self._auth_access_token_uri = os.getenv('GEODB_AUTH_ACCESS_TOKEN_URI') or self._auth_access_token_uri
         self._database = os.getenv('GEODB_DATABASE') or self._database
 
     @property
@@ -1278,7 +1280,7 @@ class GeoDBClient(object):
 
         return False
 
-    def _get_geodb_client_credentials_accesss_token(self):
+    def _get_geodb_client_credentials_accesss_token(self, token_uri: str = "/oauth/token", is_json: bool = True):
         payload = {
             "client_id": self._auth_client_id,
             "client_secret": self._auth_client_secret,
@@ -1286,9 +1288,9 @@ class GeoDBClient(object):
             "grant_type": "client_credentials"
         }
 
-        headers = {'content-type': "application/json"}
+        headers = {'content-type': "application/json"} if is_json else None
 
-        r = requests.post(self._auth_domain + "/oauth/token", json=payload, headers=headers)
+        r = requests.post(self._auth_domain + token_uri, json=payload, headers=headers)
         r.raise_for_status()
 
         data = r.json()
