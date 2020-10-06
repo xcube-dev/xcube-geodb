@@ -12,7 +12,7 @@ os:
 before_install:
   - echo -e "machine github.com\n  login $GITHUB_TOKEN" > ~/.netrc
 install:
-  - sudo apt-get install awscli
+  - sudo apt-get install -y awscli
   - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
   - chmod +x ./kubectl
   - sudo mv ./kubectl /usr/local/bin/kubectl
@@ -22,7 +22,7 @@ install:
   - bash miniconda.sh -b -p $HOME/miniconda;
   - export PATH="$HOME/miniconda/bin:$PATH";
 
-  - conda install -c conda-forge mamba postgis
+  - conda install -y -c conda-forge mamba postgis
   - conda info -a
   - mamba env create
   - source activate xcube_geodb
