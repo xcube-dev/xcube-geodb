@@ -25,19 +25,22 @@ install:
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       bash miniconda.sh -b -p $HOME/miniconda;
       export PATH="$HOME/miniconda/bin:$PATH";
+      conda install -c conda-forge mamba postgis
+      export SKIP_PSQL_TESTS=0
     fi
 
-  - conda install -c conda-forge mamba postgis
   - conda info -a
   - mamba env create
   - source activate xcube_geodb
   - python setup.py install
 
 script:
-  - for f in xcube_geodb/sql/*.sql;
-      do
-        pgsanity $f;
-      done
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]
+      for f in xcube_geodb/sql/*.sql;
+        do
+          pgsanity $f;
+        done
+    fi
   - py.test -v --cov=xcube_geodb
   - pip install codecov
   - codecov --env TRAVIS_PYTHON_VERSION
