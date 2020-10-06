@@ -29,6 +29,7 @@ install:
   - python setup.py install
 
   - git clone https://github.com/bcdev/service-eurodatacube
+  - cd service-eurodatacube &6 git checkout dzelge_kubernetes
 
 script:
   - for f in xcube_geodb/sql/*.sql;
@@ -47,12 +48,17 @@ deploy:
   - provider: script
     script: helm upgrade --install xcube-geodb-stage -n xcube-geodb-stage \
             --repo https://dcs4cop.github.io/xcube-k8s xcube-geodb \
-            -f values.yaml -f values-stage.yaml --version 0.1.2
+            -f service-eurodatacube/k8s/xcube-geodb/values.yaml \
+            -f service-eurodatacube/k8s/xcube-geodb/values-stage.yaml \
+            --version 0.1.2
+    skip_cleanup: true
     on:
       all_branches: true
-#      branch: master
+
+  #      branch: master
   - provider: script
     script: docker push quay.io/bcdev/xcube-geodb:latest
+    skip_cleanup: true
     on:
       all_branches: true
 #      branch: master
