@@ -8,28 +8,30 @@ language: bash
 
 os:
   - linux
+  - osx
+  - windows
 
-before_install:
-  - echo -e "machine github.com\n  login $GITHUB_TOKEN" > ~/.netrc
 install:
-  - sudo apt-get install -y awscli
-  - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-  - chmod +x ./kubectl
-  - sudo mv ./kubectl /usr/local/bin/kubectl
-  - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+      bash miniconda.sh -b -p $HOME/miniconda;
+      export PATH="$HOME/miniconda/bin:$PATH";
+    elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+      choco install -y openssl;
+      choco install -y miniconda3;
+      export PATH="/c/tools/miniconda3/Scripts:$PATH";
+      source activate base;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+      bash miniconda.sh -b -p $HOME/miniconda;
+      export PATH="$HOME/miniconda/bin:$PATH";
+    fi
 
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda;
-  - export PATH="$HOME/miniconda/bin:$PATH";
-
-  - conda install -y -c conda-forge mamba postgis
+  - conda install -c conda-forge mamba postgis
   - conda info -a
   - mamba env create
   - source activate xcube_geodb
   - python setup.py install
-
-  - git clone https://github.com/bcdev/service-eurodatacube
-  - cd service-eurodatacube && git checkout dzelge_kubernetes && cd ..
 
 script:
   - for f in xcube_geodb/sql/*.sql;
@@ -40,25 +42,4 @@ script:
   - pip install codecov
   - codecov --env TRAVIS_PYTHON_VERSION
 
-before_deploy:
-  - aws eks --region eu-central-1 update-kubeconfig --name xcube-webapis-stage
-  - docker build -t quay.io/bcdev/xcube-geodb:latest .
 
-deploy:
-  - provider: script
-    script: helm upgrade --install xcube-geodb-stage -n xcube-geodb-stage \
-            --repo https://dcs4cop.github.io/xcube-k8s xcube-geodb \
-            -f service-eurodatacube/k8s/xcube-geodb/values.yaml \
-            -f service-eurodatacube/k8s/xcube-geodb/values-stage.yaml \
-            --version 0.1.2
-    skip_cleanup: true
-    on:
-      all_branches: true
-
-  #      branch: master
-  - provider: script
-    script: docker push quay.io/bcdev/xcube-geodb:latest
-    skip_cleanup: true
-    on:
-      all_branches: true
-#      branch: master
