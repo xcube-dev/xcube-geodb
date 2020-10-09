@@ -535,10 +535,17 @@ class GeoDBClient(object):
 
         self.post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
 
+    def copy_collection(self, database: str, collection: str, new_database: str):
+        from_dn = f"{database}_{collection}"
+        to_dn = f"{new_database}_{collection}"
+
+        self.post(path='/rpc/geodb_copy_collection', payload={'collection': from_dn, 'new_name': to_dn})
+
     def publish_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
 
         Args:
+            database:
             collection: Collection to grant access to
 
         Returns:

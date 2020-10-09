@@ -1,4 +1,8 @@
-## v0.1.10
+## v0.1.10.dev1
+
+### New Features
+
+- Added a copy collection operation
 
 ### Fixes:
 

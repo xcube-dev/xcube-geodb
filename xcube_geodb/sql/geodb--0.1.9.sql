@@ -382,6 +382,7 @@ END
 $BODY$;
 
 
+
 CREATE FUNCTION public.geodb_publish_collection(
     collection text)
     RETURNS void
