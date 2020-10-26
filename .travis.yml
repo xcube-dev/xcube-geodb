@@ -4,10 +4,10 @@
 #
 
 language: bash
-envs:
+
+env:
   - GEODB_API_SERVER_URL="https://xcube-geodb.brockmann-consult.de"
   - GEODB_API_SERVER_PORT=443
-
 
 os:
   - linux
