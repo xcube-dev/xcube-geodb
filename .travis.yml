@@ -55,5 +55,5 @@ script:
   - for nb in *.ipynb;
     do
       jupyter nbconvert --to python --ExecutePreprocessor.kernel_name=python3 $nb;
-      python $(basename geodb_manage_collections.ipynb .ipynb).py
+      python $(basename geodb_manage_collections.ipynb .ipynb).py;
     done
