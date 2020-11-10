@@ -55,5 +55,6 @@ script:
     do
       jupyter nbconvert --to python --ExecutePreprocessor.kernel_name=python3 $nb;
     done
-  - cd notebooks
+  - mv notebooks/data .
+  - mv notebooks/*.py .
   - python  geodb_manage_collections.py
