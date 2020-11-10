@@ -51,9 +51,9 @@ script:
   - py.test -v --cov=xcube_geodb
   - pip install codecov
   - codecov --env TRAVIS_PYTHON_VERSION
-  - jupyter nbconvert --to notebook --execute --ExecutePreprocessor.kernel_name=python3 --output output.ipynb geodb_manage_collections.ipynb
-  - for nb in notebooks/*.ipynb;
+  - cd notebooks
+  - for nb in *.ipynb;
     do
-      jupyter nbconvert --to notebook --execute --ExecutePreprocessor.kernel_name=python3 --output output.ipynb $nb;
-      [ $? -eq 0 ] && echo "notebook run was successful" || echo "notebook run failed" && exit 1;
+      jupyter nbconvert --to python --ExecutePreprocessor.kernel_name=python3 $nb;
+      python $(basename geodb_manage_collections.ipynb .ipynb).py
     done
