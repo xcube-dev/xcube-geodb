@@ -56,8 +56,3 @@ script:
       jupyter nbconvert --to notebook --execute --ExecutePreprocessor.kernel_name=python3 $nb;
       [ $? -eq 0 ] && echo "notebook run was successful" || echo "notebook run failed" && exit 1;
     done
-
-
-
-
-c
