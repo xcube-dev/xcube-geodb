@@ -30,7 +30,7 @@ def make_install_geodb():
 
 
 # noinspection SqlNoDataSourceInspection
-@unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', False) is not False, 'DB Tests skipped')
+@unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '1') == '1', 'DB Tests skipped')
 class GeoDBSqlTest(unittest.TestCase):
 
     @classmethod
