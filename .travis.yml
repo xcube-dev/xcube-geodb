@@ -53,7 +53,8 @@ script:
   - codecov --env TRAVIS_PYTHON_VERSION
   - for nb in notebooks/*.ipynb;
     do
-      jupyter nbconvert --to notebook --execute --ExecutePreprocessor.kernel_name=python3 --output output.ipynb $nb;
+      jupyter nbconvert --to python --ExecutePreprocessor.kernel_name=python3 --output output.py $nb;
+      python output.py;
     done
 
 
