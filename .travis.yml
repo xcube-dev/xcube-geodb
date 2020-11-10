@@ -10,6 +10,9 @@ os:
   - osx
   - windows
 
+before_install:
+  - conda install -y -c conda-forge mamba;
+
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
@@ -24,13 +27,14 @@ install:
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       bash miniconda.sh -b -p $HOME/miniconda;
       export PATH="$HOME/miniconda/bin:$PATH";
-      export SKIP_PSQL_TESTS=0;
+      mamba install -y -c conda-forge postgis
+      cd xcube_gen/sql;
+      make install;
+      cd ../..
     fi
 
-  - conda install -y -c conda-forge mamba;
   - conda info -a
   - mamba env create
-  - mamba install -y -c conda-forge postgis
   - source activate xcube_geodb
   - python setup.py install
 
