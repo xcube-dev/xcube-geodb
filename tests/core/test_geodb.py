@@ -252,10 +252,11 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertTrue(res)
 
     def test_add_properties(self, m):
+        self.set_global_mocks(m)
+
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_add_properties"
         m.post(url, text=json.dumps(expected_response))
-        self.set_global_mocks(m)
 
         # noinspection PyTypeChecker
         res = self._api.add_properties('test', [{'name': 'test_col', 'type': 'insssssteger'}])
