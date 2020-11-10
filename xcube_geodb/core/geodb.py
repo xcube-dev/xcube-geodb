@@ -24,6 +24,7 @@ def deprecated_func(msg: Optional[str] = None):
         """This is a decorator which can be used to mark functions
         as deprecated. It will result in a warning being emitted
         when the function is used."""
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             warnings.simplefilter('always', DeprecationWarning)  # turn off filter
@@ -32,7 +33,9 @@ def deprecated_func(msg: Optional[str] = None):
                           stacklevel=2)
             warnings.simplefilter('default', DeprecationWarning)  # reset filter
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -41,6 +44,7 @@ def deprecated_kwarg(deprecated_arg: str, new_arg: Optional[str], msg: Optional[
         """This is a decorator which can be used to mark functions
         as deprecated. It will result in a warning being emitted
         when the function is used."""
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             if deprecated_arg in kwargs:
@@ -56,7 +60,9 @@ def deprecated_kwarg(deprecated_arg: str, new_arg: Optional[str], msg: Optional[
                               stacklevel=2)
                 warnings.simplefilter('default', DeprecationWarning)  # reset filter
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -411,6 +417,32 @@ class GeoDBClient(object):
         payload = {'pretty': pretty} if pretty else {}
         r = self.post(path='/rpc/geodb_get_my_usage', payload=payload)
         return r.json()[0]['src'][0]
+
+    def create_collection_if_not_exists(self,
+                                        collection: str,
+                                        properties: Dict,
+                                        crs: int = 4326,
+                                        database: Optional[str] = None,
+                                        **kwargs) -> Optional[Collections]:
+        exists = self.collection_exists(collection=collection, database=database)
+        if not exists:
+            return self.create_collection(collection=collection,
+                                          properties=properties,
+                                          crs=crs,
+                                          database=database,
+                                          **kwargs)
+        return None
+
+    def create_collections_if_not_exist(self,
+                                        collections: Dict,
+                                        database: Optional[str] = None, **kwargs) -> Collections:
+        res = dict()
+        for collection in collections:
+            exists = self.collection_exists(collection=collection, database=database)
+            if exists:
+                res[collection] = collections[collection]
+
+        return self.create_collections(collections=res, database=database)
 
     # noinspection PyUnusedLocal
     @deprecated_kwarg('namespace', 'database')
@@ -1357,6 +1389,13 @@ class GeoDBClient(object):
         valid_columns = {'id', 'geometry'}
 
         return len(list(valid_columns - cols)) == 0
+
+    def collection_exists(self, collection: str, database: str):
+        tab_prefix = database or self.database
+        dn = f"{tab_prefix}_{collection}"
+        if collection in self.capabilities['definitions']:
+            return True
+        return False
 
     def _raise_for_collection_exists(self, collection: str) -> bool:
         """
