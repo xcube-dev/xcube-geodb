@@ -27,7 +27,6 @@ install:
       bash miniconda.sh -b -p $HOME/miniconda;
       export PATH="$HOME/miniconda/bin:$PATH";
       conda install -y -c conda-forge mamba;
-      mamba install -y -c conda-forge postgis;
     fi
 
   - conda info -a
@@ -36,7 +35,7 @@ install:
   - cd xcube_geodb/sql
   - make install
   - cd ../..
-  - ls -al /home/travis/miniconda/envs/xcube_geodb/share/extension/
+  - mamba install -y -c conda-forge postgis;
   - python setup.py install
 
 script:
