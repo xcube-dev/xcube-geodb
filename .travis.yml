@@ -57,4 +57,7 @@ script:
     done
   - mv notebooks/data .
   - mv notebooks/*.py .
-  - python  geodb_manage_collections.py
+  - for nb in *.py;
+    do
+      python $nb
+    done
