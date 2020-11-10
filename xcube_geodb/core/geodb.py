@@ -71,9 +71,11 @@ class GeoDBClient(object):
                  server_port: Optional[int] = None,
                  client_id: Optional[str] = None,
                  client_secret: Optional[str] = None,
+                 username: Optional[str] = None,
+                 password: Optional[str] = None,
                  access_token: Optional[str] = None,
                  dotenv_file: str = ".env",
-                 auth_mode: str = 'silent',
+                 auth_mode: str = None,
                  auth_aud: Optional[str] = None,
                  config_file: str = str(Path.home()) + '/.geodb',
                  database: Optional[str] = None,
@@ -86,7 +88,7 @@ class GeoDBClient(object):
             dotenv_file (str): Name of the dotenv file [.env] to set client IDs and secrets
             client_secret (str): Client secret (overrides environment variables)
             client_id (str): Client ID (overrides environment variables)
-            auth_mode (str): Authentication mode [silent]. Can be 'silent' and 'interactive'
+            auth_mode (str): Authentication mode [silent]. Can be 'client-credentials', 'password' and 'interactive'
             auth_aud (str): Authentication audience
             config_file (str): Filename that stores config info for the geodb client
         """
@@ -106,6 +108,8 @@ class GeoDBClient(object):
         self._auth_domain = GEODB_DEFAULTS["auth_domain"]
         self._auth_aud = GEODB_DEFAULTS["auth_aud"]
         self._auth_mode = GEODB_DEFAULTS["auth_mode"]
+        self._auth_username = GEODB_DEFAULTS["auth_username"]
+        self._auth_password = GEODB_DEFAULTS["auth_password"]
         self._auth_access_token_uri = GEODB_DEFAULTS["auth_access_token_uri"]
         # override defaults by .env
         self.refresh_config_from_env(dotenv_file=dotenv_file, use_dotenv=True)
@@ -115,6 +119,8 @@ class GeoDBClient(object):
         self._server_port = server_port or self._server_port
         self._auth_client_id = client_id or self._auth_client_id
         self._auth_client_secret = client_secret or self._auth_client_secret
+        self._auth_username = username or self._auth_username
+        self._auth_password = password or self._auth_password
         self._auth_mode = auth_mode or self._auth_mode
         self._auth_aud = auth_aud or self._auth_aud
         self._auth_domain = auth_aud or self._auth_domain
@@ -131,11 +137,27 @@ class GeoDBClient(object):
 
         self._config_file = config_file
 
-        if auth_mode not in ('interactive', 'silent'):
-            raise ValueError("auth_mode can only be 'interactive' or 'silent'!")
+        if self._auth_mode not in ('interactive', 'password', 'client-credentials'):
+            raise ValueError("auth_mode can only be 'interactive', 'password', or 'client-credentials'!")
 
         if self._auth_mode == "interactive":
             self._auth_login()
+
+    def _set_from_env(self):
+        self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url
+        self._server_port = os.getenv('GEODB_API_SERVER_PORT') or self._server_port
+        self._auth_client_id = os.getenv('GEODB_AUTH_CLIENT_ID') or self._auth_client_id
+        self._auth_client_secret = os.getenv('GEODB_AUTH_CLIENT_SECRET') or self._auth_client_secret
+        self._auth_access_token = os.getenv('GEODB_AUTH_ACCESS_TOKEN') or self._auth_access_token
+        self._auth0_config_file = os.getenv('GEODB_AUTH0_CONFIG_FILE') or self._auth0_config_file
+        self._auth0_config_folder = os.getenv('GEODB_AUTH0_CONFIG_FOLDER') or self._auth0_config_folder
+        self._auth_domain = os.getenv('GEODB_AUTH_DOMAIN') or self._auth_domain
+        self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
+        self._auth_mode = os.getenv('GEODB_AUTH_MODE') or self._auth_mode
+        self._auth_username = os.getenv('GEODB_AUTH_USER_NAME') or self._auth_username,
+        self._auth_password = os.getenv('GEODB_AUTH_PASSWORD') or self._auth_password
+        self._auth_access_token_uri = os.getenv('GEODB_AUTH_ACCESS_TOKEN_URI') or self._auth_access_token_uri
+        self._database = os.getenv('GEODB_DATABASE') or self._database
 
     def get_collection_info(self, collection: str) -> Dict:
         """
@@ -1226,20 +1248,6 @@ class GeoDBClient(object):
             d['geometry'] = wkb.loads(d['geometry'], hex=True)
         return d
 
-    def _set_from_env(self):
-        self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url
-        self._server_port = os.getenv('GEODB_API_SERVER_PORT') or self._server_port
-        self._auth_client_id = os.getenv('GEODB_AUTH_CLIENT_ID') or self._auth_client_id
-        self._auth_client_secret = os.getenv('GEODB_AUTH_CLIENT_SECRET') or self._auth_client_secret
-        self._auth_access_token = os.getenv('GEODB_AUTH_ACCESS_TOKEN') or self._auth_access_token
-        self._auth0_config_file = os.getenv('GEODB_AUTH0_CONFIG_FILE') or self._auth0_config_file
-        self._auth0_config_folder = os.getenv('GEODB_AUTH0_CONFIG_FOLDER') or self._auth0_config_folder
-        self._auth_domain = os.getenv('GEODB_AUTH_DOMAIN') or self._auth_domain
-        self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
-        self._auth_mode = os.getenv('GEODB_AUTH_MODE') or self._auth_mode
-        self._auth_access_token_uri = os.getenv('GEODB_AUTH_ACCESS_TOKEN_URI') or self._auth_access_token_uri
-        self._database = os.getenv('GEODB_DATABASE') or self._database
-
     @property
     def auth_access_token(self) -> str:
         """
@@ -1248,17 +1256,27 @@ class GeoDBClient(object):
             The current authentication access_token
         """
 
-        if self._ipython_shell is not None:
-            token = self._ipython_shell.user_ns['__auth__'].access_token
-        elif self._auth_access_token is not None:
+        # Get token from cache
+        if self._auth_access_token is not None:
             token = self._auth_access_token
         else:
             token = self._get_token_from_file()
 
-        if not token:
-            token = self._get_geodb_client_credentials_accesss_token()
+        if token:
+            return token
+
+        # get token depending on auth mode
+        if self._auth_mode == "interactive":
+            if not self._ipython_shell:
+                raise GeoDBError("System Error: Cannot find interactive ipython shell")
+            token = self._ipython_shell.user_ns['__auth__'].access_token
+        else:
+            token = self._get_geodb_client_credentials_access_token()
 
         return token
+
+    def refresh_auth_access_token(self):
+        self._auth_access_token = None
 
     def _get_token_from_file(self) -> Union[str, bool]:
         if os.path.isfile(self._config_file):
@@ -1287,13 +1305,26 @@ class GeoDBClient(object):
 
         return False
 
-    def _get_geodb_client_credentials_accesss_token(self, token_uri: str = "/oauth/token", is_json: bool = True):
-        payload = {
-            "client_id": self._auth_client_id,
-            "client_secret": self._auth_client_secret,
-            "audience": self._auth_aud,
-            "grant_type": "client_credentials"
-        }
+    def _get_geodb_client_credentials_access_token(self, token_uri: str = "/oauth/token", is_json: bool = True):
+        payload = {}
+        if self._auth_mode == "client-credentials":
+            payload = {
+                "client_id": self._auth_client_id,
+                "client_secret": self._auth_client_secret,
+                "audience": self._auth_aud,
+                "grant_type": "client_credentials"
+            }
+        elif self._auth_mode == "password":
+            payload = {
+                "client_id": self._auth_client_id,
+                "client_secret": self._auth_client_secret,
+                "username": self._auth_username,
+                "password": self._auth_password,
+                "audience": self._auth_aud,
+                "grant_type": "client_credentials"
+            }
+        else:
+            raise GeoDBError("System Error: auth mode unknown.")
 
         headers = {'content-type': "application/json"} if is_json else None
 

@@ -472,7 +472,7 @@ class GeoDBClientTest(unittest.TestCase):
         with self.assertRaises(ValueError) as e:
             GeoDBClient(auth_mode='interacti')
 
-        self.assertEqual("auth_mode can only be 'interactive' or 'silent'!", str(e.exception))
+        self.assertEqual("auth_mode can only be 'interactive', 'password', or 'client-credentials'!", str(e.exception))
 
     def test_auth_token(self, m):
         m.post(self._server_test_auth_domain + "/oauth/token", json={"broken_access_token": "A long lived token"})
@@ -516,3 +516,21 @@ class GeoDBClientTest(unittest.TestCase):
 
         geodb = GeoDBClient(database='test')
         self.assertEqual('test', geodb.database)
+
+    def test_auth_token_propery(self, m):
+        self.set_global_mocks(m)
+
+        geodb = GeoDBClient()
+        geodb._auth_access_token = "testölasdjdkas"
+
+        self.assertEqual("testölasdjdkas", geodb.auth_access_token)
+
+        geodb._auth_access_token = None
+        self.assertEqual("A long lived token", geodb.auth_access_token)
+
+        geodb._auth_mode = "a mode"
+        with self.assertRaises(GeoDBError) as e:
+            token = geodb.auth_access_token
+
+        self.assertEqual("System Error: auth mode unknown.", str(e.exception))
+
