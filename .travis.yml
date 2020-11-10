@@ -35,9 +35,6 @@ install:
   - python setup.py install
 
 script:
-  - export GEODB_API_SERVER_URL="https://xcube-geodb.brockmann-consult.de"
-  - export GEODB_API_SERVER_PORT=443
-
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       for f in xcube_geodb/sql/*.sql;
         do
