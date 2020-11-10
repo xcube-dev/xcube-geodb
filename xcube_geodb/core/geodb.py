@@ -446,10 +446,15 @@ class GeoDBClient(object):
 
     # noinspection PyUnusedLocal
     @deprecated_kwarg('namespace', 'database')
-    def create_collections(self, collections: Dict, database: Optional[str] = None, **kwargs) -> Collections:
+    def create_collections(self,
+                           collections: Dict,
+                           database: Optional[str] = None,
+                           clear:bool = False,
+                           **kwargs) -> Union[Collections, Message]:
         """
 
         Args:
+            clear: Delete collections prioer to creation
             collections: A dictionalry of collections
             database:
 
@@ -468,16 +473,20 @@ class GeoDBClient(object):
         if database:
             self.create_database(database)
         database = database or self.database
-        # self.create_database(database)
+
+        if clear:
+            self.drop_collections(collections=collections, database=database)
 
         buffer = {}
         for collection in collections:
             buffer[database + '_' + collection] = collections[collection]
 
         collections = {"collections": buffer}
-        self.post(path='/rpc/geodb_create_collections', payload=collections)
-
-        return Collections(collections)
+        try:
+            self.post(path='/rpc/geodb_create_collections', payload=collections)
+            return Collections(collections)
+        except GeoDBError as e:
+            return Message("Error: " + str(e))
 
     @deprecated_kwarg('namespace', 'database')
     def create_collection(self,
@@ -485,10 +494,12 @@ class GeoDBClient(object):
                           properties: Dict,
                           crs: int = 4326,
                           database: Optional[str] = None,
+                          clear: bool=False,
                           **kwargs) -> Collections:
         """
 
         Args:
+            clear: Whether to delete existing collections
             properties: Property definitions for the collection
             collection: Collection to be created
             crs: sfdv
@@ -512,7 +523,7 @@ class GeoDBClient(object):
 
         self._refresh_capabilities()
 
-        return self.create_collections(collections=collections, database=database)
+        return self.create_collections(collections=collections, database=database, clear=clear)
 
     @deprecated_kwarg('namespace', 'database')
     def drop_collection(self, collection: str, database: Optional[str] = None, **kwargs) -> Message:
@@ -553,9 +564,12 @@ class GeoDBClient(object):
 
         database = database or self.database
         collections = [database + '_' + collection for collection in collections]
-        self.post(path='/rpc/geodb_drop_collections', payload={'collections': collections})
 
-        return Message(f"Collection {str(collections)} deleted")
+        try:
+            self.post(path='/rpc/geodb_drop_collections', payload={'collections': collections})
+            return Message(f"Collection {str(collections)} deleted")
+        except GeoDBError as e:
+            return Message(f"Error: {str(e)}")
 
     @deprecated_kwarg('namespace', 'database')
     def grant_access_to_collection(self, collection: str, usr: str, database: Optional[str] = None,
@@ -652,9 +666,11 @@ class GeoDBClient(object):
         database = database or self.database
         dn = f"{database}_{collection}"
 
-        self.post(path='/rpc/geodb_revoke_access_from_collection', payload={'collection': dn, 'usr': usr})
-
-        return Message(f"Access revoked from {self.whoami} on {collection}")
+        try:
+            self.post(path='/rpc/geodb_revoke_access_from_collection', payload={'collection': dn, 'usr': usr})
+            return Message(f"Access revoked from {self.whoami} on {collection}")
+        except GeoDBError as e:
+            return Message(f"Error: {str(e)}")
 
     @deprecated_func(msg='Use list_my_grants')
     def list_grants(self) -> DataFrame:
@@ -800,7 +816,7 @@ class GeoDBClient(object):
         else:
             return DataFrame(columns=["table_name", "column_name", "data_type"])
 
-    def create_database(self, database: str) -> bool:
+    def create_database(self, database: str) -> Message:
         """
 
         Returns:
@@ -808,9 +824,11 @@ class GeoDBClient(object):
 
         """
 
-        self.post(path='/rpc/geodb_create_database', payload={'database': database})
-
-        return True
+        try:
+            self.post(path='/rpc/geodb_create_database', payload={'database': database})
+            return Message(f"Database {database} created")
+        except GeoDBError as e:
+            return Message(f"Error: " + str(e))
 
     def truncate_database(self, database: str) -> Message:
         """
@@ -820,9 +838,11 @@ class GeoDBClient(object):
 
         """
 
-        self.post(path='/rpc/geodb_truncate_database', payload={'database': database})
-
-        return Message(f"Database {database} truncated")
+        try:
+            self.post(path='/rpc/geodb_truncate_database', payload={'database': database})
+            return Message(f"Database {database} truncated")
+        except GeoDBError as e:
+            return Message(f"Error: " + str(e))
 
     def get_my_databases(self):
         """
@@ -853,9 +873,11 @@ class GeoDBClient(object):
         database = database or self.database
         dn = database + '_' + collection
 
-        self._delete(f'/{dn}?{query}')
-
-        return Message(f"Data from {collection} deleted")
+        try:
+            self._delete(f'/{dn}?{query}')
+            return Message(f"Data from {collection} deleted")
+        except GeoDBError as e:
+            return Message("Error: " + str(e))
 
     @deprecated_kwarg('namespace', 'database')
     def update_collection(self, collection: str, values: Dict, query: str, database: Optional[str] = None,
@@ -868,7 +890,7 @@ class GeoDBClient(object):
             query: Filter which values to be updated. Follow the http://postgrest.org/en/v6.0/api.html query convention.
             database:
         Returns:
-            bool: Success
+            Message: Success
         """
 
         database = database or self.database
@@ -882,9 +904,11 @@ class GeoDBClient(object):
         else:
             raise ValueError(f'Format {type(values)} not supported.')
 
-        self._patch(f'/{dn}?{query}', payload=values)
-
-        return Message(f"{collection} updated")
+        try:
+            self._patch(f'/{dn}?{query}', payload=values)
+            return Message(f"{collection} updated")
+        except GeoDBError as e:
+            return Message(f"Error: " + str(e))
 
     # noinspection PyMethodMayBeStatic
     def _gdf_prepare_geom(self, gpdf: GeoDataFrame, crs: int = None) -> DataFrame:
