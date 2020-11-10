@@ -28,7 +28,7 @@ install:
       export PATH="$HOME/miniconda/bin:$PATH";
       conda install -y -c conda-forge mamba;
       mamba install -y -c conda-forge postgis;
-      cd xcube_gen/sql;
+      cd xcube_geodb/sql;
       make install;
       cd ../..;
     fi
