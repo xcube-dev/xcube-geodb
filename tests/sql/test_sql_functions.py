@@ -35,8 +35,8 @@ class GeoDBSqlTest(unittest.TestCase):
 
     @classmethod
     def setUp(cls) -> None:
-        if os.environ.get('SKIP_PSQL_TESTS', False):
-            return
+        # if os.environ.get('SKIP_PSQL_TESTS', False):
+        #     return
 
         make_install_geodb()
 
