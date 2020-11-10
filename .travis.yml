@@ -30,7 +30,7 @@ install:
       mamba install -y -c conda-forge postgis;
       cd xcube_gen/sql;
       make install;
-      cd ../..
+      cd ../..;
     fi
 
   - conda info -a
