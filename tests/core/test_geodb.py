@@ -47,11 +47,10 @@ class GeoDBClientTest(unittest.TestCase):
         pass
 
     def set_global_mocks(self, m):
-        if self._server_test_auth_domain:
-            m.post(self._server_test_auth_domain + "/oauth/token", json={
-                "access_token": "A long lived token",
-                "expires_in": 12345
-            })
+        m.post(self._server_test_auth_domain + "/oauth/token", json={
+            "access_token": "A long lived token",
+            "expires_in": 12345
+        })
 
         url = f"{self._server_full_address}/rpc/geodb_whoami"
         m.get(url, text=json.dumps("helge"))
@@ -60,11 +59,10 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(url, text=json.dumps([{"src": [{"srid": 4326}]}]))
 
     def set_auth_change_mocks(self, m):
-        if self._server_test_auth_domain:
-            m.post(self._server_test_auth_domain + "/oauth/token", json={
-                "access_token": "A long lived token but a different user",
-                "expires_in": 12345
-            })
+        m.post(self._server_test_auth_domain + "/oauth/token", json={
+            "access_token": "A long lived token but a different user",
+            "expires_in": 12345
+        })
 
         url = f"{self._server_full_address}/rpc/geodb_whoami"
         m.get(url, text=json.dumps("pope"))
