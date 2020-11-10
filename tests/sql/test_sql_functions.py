@@ -35,14 +35,11 @@ class GeoDBSqlTest(unittest.TestCase):
 
     @classmethod
     def setUp(cls) -> None:
-        # if os.environ.get('SKIP_PSQL_TESTS', False):
-        #     return
-
         make_install_geodb()
 
         import psycopg2
         import testing.postgresql
-        postgresql = testing.postgresql.PostgresqlFactory(cache_initialized_db=True)
+        postgresql = testing.postgresql.PostgresqlFactory(cache_initialized_db=False)
 
         cls._postgresql = postgresql()
         conn = psycopg2.connect(**cls._postgresql.dsn())
@@ -53,15 +50,9 @@ class GeoDBSqlTest(unittest.TestCase):
             cls._cursor.execute(sql_file.read())
 
     def tearDown(self) -> None:
-        if os.environ.get('SKIP_PSQL_TESTS', False):
-            return
-
         self._postgresql.stop()
 
     def tearDownModule(self):
-        if os.environ.get('SKIP_PSQL_TESTS', False):
-            return
-
         # clear cached database at end of tests
         self._postgresql.clear_cache()
 
