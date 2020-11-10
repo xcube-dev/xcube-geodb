@@ -32,10 +32,12 @@ install:
   - conda info -a
   - mamba env create
   - source activate xcube_geodb
-  - cd xcube_geodb/sql
-  - make install
-  - cd ../..
-  - mamba install -y -c conda-forge postgis;
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      cd xcube_geodb/sql;
+      make install;
+      cd ../..;
+    fi
+  - mamba install -y -c conda-forge postgis
   - python setup.py install
 
 script:
