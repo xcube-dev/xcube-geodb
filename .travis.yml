@@ -36,6 +36,7 @@ install:
   - cd xcube_geodb/sql
   - make install
   - cd ../..
+  - ls -al /home/travis/miniconda/envs/xcube_geodb/share/extension/
   - python setup.py install
 
 script:
