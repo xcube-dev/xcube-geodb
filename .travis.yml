@@ -54,7 +54,6 @@ script:
   - for nb in notebooks/*.ipynb;
     do
       jupyter nbconvert --to python --ExecutePreprocessor.kernel_name=python3 $nb;
-#      python $(basename $nb .ipynb).py;
     done
   - cd notebooks
   - python  geodb_manage_collections.py
