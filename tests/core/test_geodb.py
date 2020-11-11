@@ -407,7 +407,7 @@ class GeoDBClientTest(unittest.TestCase):
             # noinspection PyTypeChecker
             self._api.insert_into_collection('tt', [1, 2, 3])
 
-        self.assertEqual(str(e.exception), "Format <class 'list'> not supported.")
+        self.assertEqual("Error: Format <class 'list'> not supported.", str(e.exception))
 
     def test_list_grants(self, m):
         path = '/rpc/geodb_list_grants'

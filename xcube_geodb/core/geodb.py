@@ -216,16 +216,13 @@ class GeoDBClient(object):
         return self._database or self.whoami
 
     @property
-    def whoami(self) -> Message:
+    def whoami(self) -> str:
         """
 
         Returns:
             The current database user
         """
-        try:
-            return Message(self._whoami or self._get(path='/rpc/geodb_whoami').json())
-        except GeoDBError as e:
-            return Message("Error: " + str(e))
+        return self._whoami or self._get(path='/rpc/geodb_whoami').json()
 
     @property
     def capabilities(self) -> Dict:
@@ -1017,7 +1014,7 @@ class GeoDBClient(object):
 
                 self.post(f'/{dn}', payload=js, headers=headers)
         else:
-            return Message(f'Error: Format {type(values)} not supported.')
+            raise GeoDBError(f'Error: Format {type(values)} not supported.')
 
         return Message(f"{total_rows} rows inserted into {collection}")
 
