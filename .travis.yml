@@ -59,5 +59,6 @@ script:
   - mv notebooks/*.py .
   - for nb in *.py;
     do
+      echo "Testing ${nb}";
       python $nb;
     done
