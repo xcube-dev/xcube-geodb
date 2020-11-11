@@ -160,7 +160,7 @@ class GeoDBClient(object):
         self._auth_domain = os.getenv('GEODB_AUTH_DOMAIN') or self._auth_domain
         self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
         self._auth_mode = os.getenv('GEODB_AUTH_MODE') or self._auth_mode
-        self._auth_username = os.getenv('GEODB_AUTH_USER_NAME') or self._auth_username,
+        self._auth_username = os.getenv('GEODB_AUTH_USERNAME') or self._auth_username
         self._auth_password = os.getenv('GEODB_AUTH_PASSWORD') or self._auth_password
         self._auth_access_token_uri = os.getenv('GEODB_AUTH_ACCESS_TOKEN_URI') or self._auth_access_token_uri
         self._database = os.getenv('GEODB_DATABASE') or self._database
@@ -216,13 +216,16 @@ class GeoDBClient(object):
         return self._database or self.whoami
 
     @property
-    def whoami(self) -> str:
+    def whoami(self) -> Message:
         """
 
         Returns:
             The current database user
         """
-        return self._whoami or self._get(path='/rpc/geodb_whoami').json()
+        try:
+            return Message(self._whoami or self._get(path='/rpc/geodb_whoami').json())
+        except GeoDBError as e:
+            return Message("Error: " + str(e))
 
     @property
     def capabilities(self) -> Dict:
@@ -341,7 +344,7 @@ class GeoDBClient(object):
             r = requests.get(self._get_full_url(path=path), params=params, headers=headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError:
-            raise GeoDBError(r.json()['message'])
+            raise GeoDBError(r.json())
 
         return r
 
@@ -370,7 +373,7 @@ class GeoDBClient(object):
             r = requests.delete(self._get_full_url(path=path), params=params, headers=headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError:
-            raise GeoDBError(r.json()['message'])
+            raise GeoDBError(r.json())
         return r
 
     def _patch(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
@@ -399,7 +402,7 @@ class GeoDBClient(object):
             r = requests.patch(self._get_full_url(path=path), json=payload, params=params, headers=headers)
             r.raise_for_status()
         except requests.HTTPError:
-            raise GeoDBError(r.json()['message'])
+            raise GeoDBError(r.json())
         return r
 
     def logout(self):
@@ -1014,7 +1017,7 @@ class GeoDBClient(object):
 
                 self.post(f'/{dn}', payload=js, headers=headers)
         else:
-            raise ValueError(f'Format {type(values)} not supported.')
+            return Message(f'Error: Format {type(values)} not supported.')
 
         return Message(f"{total_rows} rows inserted into {collection}")
 
@@ -1361,30 +1364,48 @@ class GeoDBClient(object):
 
         return False
 
+    def _raise_for_invalid_password_cfg(self):
+        if self._auth_username and self._auth_password and self._auth_client_id and self._auth_client_secret \
+                and self._auth_aud:
+            return True
+        else:
+            raise GeoDBError("System: Invalid password flow configuration")
+
+    def _raise_for_invalid_client_credentials_cfg(self):
+        if self._auth_client_id and self._auth_client_secret and self._auth_aud:
+            return True
+        else:
+            raise GeoDBError("System: Invalid password client_credentials configuration")
+
     def _get_geodb_client_credentials_access_token(self, token_uri: str = "/oauth/token", is_json: bool = True):
         payload = {}
+
         if self._auth_mode == "client-credentials":
+            self._raise_for_invalid_client_credentials_cfg()
             payload = {
                 "client_id": self._auth_client_id,
                 "client_secret": self._auth_client_secret,
                 "audience": self._auth_aud,
                 "grant_type": "client_credentials"
             }
+            headers = {'content-type': "application/json"} if is_json else None
+            r = requests.post(self._auth_domain + token_uri, json=payload, headers=headers)
         elif self._auth_mode == "password":
+            self._raise_for_invalid_password_cfg()
             payload = {
                 "client_id": self._auth_client_id,
                 "client_secret": self._auth_client_secret,
                 "username": self._auth_username,
                 "password": self._auth_password,
                 "audience": self._auth_aud,
-                "grant_type": "client_credentials"
+                "scope": "role:create",
+                "grant_type": "password"
             }
+            headers = {'content-type': "application/x-www-form-urlencoded"}
+            r = requests.post(self._auth_domain + token_uri, data=payload, headers=headers)
         else:
             raise GeoDBError("System Error: auth mode unknown.")
 
-        headers = {'content-type': "application/json"} if is_json else None
-
-        r = requests.post(self._auth_domain + token_uri, json=payload, headers=headers)
         r.raise_for_status()
 
         data = r.json()

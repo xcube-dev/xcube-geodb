@@ -1,16 +1,28 @@
-# Testplan for the geoDBclient and webAPI
+# Testplan for the geoDBclient
+
+## Authentication
+
+__Operations__:
+
+- Get access token from auth provider (i.e. auth0)
+
+__Test__:
+
+- Configure .env using client credentials only and auth method client-credentials
+- Configure .env using client credentials as well as user name and password and auth method password
+- Configure .env using method interactive
 
 ## Manage collections
 
 __Operations__:
 
-- Create a collection
-- Insert into a collection
-- Update a collection
-- Delete from a collection
-- Drop a collection
-- Add properties to a collection
-- Remove properties from a collection
+1. Create a collection
+2. Insert into a collection
+3. Update a collection
+4. Delete from a collection
+5. Drop a collection
+6. Add properties to a collection
+7. Remove properties from a collection
 
 __Test__:
 

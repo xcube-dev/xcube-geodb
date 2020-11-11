@@ -28,6 +28,35 @@ TEST_GEOM = "0103000020D20E000001000000110000007593188402B51B4" \
 
 
 @requests_mock.mock(real_http=False)
+class GeoDBClientTestsRaw(unittest.TestCase):
+    def set_global_mocks(self, m):
+        m.post("https://auth/oauth/token/oauth/token", json={
+            "access_token": "A long lived token",
+            "expires_in": 12345
+        })
+
+        url = f"{self._server_full_address}/rpc/geodb_whoami"
+        m.get(url, text=json.dumps("helge"))
+
+        url = f"{self._server_full_address}/rpc/geodb_get_collection_srid"
+        m.post(url, text=json.dumps([{"src": [{"srid": 4326}]}]))
+
+    def test_access_token(self, m):
+        m.post("https://auth/oauth/token", json={"access_token": "A long lived token"})
+        with self.assertRaises(GeoDBError) as e:
+            geodb = GeoDBClient(auth_mode='password')
+            token = geodb.auth_access_token
+
+        self.assertEqual('System: Invalid password flow configuration', str(e.exception))
+
+        with self.assertRaises(GeoDBError) as e:
+            geodb = GeoDBClient(auth_mode='client-credentials')
+            token = geodb.auth_access_token
+
+        self.assertEqual('System: Invalid password client_credentials configuration', str(e.exception))
+
+
+@requests_mock.mock(real_http=False)
 class GeoDBClientTest(unittest.TestCase):
     def setUp(self) -> None:
         self._api = GeoDBClient(dotenv_file="tests/envs/.env_test", config_file="tests/.geodb")
@@ -207,7 +236,7 @@ class GeoDBClientTest(unittest.TestCase):
         res = self._api.create_collection(collection='test', properties={'test_col': 'inger'})
         self.assertTrue(res)
 
-    def test_create_collection(self, m):
+    def test_create_collection2(self, m):
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
         m.post(url, text=json.dumps(expected_response))
