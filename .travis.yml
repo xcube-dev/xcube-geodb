@@ -56,7 +56,8 @@ script:
       jupyter nbconvert --to python  --ExecutePreprocessor.kernel_name=python3 $nb;
     done
   - mv notebooks/data .
-  - for nb in notebooks/geodb_*.py;
+  - mv notebooks/geodb_*.py .
+  - for nb in geodb_*.py;
     do
       echo "Testing ${nb}";
       python $nb;
