@@ -53,11 +53,11 @@ script:
   - codecov --env TRAVIS_PYTHON_VERSION
   - for nb in notebooks/*.ipynb;
     do
-      jupyter nbconvert --to python --ExecutePreprocessor.kernel_name=python3 $nb;
+      jupyter nbconvert --to python  --ExecutePreprocessor.kernel_name=python3 $nb;
     done
   - mv notebooks/data .
   - mv notebooks/*.py .
-  - for nb in *.py;
+  - for nb in geodb_*.py;
     do
       echo "Testing ${nb}";
       python $nb;
