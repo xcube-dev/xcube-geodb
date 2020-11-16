@@ -433,14 +433,24 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_register_user(user_name text, password text)
-    RETURNS character varying(255)
+CREATE OR REPLACE FUNCTION public.geodb_register_user(
+    user_name text,
+    password text)
+    RETURNS character varying
     LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
 AS $BODY$
+DECLARE usr TEXT;
 BEGIN
-    EXECUTE format('CREATE ROLE %I LOGIN; ALTER ROLE %I PASSWORD ''%s'';ALTER ROLE %I SET search_path = public;' ||
-                   'GRANT %s TO authenticator;', user_name, user_name, password, user_name, user_name);
-    EXECUTE format('INSERT INTO geodb_user_databases(name, owner) VALUES(''%s'',''%s'')', user_name, user_name);
+    usr := current_setting('request.jwt.claim.clientId', true);
+    BEGIN
+        EXECUTE format('CREATE ROLE %I LOGIN', user_name);
+        EXCEPTION WHEN duplicate_object THEN RAISE NOTICE '%, skipping', SQLERRM USING ERRCODE = SQLSTATE;
+    END;
+    EXECUTE format('ALTER ROLE %I PASSWORD ''%s''; ALTER ROLE %I SET search_path = public;' ||
+                   'GRANT %I TO authenticator;', user_name, password, user_name, user_name);
+    EXECUTE format('INSERT INTO geodb_user_databases(name, owner, iss) VALUES(''%s'',''%s'', ''%s'') ON CONFLICT ON CONSTRAINT unique_db_name_owner DO NOTHING;', user_name, user_name, usr);
     RETURN 'success';
 END
 $BODY$;
