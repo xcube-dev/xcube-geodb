@@ -16,6 +16,7 @@ RUN mamba install -y -c conda-forge xcube
 WORKDIR /tmp
 ADD environment.yml /tmp/environment.yml
 RUN mamba env update -n base
+RUN pip install ipyauth IPython
 
 ADD --chown=1000:100 . ./xcube-geodb
 WORKDIR /tmp/xcube-geodb
