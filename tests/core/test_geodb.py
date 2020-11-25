@@ -467,17 +467,17 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIs(True, 'modified_at' in r)
 
     def test_init(self, m):
-        with self.assertRaises(ValueError) as e:
+        with self.assertRaises(NotImplementedError) as e:
             GeoDBClient(auth_mode='interactive')
 
-        self.assertEqual("You do not seem to be in an interactive ipython session. Interactive login cannot "
-                         "be used.", str(e.exception))
+        self.assertEqual("The interactive mode has not been implemented.", str(e.exception))
 
-        with self.assertRaises(FileExistsError) as e:
-            os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'bla.env'
-            GeoDBClient(auth_mode='interactive')
-
-        self.assertEqual("Mandatory auth configuration file ipyauth-auth0-demo.env must exist", str(e.exception))
+        # Interactive has been deactivated at this stage due to deployment struggles and it not used in any deployment
+        # with self.assertRaises(FileExistsError) as e:
+        #     os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'bla.env'
+        #     GeoDBClient(auth_mode='interactive')
+        #
+        # self.assertEqual("Mandatory auth configuration file ipyauth-auth0-demo.env must exist", str(e.exception))
 
         with self.assertRaises(ValueError) as e:
             GeoDBClient(auth_mode='interacti')
