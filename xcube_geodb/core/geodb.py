@@ -147,6 +147,7 @@ class GeoDBClient(object):
             raise ValueError("auth_mode can only be 'interactive', 'password', or 'client-credentials'!")
 
         if self._auth_mode == "interactive":
+            # raise NotImplementedError("The interactive mode has not been implemented.")
             self._auth_login()
 
     def _set_from_env(self):

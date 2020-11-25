@@ -12,11 +12,13 @@ USER $NB_UID
 
 RUN conda install -n base -c conda-forge mamba pip
 RUN mamba install -y -c conda-forge xcube
+RUN pip install ipyauth IPython
+RUN jupyter labextension install ipyauth
 
 WORKDIR /tmp
 ADD environment.yml /tmp/environment.yml
 RUN mamba env update -n base
-RUN pip install ipyauth IPython
+
 
 ADD --chown=1000:100 . ./xcube-geodb
 WORKDIR /tmp/xcube-geodb
