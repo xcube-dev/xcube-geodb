@@ -1,5 +1,5 @@
 # Image from https://hub.docker.com (syntax: repo/image:version)
-FROM jupyter/datascience-notebook
+FROM quay.io/bcdev/datascience-notebook:latest
 
 # Person responsible
 LABEL maintainer="helge.dzierzon@brockmann-consult.de"
