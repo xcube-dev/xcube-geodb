@@ -1,8 +1,16 @@
-## v0.1.10.dev1
+## v0.1.11
 
 ### New Features
 
 - Added a copy collection operation
+- Added a new authentication auth flow (password)
+- Added a method create_collection_if_not_exists
+
+### Fixes
+
+- Deactivated interactive authentication mode. 
+
+## v0.1.10
 
 ### Fixes:
 
