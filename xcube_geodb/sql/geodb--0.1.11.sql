@@ -61,6 +61,37 @@ WITH (
 )
 TABLESPACE pg_default;
 
+-- FUNCTION: public.geodb_create_collection(text, json, text)
+
+-- DROP FUNCTION public.geodb_create_collection(text, json, text);
+
+CREATE OR REPLACE FUNCTION public.geodb_user_allowed(
+	collection text,
+	usr text)
+    RETURNS INT
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE
+	ct INT;
+BEGIN
+	SELECT
+		COUNT(*) as ct
+	FROM geodb_user_databases
+	WHERE collection LIKE name || '_%'
+		AND owner = usr
+	INTO ct;
+
+	if ct > 0 then
+	   return 1;
+	else
+		return 0;
+	end if;
+END
+$BODY$;
+
+
 CREATE FUNCTION public.geodb_create_database(
 	database text)
     RETURNS void
@@ -69,12 +100,19 @@ CREATE FUNCTION public.geodb_create_database(
     COST 100
     VOLATILE
 AS $BODY$
-DECLARE usr text;
+DECLARE
+    usr TEXT;
+    ct INT;
 BEGIN
     usr := (SELECT geodb_whoami());
 
-    EXECUTE format('INSERT INTO geodb_user_databases(name, owner) VALUES(''%s'', ''%s'') ON CONFLICT DO NOTHING
-				   ', "database", usr);
+    SELECT COUNT(*) as ct FROM geodb_user_databases WHERE name=database INTO ct;
+
+	IF ct > 0 THEN
+	   RAISE EXCEPTION 'Database % exists already.', database;
+	END IF;
+
+    EXECUTE format('INSERT INTO geodb_user_databases(name, owner) VALUES(''%s'', ''%s'')', "database", usr);
 END
 $BODY$;
 
@@ -173,7 +211,16 @@ AS $BODY$
 DECLARE
     usr text;
     trigg text;
+    owns INT;
 BEGIN
+    usr := (SELECT geodb_whoami());
+
+    SELECT geodb_user_allowed(collection, usr) INTO owns;
+
+    if owns = 0 then
+        RAISE EXCEPTION 'No access for user %.', usr;
+    end if;
+
     EXECUTE format('CREATE TABLE %I(
 								    id SERIAL PRIMARY KEY,
 									created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -183,7 +230,6 @@ BEGIN
 
     PERFORM geodb_add_properties(collection, properties);
 
-    usr := (SELECT geodb_whoami());
     trigg := 'update_' || collection || '_modtime';
 
     EXECUTE format('CREATE TRIGGER %I

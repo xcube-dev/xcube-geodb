@@ -471,9 +471,11 @@ class GeoDBClient(object):
         """
 
         self._refresh_capabilities()
-        if database:
-            self.create_database(database)
+
         database = database or self.database
+
+        if not self.database_exists(database):
+            return Message("Database does not exist.")
 
         if clear:
             self.drop_collections(collections=collections, database=database)
@@ -854,6 +856,18 @@ class GeoDBClient(object):
         """
 
         return self.get_collection(collection='user_databases', database='geodb', query=f'owner=eq.{self.whoami}')
+
+    def database_exists(self, database: str)-> bool:
+        """
+        Checkes whether a database exists
+
+        Returns:
+            bool: database exists
+
+        """
+
+        res = self.get_collection(collection='user_databases', database='geodb', query=f'name=eq.{database}')
+        return len(res) > 0
 
     @deprecated_kwarg('namespace', 'database')
     def delete_from_collection(self, collection: str, query: str, database: Optional[str] = None, **kwargs) -> Message:
