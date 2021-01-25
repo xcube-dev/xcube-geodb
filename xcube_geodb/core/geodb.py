@@ -1484,6 +1484,9 @@ class GeoDBClient(object):
         else:
             raise ValueError(f"Stored procedure {stored_procedure} does not exist")
 
+    def version(self):
+        return version
+
     # noinspection PyMethodMayBeStatic
     def setup(self):
         """

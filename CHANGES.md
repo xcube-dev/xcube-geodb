@@ -3,7 +3,7 @@
 ### New Features
 
 - Made the number of rows during inserting data into a collection configurable
-
+- Added a version method to the client
 
 ### Fixes
 
