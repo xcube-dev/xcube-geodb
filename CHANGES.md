@@ -1,8 +1,20 @@
+## v0.1.12 dev
+
+### New Features
+
+- Made the number of rows during inserting data into a collection configurable
+
+
+### Fixes
+
+- Fixed revoke access SEL function [fixing](https://gitext.sinergise.com/dcfs/common/-/issues/221)
+- Fixed odd function options for copy collection
+
 ## v0.1.11
 
 ### New Features
 
-- Added a copy collection operation
+- Added a copy/move/rename collection operations
 - Added a new authentication auth flow (password)
 - Added a method create_collection_if_not_exists
 

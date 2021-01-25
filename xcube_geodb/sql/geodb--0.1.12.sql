@@ -312,7 +312,7 @@ DECLARE seq_name TEXT;
 BEGIN
     select replace(pg_get_serial_sequence(collection, 'id'), 'public.','') into seq_name;
     EXECUTE format('REVOKE SELECT ON TABLE %I FROM %I;', collection, usr);
-    EXECUTE format('REVOKE USAGE, SELECT ON SEQUENCE %I FROM %I', seq_name, usr);
+    EXECUTE format('REVOKE USAGE, SELECT ON SEQUENCE %s FROM %I', seq_name, usr);
 END
 $BODY$;
 
@@ -641,7 +641,7 @@ AS $BODY$
 DECLARE me TEXT;
 BEGIN
 	SELECT geodb_whoami() INTO me;
-	RETURN QUERY EXECUTE format('SELECT geodb_get_user_usage(''%I'', %s)', me, pretty);
+	RETURN QUERY EXECUTE format('SELECT geodb_get_user_usage(''%I'', ''%s'')', me, pretty);
 END
 $BODY$;
 

@@ -606,9 +606,9 @@ class GeoDBClient(object):
 
         self.post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
 
-    def copy_collection(self, database: str, collection: str, new_database: str):
+    def copy_collection(self, collection: str, new_collection: str, database: str, new_database: str):
         from_dn = f"{database}_{collection}"
-        to_dn = f"{new_database}_{collection}"
+        to_dn = f"{new_database}_{new_collection}"
 
         self.post(path='/rpc/geodb_copy_collection', payload={'collection': from_dn, 'new_name': to_dn})
 
@@ -964,6 +964,7 @@ class GeoDBClient(object):
                                upsert: bool = False,
                                crs: int = None,
                                database: Optional[str] = None,
+                               max_transfer_chunk_size: int = 1000,
                                **kwargs) \
             -> Message:
         """
@@ -975,6 +976,7 @@ class GeoDBClient(object):
             upsert: Whether the insert shall replace existing rows (by PK)
             crs: crs (in the form of an SRID) of the geometries. If not present, tssi method will attempt to guess it
             from the GeoDataFrame input. Must be in sync with the target collection in the GeoDatabase
+            max_transfer_chunk_size: Maximum number of rows per chunk to be sent to the geodb.
 
         Raises:
             ValueError: When crs is not given and cannot be guessed from the GeoDataFrame
@@ -995,21 +997,20 @@ class GeoDBClient(object):
             # values = self._gdf_prepare_geom(values, crs)
             ct = 0
             cont = True
-            max_transfer_num_rows = 10000
             total_rows = values.shape[0]
 
             while cont:
                 frm = ct
-                to = ct + max_transfer_num_rows - 1
+                to = ct + max_transfer_chunk_size - 1
                 ngdf = values.loc[frm:to]
-                ct += max_transfer_num_rows
+                ct += max_transfer_chunk_size
 
                 nct = ngdf.shape[0]
                 cont = nct > 0
                 if not cont:
                     break
 
-                if nct < max_transfer_num_rows:
+                if nct < max_transfer_chunk_size:
                     to = frm + nct
 
                 print(f'Processing rows from {frm} to {to}')
@@ -1410,7 +1411,7 @@ class GeoDBClient(object):
                 "username": self._auth_username,
                 "password": self._auth_password,
                 "audience": self._auth_aud,
-                "scope": "role:create",
+                # "scope": "role:create",
                 "grant_type": "password"
             }
             headers = {'content-type': "application/x-www-form-urlencoded"}
