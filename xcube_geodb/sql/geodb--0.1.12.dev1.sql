@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 CREATE SCHEMA IF NOT EXISTS geodb_user_info;
 
 
@@ -34,13 +36,15 @@ BEGIN
 $BODY$;
 
 
+DROP TRIGGER IF EXISTS geodb_register_user_trg ON "geodb_user_info";
+
 CREATE TRIGGER geodb_register_user_trg
     AFTER INSERT ON "geodb_user_info"
     FOR EACH ROW
     EXECUTE PROCEDURE geodb_register_user_trg_func();
 
 
-CREATE SEQUENCE public.geodb_user_databases_seq
+CREATE SEQUENCE IF NOT EXISTS public.geodb_user_databases_seq
     INCREMENT 1
     START 1
     MINVALUE 1
@@ -48,7 +52,7 @@ CREATE SEQUENCE public.geodb_user_databases_seq
     CACHE 1;
 
 
-CREATE TABLE public.geodb_user_databases
+CREATE TABLE IF NOT EXISTS public.geodb_user_databases
 (
     id bigint NOT NULL DEFAULT nextval('geodb_user_databases_seq'::regclass),
     name character varying COLLATE pg_catalog."default" NOT NULL,
@@ -91,8 +95,11 @@ BEGIN
 END
 $BODY$;
 
+-- FUNCTION: public.geodb_create_database(text)
 
-CREATE FUNCTION public.geodb_create_database(
+-- DROP FUNCTION public.geodb_create_database(text);
+
+CREATE OR REPLACE FUNCTION public.geodb_create_database(
 	database text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -117,7 +124,7 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_truncate_database(
+CREATE OR REPLACE FUNCTION public.geodb_truncate_database(
 	database text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -133,8 +140,11 @@ BEGIN
 END
 $BODY$;
 
+-- FUNCTION: public.geodb_add_properties(text, json)
 
-CREATE FUNCTION public.geodb_add_properties(IN collection text, IN properties json)
+-- DROP FUNCTION public.geodb_add_properties(text, json);
+
+CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN collection text, IN properties json)
     RETURNS void
     LANGUAGE 'plpgsql'
     AS $BODY$
@@ -148,7 +158,7 @@ CREATE FUNCTION public.geodb_add_properties(IN collection text, IN properties js
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_drop_properties(IN collection text, IN properties json)
+CREATE OR REPLACE FUNCTION public.geodb_drop_properties(IN collection text, IN properties json)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
@@ -167,7 +177,7 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_get_properties(collection text, version text)
+CREATE OR REPLACE FUNCTION public.geodb_get_properties(collection text, version text)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 AS $BODY$
@@ -184,7 +194,7 @@ BEGIN
                                         WHERE
                                            table_schema = ''public''
                                             AND table_name = ''%s'') AS src',
-                                usr, collection);
+                                collection);
 
 END
 $BODY$;
@@ -195,7 +205,7 @@ $BODY$;
 -- noinspection SqlResolveForFile
 
 
-CREATE FUNCTION update_modified_column()
+CREATE OR REPLACE FUNCTION update_modified_column()
     RETURNS TRIGGER AS $$
 BEGIN
     NEW.modified_at = now();
@@ -204,7 +214,7 @@ END;
 $$ language 'plpgsql';
 
 
-CREATE FUNCTION public.geodb_create_collection(collection text, properties json, crs text)
+CREATE OR REPLACE FUNCTION public.geodb_create_collection(collection text, properties json, crs text)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
@@ -242,7 +252,7 @@ $BODY$;
 
 
 
-CREATE FUNCTION public.geodb_create_collections("collections" json)
+CREATE OR REPLACE FUNCTION public.geodb_create_collections("collections" json)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
@@ -263,7 +273,7 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_drop_collections(collections json)
+CREATE OR REPLACE FUNCTION public.geodb_drop_collections(collections json)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS $BODY$
@@ -367,9 +377,7 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_list_grants(
-	database TEXT
-	)
+CREATE OR REPLACE FUNCTION public.geodb_list_grants(database TEXT  )
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 
@@ -393,7 +401,7 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_list_grants()
+CREATE OR REPLACE FUNCTION public.geodb_list_grants()
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 
@@ -411,8 +419,34 @@ END
 $BODY$;
 
 
+-- FUNCTION: public.geodb_list_databases()
 
-CREATE FUNCTION public.geodb_rename_collection(
+-- DROP FUNCTION public.geodb_list_databases();
+
+CREATE OR REPLACE FUNCTION public.geodb_list_databases()
+    RETURNS TABLE(src json)
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+    ROWS 1000
+
+AS $$
+DECLARE usr text;
+BEGIN
+    usr := (SELECT geodb_whoami());
+
+    RETURN QUERY EXECUTE format(
+		'SELECT JSON_AGG(src) as js FROM(' ||
+		'SELECT * FROM geodb_user_databases WHERE owner = ''%s'') as src', usr);
+END
+$$;
+
+ALTER FUNCTION public.geodb_list_databases()
+    OWNER TO postgres;
+
+
+
+CREATE OR REPLACE FUNCTION public.geodb_rename_collection(
     collection text,
     new_name text)
     RETURNS text
@@ -429,7 +463,7 @@ $BODY$;
 
 
 
-CREATE FUNCTION public.geodb_publish_collection(
+CREATE OR REPLACE FUNCTION public.geodb_publish_collection(
     collection text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -443,7 +477,7 @@ END
 $BODY$;
 
 
-CREATE FUNCTION public.geodb_unpublish_collection(
+CREATE OR REPLACE FUNCTION public.geodb_unpublish_collection(
     collection text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -460,21 +494,74 @@ $BODY$;
 
 -- noinspection SqlSignatureForFile
 
--- CREATE ROLE authenticator LOGIN;
--- ALTER ROLE authenticator PASSWORD '';
--- ALTER ROLE authenticator SET search_path = public;
---
-CREATE ROLE geodb_admin NOLOGIN;
-ALTER ROLE geodb_admin SET search_path = public;
--- GRANT geodb_admin TO authenticator;
+DO
+$do$
+BEGIN
+   IF NOT EXISTS (
+        SELECT FROM pg_catalog.pg_roles  -- SELECT list can be empty for this
+        WHERE  rolname = 'authenticator') THEN
+
+        CREATE ROLE authenticator NOINHERIT;
+        ALTER ROLE authenticator SET search_path = public;
+    END IF;
+END
+$do$;
 
 
-CREATE FUNCTION public.geodb_whoami()
+DO
+$do$
+BEGIN
+   IF NOT EXISTS (
+        SELECT FROM pg_catalog.pg_roles  -- SELECT list can be empty for this
+        WHERE  rolname = 'geodb_admin') THEN
+
+
+        CREATE ROLE geodb_admin NOINHERIT;
+        ALTER ROLE geodb_admin SET search_path = public;
+    END IF;
+END
+$do$;
+
+
+CREATE OR REPLACE FUNCTION public.geodb_whoami()
     RETURNS text
     LANGUAGE 'plpgsql'
 AS $BODY$
 BEGIN
     RETURN current_user;
+END
+$BODY$;
+
+
+-- FUNCTION: public.geodb_log_sizes()
+
+-- DROP FUNCTION public.geodb_log_sizes();
+
+CREATE OR REPLACE FUNCTION public.geodb_log_sizes()
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+BEGIN
+    INSERT INTO geodb_size_log
+    SELECT now(), *, pg_size_pretty(total_bytes) AS total
+         , pg_size_pretty(index_bytes) AS "index"
+         , pg_size_pretty(toast_bytes) AS "toast"
+         , pg_size_pretty(table_bytes) AS "table"
+    FROM (
+        SELECT *, total_bytes-index_bytes-COALESCE(toast_bytes,0) AS table_bytes FROM (
+        SELECT c.oid,nspname AS table_schema, relname AS "table_name"
+            , c.reltuples AS row_estimate
+            , pg_total_relation_size(c.oid) AS total_bytes
+            , pg_indexes_size(c.oid) AS index_bytes
+            , pg_total_relation_size(reltoastrelid) AS toast_bytes
+        FROM pg_class c
+        LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE relkind = 'r'
+        ) a
+        WHERE table_schema = 'public'
+        ) a;
 END
 $BODY$;
 
@@ -504,7 +591,7 @@ $BODY$;
 REVOKE EXECUTE ON FUNCTION geodb_register_user(text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION geodb_register_user(text, text) TO geodb_admin;
 
-CREATE FUNCTION public.geodb_user_exists(user_name text)
+CREATE OR REPLACE FUNCTION public.geodb_user_exists(user_name text)
     RETURNS TABLE(exts boolean)
     LANGUAGE 'plpgsql'
 AS $BODY$
@@ -517,8 +604,9 @@ REVOKE EXECUTE ON FUNCTION geodb_user_exists(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION geodb_user_exists(text) TO geodb_admin;
 
 
-DROP FUNCTION IF EXISTS public.geodb_drop_user(text);
-CREATE FUNCTION public.geodb_drop_user(user_name text)
+-- DROP FUNCTION IF EXISTS public.geodb_drop_user(text);
+
+CREATE OR REPLACE FUNCTION public.geodb_drop_user(user_name text)
     RETURNS boolean
     LANGUAGE 'plpgsql'
 AS $BODY$
@@ -531,7 +619,7 @@ $BODY$;
 REVOKE EXECUTE ON FUNCTION geodb_drop_user(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION geodb_drop_user(text) TO geodb_admin;
 
-CREATE FUNCTION public.geodb_grant_user_admin(user_name text)
+CREATE OR REPLACE FUNCTION public.geodb_grant_user_admin(user_name text)
     RETURNS boolean
     LANGUAGE 'plpgsql'
 AS $BODY$
@@ -544,35 +632,52 @@ $BODY$;
 REVOKE EXECUTE ON FUNCTION geodb_grant_user_admin(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION geodb_grant_user_admin(text) TO geodb_admin;
 
-CREATE FUNCTION public.geodb_check_user() RETURNS void AS $$
+
+-- FUNCTION: public.geodb_check_user()
+
+-- DROP FUNCTION public.geodb_check_user();
+
+CREATE OR REPLACE FUNCTION public.geodb_check_user()
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $$
 BEGIN
     IF current_user = 'anonymous' THEN
-        RAISE EXCEPTION 'Anonymous users do not have access'
-            USING HINT = 'Please ask Brockmann Consult for access. (geodb@brockmann-consult.de)';
+        RAISE SQLSTATE 'PT403' USING DETAIL = 'Anonymous users do not have access.',
+            HINT = 'Access denied.';
     END IF;
 END
-$$ LANGUAGE plpgsql;
+$$;
 
 
-CREATE FUNCTION geodb_check_user_grants(grt text) RETURNS boolean AS $$
+-- FUNCTION: public.geodb_check_user_grants(text)
+
+-- DROP FUNCTION public.geodb_check_user_grants(text);
+
+CREATE OR REPLACE FUNCTION public.geodb_check_user_grants(grt text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $$
 DECLARE
-    permissions json;
+    permissions text;
     ct integer;
 BEGIN
-    -- noinspection SqlSignature
+    permissions := current_setting('request.jwt.claim.scope', TRUE)::text;
 
-    permissions := (SELECT current_setting('request.jwt.claim.permissions', TRUE)::json);
-
-    ct := (SELECT COUNT(*) FROM json_array_elements(permissions) as ps WHERE ps::text = '"' || grt || '"');
+    EXECUTE format('SELECT strpos(''%s'', ''%s'')', permissions, grt) INTO ct;
 
     IF ct = 0 THEN
         raise 'Not enough access rights to perform this operation: %', grt;
     END IF;
 END
-$$ LANGUAGE plpgsql;
+$$;
 
 
-CREATE FUNCTION public.geodb_get_user_usage(user_name text)
+CREATE OR REPLACE FUNCTION public.geodb_get_user_usage(user_name text)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 
@@ -594,7 +699,7 @@ $BODY$;
 
 -- noinspection SqlUnused
 
-CREATE FUNCTION public.geodb_get_user_usage(
+CREATE OR REPLACE FUNCTION public.geodb_get_user_usage(
 	user_name text,
 	pretty BOOLEAN)
     RETURNS TABLE(src json)
@@ -615,7 +720,7 @@ BEGIN
 END
 $BODY$;
 
-CREATE FUNCTION public.geodb_get_my_usage()
+CREATE OR REPLACE FUNCTION public.geodb_get_my_usage()
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 
@@ -630,7 +735,7 @@ BEGIN
 END
 $BODY$;
 
-CREATE FUNCTION public.geodb_get_my_usage(pretty boolean)
+CREATE OR REPLACE FUNCTION public.geodb_get_my_usage(pretty boolean)
     RETURNS TABLE(src json)
     LANGUAGE 'plpgsql'
 
@@ -845,5 +950,90 @@ BEGIN
                                 'FROM (SELECT %s AS srid
                                ) AS src',
                                 res);
+END
+$BODY$;
+
+
+-- FUNCTION: public.geodb_copy_collection(text, text)
+
+-- DROP FUNCTION public.geodb_copy_collection(text, text);
+
+CREATE OR REPLACE FUNCTION public.geodb_copy_collection(
+	old_collection text,
+	new_collection text)
+    RETURNS text
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $$
+DECLARE usr text;
+	allowed int;
+	qry text;
+BEGIN
+    usr := (SELECT geodb_whoami());
+
+	qry := 'SELECT geodb_user_allowed(''' || new_collection || ''',''' || usr || ''')';
+	raise notice '%, %, %', new_collection, usr, qry;
+
+    EXECUTE qry INTO allowed;
+
+    IF allowed = 1 THEN
+		EXECUTE 'CREATE TABLE "' || new_collection || '"(LIKE "' || old_collection || '" INCLUDING ALL)';
+
+        EXECUTE 'CREATE TRIGGER "update_' || new_collection || '_modtime"
+                BEFORE UPDATE
+                    ON "' || new_collection  || '"
+                FOR EACH ROW
+                    EXECUTE PROCEDURE public.update_modified_column()';
+
+        EXECUTE 'INSERT INTO "' ||  new_collection || '" (SELECT * FROM  "' || old_collection || '")';
+        RETURN 'SUCCESS';
+    END IF;
+
+	raise exception '% has not access to that table or database.', usr;
+END
+$$;
+
+
+-- FUNCTION: public.geodb_dashboard_view_query(text)
+
+-- DROP FUNCTION public.geodb_dashboard_view_query(text);
+
+CREATE OR REPLACE FUNCTION public.geodb_dashboard_view_query(tab text)
+    RETURNS TABLE(aoi_id character varying,
+                  country character varying,
+                  site_name character varying,
+                  indicator_code character varying,
+                  sub_aoi character varying,
+                  indicator_value character varying,
+                  color_code character varying,
+                  measurement_value character varying,
+                  max_time timestamp without time zone,
+                  geometry geometry)
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+    ROWS 1000
+AS $BODY$
+BEGIN
+    RETURN QUERY EXECUTE format('SELECT i.aoi_id,
+                                        i.country,
+                                        i.site_name,
+                                        i.indicator_code,
+                                        i.sub_aoi,
+                                        i.indicator_value,
+                                        i.color_code,
+                                        i.measurement_value,
+                                        i.time,
+                                        i.geometry
+                                    FROM %I i
+                                    INNER JOIN
+                                    (SELECT aoi_id, indicator_code, max(time) as time FROM %I
+                                    GROUP BY aoi_id, indicator_code) tmp
+                                        ON i.aoi_id = tmp.aoi_id
+                                        AND i.indicator_code = tmp.indicator_code
+                                        AND i.time = tmp.time
+                                    ORDER BY i.aoi_id, i.indicator_code',
+                                    tab, tab);
 END
 $BODY$;

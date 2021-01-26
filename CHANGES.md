@@ -4,11 +4,14 @@
 
 - Made the number of rows during inserting data into a collection configurable
 - Added a version method to the client
+- The postgis extension is now created when executing geodb--*.sql
 
 ### Fixes
 
 - Fixed revoke access SEL function [fixing](https://gitext.sinergise.com/dcfs/common/-/issues/221)
 - Fixed odd function options for copy collection
+- The geodb setup procedure can now accept a connection or database connection parameter
+- The geodb SQL setup does not fail anymore when items exist already
 
 ## v0.1.11
 

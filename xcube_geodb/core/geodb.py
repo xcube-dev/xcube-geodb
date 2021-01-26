@@ -1484,29 +1484,35 @@ class GeoDBClient(object):
         else:
             raise ValueError(f"Stored procedure {stored_procedure} does not exist")
 
-    def version(self):
+    @staticmethod
+    def version():
         return version
 
-    # noinspection PyMethodMayBeStatic
-    def setup(self):
+    @staticmethod
+    def setup(host: Optional[str] = None,
+              port: Optional[str] = None,
+              user: Optional[str] = None,
+              passwd: Optional[str] = None,
+              dbname: Optional[str] = None,
+              conn: Optional[any] = None):
         """
             Sets up  the datase. Needs DB credentials and the database user requires CREATE TABLE/FUNCTION grants.
         """
-        host = os.getenv('GEODB_DB_HOST')
-        port = os.getenv('GEODB_DB_PORT')
-        user = os.getenv('GEODB_DB_USER')
-        passwd = os.getenv('GEODB_DB_PASSWD')
-        dbname = os.getenv('GEODB_DB_DBNAME')
+        host = host or os.getenv('GEODB_DB_HOST')
+        port = port or os.getenv('GEODB_DB_PORT')
+        user = user or os.getenv('GEODB_DB_USER')
+        passwd = passwd or os.getenv('GEODB_DB_PASSWD')
+        dbname = dbname or os.getenv('GEODB_DB_DBNAME')
 
         try:
             import psycopg2
         except ImportError:
             raise GeoDBError("You need to install psycopg2 first to run this module.")
 
-        conn = psycopg2.connect(host=host, port=port, user=user, password=passwd, dbname=dbname)
+        conn = conn or psycopg2.connect(host=host, port=port, user=user, password=passwd, dbname=dbname)
         cursor = conn.cursor()
 
-        with open(f'dcfs_geodb/sql/geodb--{version}.sql') as sql_file:
+        with open(f'xcube_geodb/sql/geodb--{version}.sql') as sql_file:
             sql_create = sql_file.read()
             cursor.execute(sql_create)
 
