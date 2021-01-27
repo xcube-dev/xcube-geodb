@@ -5,6 +5,7 @@
 - Made the number of rows during inserting data into a collection configurable
 - Added a version method to the client
 - The postgis extension is now created when executing geodb--*.sql
+- Added the jupyter lab GitHub extension to the docker image 
 
 ### Fixes
 
