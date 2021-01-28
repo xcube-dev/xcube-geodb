@@ -6,6 +6,7 @@
 - Added a version method to the client
 - The postgis extension is now created when executing geodb--*.sql
 - Added the jupyter lab GitHub extension to the docker image 
+- Added a method list_users, register_users
 
 ### Fixes
 
@@ -13,7 +14,8 @@
 - Fixed odd function options for copy collection
 - The geodb setup procedure can now accept a connection or database connection parameter
 - The geodb SQL setup does not fail anymore when items exist already
-
+- Renamed method post to _post to be in line with all other rest methods
+- Ensured that renaming collections throws an error when the rename-to-database does not exist or the user does not have access to teh new database
 ## v0.1.11
 
 ### New Features
