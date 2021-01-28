@@ -614,7 +614,7 @@ class GeoDBClient(object):
         from_dn = f"{database}_{collection}"
         to_dn = f"{new_database}_{new_collection}"
 
-        self._post(path='/rpc/geodb_copy_collection', payload={'collection': from_dn, 'new_name': to_dn})
+        self._post(path='/rpc/geodb_copy_collection', payload={'old_collection': from_dn, 'new_collection': to_dn})
 
     def publish_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
