@@ -68,6 +68,19 @@ CREATE TABLE IF NOT EXISTS public.geodb_user_databases
     )
     TABLESPACE pg_default;
 
+
+CREATE OR REPLACE FUNCTION public.notify_ddl_postgrest()
+    RETURNS event_trigger
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    NOTIFY ddl_command_end;
+END;
+$$;
+
+CREATE EVENT TRIGGER ddl_postgrest ON ddl_command_end
+EXECUTE PROCEDURE public.notify_ddl_postgrest();
+
 -- FUNCTION: public.geodb_create_collection(text, json, text)
 
 -- DROP FUNCTION public.geodb_create_collection(text, json, text);

@@ -7,6 +7,8 @@
 - The postgis extension is now created when executing geodb--*.sql
 - Added the jupyter lab GitHub extension to the docker image 
 - Added a method list_users, register_users
+- Added a deprecation warning if '3.120.53.215.nip.io' is used as 
+  server address.
 
 ### Fixes
 

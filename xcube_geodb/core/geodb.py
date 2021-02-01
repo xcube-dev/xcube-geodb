@@ -19,6 +19,14 @@ import warnings
 import functools
 
 
+def warn(msg: str):
+    warnings.simplefilter('always', DeprecationWarning)  # turn off filter
+    warnings.warn(msg,
+                  category=DeprecationWarning,
+                  stacklevel=2)
+    warnings.simplefilter('ignore', DeprecationWarning)  # reset filter
+
+
 def deprecated_func(msg: Optional[str] = None):
     def decorator(func):
         """This is a decorator which can be used to mark functions
@@ -31,7 +39,7 @@ def deprecated_func(msg: Optional[str] = None):
             warnings.warn("Call to deprecated function '{}'. {}".format(func.__name__, msg + '.' if msg else ''),
                           category=DeprecationWarning,
                           stacklevel=2)
-            warnings.simplefilter('default', DeprecationWarning)  # reset filter
+            warnings.simplefilter('ignore', DeprecationWarning)  # reset filter
             return func(*args, **kwargs)
 
         return wrapper
@@ -58,7 +66,7 @@ def deprecated_kwarg(deprecated_arg: str, new_arg: Optional[str], msg: Optional[
                               f"function '{func.__name__}'. {new_arg_msg} {msg + '.' if msg else ''}",
                               category=DeprecationWarning,
                               stacklevel=2)
-                warnings.simplefilter('default', DeprecationWarning)  # reset filter
+                warnings.simplefilter('ignore', DeprecationWarning)  # reset filter
             return func(*args, **kwargs)
 
         return wrapper
@@ -138,6 +146,7 @@ class GeoDBClient(object):
 
         self._whoami = None
         self._ipython_shell = None
+        self._verify_ssl = True
 
         self._mandatory_properties = ["geometry", "id", "created_at", "modified_at"]
 
@@ -148,7 +157,16 @@ class GeoDBClient(object):
 
         if self._auth_mode == "interactive":
             raise NotImplementedError("The interactive mode has not been implemented.")
-            #self._auth_login()
+            # self._auth_login()
+
+        if "3.120.53.215.nip.io" in self._server_url:
+            self._verify_ssl = False
+            msg = f"The geodb server address {self._server_url} is deprecated for security reasons. Please use " \
+                  f"'https://xcube-geodb.brockmann-consult.de'. You can set the address via an environment " \
+                  f"variable (GEODB_API_SERVER_URL = 'https://stage.xcube-geodb.brockmann-consult.de') or" \
+                  f"by passing the new URL into the client constructor: " \
+                  f"geodb=GeoDBClient(server_url='https://xcube-geodb.brockmann-consult.de')"
+            warn(msg=msg)
 
     def _set_from_env(self):
         self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url
@@ -307,9 +325,11 @@ class GeoDBClient(object):
         r = None
         try:
             if common_headers['Content-type'] == 'text/csv':
-                r = requests.post(self._get_full_url(path=path), data=payload, params=params, headers=common_headers)
+                r = requests.post(self._get_full_url(path=path), verify=self._verify_ssl, data=payload, params=params,
+                                  headers=common_headers)
             else:
-                r = requests.post(self._get_full_url(path=path), json=payload, params=params, headers=common_headers)
+                r = requests.post(self._get_full_url(path=path), verify=self._verify_ssl, json=payload, params=params,
+                                  headers=common_headers)
             if raise_for_status:
                 r.raise_for_status()
         except requests.exceptions.HTTPError:
@@ -339,7 +359,7 @@ class GeoDBClient(object):
 
         r = None
         try:
-            r = requests.get(self._get_full_url(path=path), params=params, headers=headers)
+            r = requests.get(self._get_full_url(path=path), verify=self._verify_ssl, params=params, headers=headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError:
             raise GeoDBError(r.json())
@@ -368,7 +388,7 @@ class GeoDBClient(object):
 
         r = None
         try:
-            r = requests.delete(self._get_full_url(path=path), params=params, headers=headers)
+            r = requests.delete(self._get_full_url(path=path), verify=self._verify_ssl, params=params, headers=headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError:
             raise GeoDBError(r.json())
@@ -397,7 +417,8 @@ class GeoDBClient(object):
 
         r = None
         try:
-            r = requests.patch(self._get_full_url(path=path), json=payload, params=params, headers=headers)
+            r = requests.patch(self._get_full_url(path=path), verify=self._verify_ssl, json=payload, params=params,
+                               headers=headers)
             r.raise_for_status()
         except requests.HTTPError:
             raise GeoDBError(r.json())
@@ -450,7 +471,7 @@ class GeoDBClient(object):
     def create_collections(self,
                            collections: Dict,
                            database: Optional[str] = None,
-                           clear:bool = False,
+                           clear: bool = False,
                            **kwargs) -> Union[Collections, Message]:
         """
 
@@ -497,7 +518,7 @@ class GeoDBClient(object):
                           properties: Dict,
                           crs: int = 4326,
                           database: Optional[str] = None,
-                          clear: bool=False,
+                          clear: bool = False,
                           **kwargs) -> Collections:
         """
 
@@ -861,7 +882,7 @@ class GeoDBClient(object):
 
         return self.get_collection(collection='user_databases', database='geodb', query=f'owner=eq.{self.whoami}')
 
-    def database_exists(self, database: str)-> bool:
+    def database_exists(self, database: str) -> bool:
         """
         Checkes whether a database exists
 
