@@ -146,7 +146,6 @@ class GeoDBClient(object):
 
         self._whoami = None
         self._ipython_shell = None
-        self._verify_ssl = True
 
         self._mandatory_properties = ["geometry", "id", "created_at", "modified_at"]
 
@@ -160,7 +159,6 @@ class GeoDBClient(object):
             # self._auth_login()
 
         if "3.120.53.215.nip.io" in self._server_url:
-            self._verify_ssl = False
             msg = f"The geodb server address {self._server_url} is deprecated for security reasons. Please use " \
                   f"'https://xcube-geodb.brockmann-consult.de'. You can set the address via an environment " \
                   f"variable (GEODB_API_SERVER_URL = 'https://stage.xcube-geodb.brockmann-consult.de') or" \
@@ -325,11 +323,9 @@ class GeoDBClient(object):
         r = None
         try:
             if common_headers['Content-type'] == 'text/csv':
-                r = requests.post(self._get_full_url(path=path), verify=self._verify_ssl, data=payload, params=params,
-                                  headers=common_headers)
+                r = requests.post(self._get_full_url(path=path), data=payload, params=params, headers=common_headers)
             else:
-                r = requests.post(self._get_full_url(path=path), verify=self._verify_ssl, json=payload, params=params,
-                                  headers=common_headers)
+                r = requests.post(self._get_full_url(path=path), json=payload, params=params, headers=common_headers)
             if raise_for_status:
                 r.raise_for_status()
         except requests.exceptions.HTTPError:
@@ -359,7 +355,7 @@ class GeoDBClient(object):
 
         r = None
         try:
-            r = requests.get(self._get_full_url(path=path), verify=self._verify_ssl, params=params, headers=headers)
+            r = requests.get(self._get_full_url(path=path), params=params, headers=headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError:
             raise GeoDBError(r.json())
@@ -388,7 +384,7 @@ class GeoDBClient(object):
 
         r = None
         try:
-            r = requests.delete(self._get_full_url(path=path), verify=self._verify_ssl, params=params, headers=headers)
+            r = requests.delete(self._get_full_url(path=path), params=params, headers=headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError:
             raise GeoDBError(r.json())
@@ -417,7 +413,7 @@ class GeoDBClient(object):
 
         r = None
         try:
-            r = requests.patch(self._get_full_url(path=path), verify=self._verify_ssl, json=payload, params=params,
+            r = requests.patch(self._get_full_url(path=path), json=payload, params=params,
                                headers=headers)
             r.raise_for_status()
         except requests.HTTPError:
