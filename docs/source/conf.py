@@ -136,11 +136,11 @@ autodoc_mock_imports = [
     'dotenv'
 ]
 
-redoc = [
-    {
-        'name': 'GeoDB',
-        'page': 'openapi2',
-        'spec': 'swagger/geodb.json',
-        'embed': True
-    }
-]
+# redoc = [
+#     {
+#         'name': 'GeoDB',
+#         'page': 'openapi2',
+#         'spec': 'swagger/geodb.json',
+#         'embed': True
+#     }
+# ]
