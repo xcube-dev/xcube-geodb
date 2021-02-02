@@ -11,9 +11,9 @@ geodb has been developed to generate, manipulate, analyse, and publish data cube
    :maxdepth: 1
 
    installation
-   ../notebooks/geodb_manage_collections.ipynb
-   working/geodb_share_collections.ipynb
-   working/geodb_explore_collections.ipynb
+   notebooks/geodb_manage_collections.ipynb
+   notebooks/geodb_share_collections.ipynb
+   notebooks/geodb_explore_collections.ipynb
 
 
 .. toctree::

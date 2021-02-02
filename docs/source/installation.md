@@ -2,7 +2,7 @@
 # Installation
 
 In this chapter we will describe how to install the geoDB Python client. The client accesses 
-a [postgrest]() instance as an web API to a PostGreSQL instance. We will in principle describe 
+a [postgrest](https://postgrest.org) instance as an web API to a PostGreSQL instance. We will in principle describe 
 how to setup the backend.   
   
 ## Installing the geodb package using conda
