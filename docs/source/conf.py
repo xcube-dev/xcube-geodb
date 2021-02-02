@@ -10,11 +10,11 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-#
-# src_root = os.path.abspath('../../notebooks')
-# sys.path.insert(0, src_root)
+import os
+import sys
+
+src_root = os.path.abspath('../..')
+sys.path.insert(0, src_root)
 
 # noinspection PyUnresolvedReferences
 import recommonmark
