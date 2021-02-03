@@ -9,6 +9,7 @@
 - Added a method list_users, register_users
 - Added a deprecation warning if '3.120.53.215.nip.io' is used as 
   server address.
+- version is now a static propery of the geoDB client 
 
 ### Fixes
 
