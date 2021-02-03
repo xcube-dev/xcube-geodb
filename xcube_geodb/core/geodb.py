@@ -81,7 +81,7 @@ class GeoDBError(ValueError):
 # noinspection PyShadowingNames,PyUnusedLocal
 class GeoDBClient(object):
     """
-    Constructing the geoDB client. Dpending on teh setup it will automatically setup credentials from
+    Constructing the geoDB client. Dpending on the setup it will automatically setup credentials from
     environment variables. The user can also pass credentials into the constructor.
 
     Args:
@@ -516,7 +516,7 @@ class GeoDBClient(object):
 
         Args:
             collection (str): The name of the collection to be created
-            properties (Dict): Properties to be added to teh collection
+            properties (Dict): Properties to be added to the collection
             crs (int): projection
             database (str): The database the collection is to be created in [current database]
             kwargs: Placeholder for deprecated parameters
@@ -652,7 +652,7 @@ class GeoDBClient(object):
 
         Args:
             collection (str): Name of the collection to be dropped
-            database (str): The database teh colections resides in [current database]
+            database (str): The database the colections resides in [current database]
             kwargs: Placeholder for deprecated options
 
         Returns:
@@ -671,7 +671,7 @@ class GeoDBClient(object):
         """
 
         Args:
-            database (str): The database teh colections resides in [current database]
+            database (str): The database the colections resides in [current database]
             collections (Sequence[str]): Collections to be dropped
             kwargs: Placeholder for deprecated options
 
@@ -926,7 +926,7 @@ class GeoDBClient(object):
         """
         Drop a property from a collection
         Args:
-            collection (str): The name of teh collection to drop the property from
+            collection (str): The name of the collection to drop the property from
             prop (str): The property to delete
             database (str): The database the collection resides in [current database]
 
@@ -1004,7 +1004,7 @@ class GeoDBClient(object):
         Create a database
 
         Args:
-            database (str): The name of teh database to be created
+            database (str): The name of the database to be created
 
         Returns:
             Message: A message about the success or failure of the operation
@@ -1022,7 +1022,7 @@ class GeoDBClient(object):
         Delete all tables in the given database
 
         Args:
-            database (str): The name of teh database to be created
+            database (str): The name of the database to be created
 
         Returns:
             Message: A message about the success or failure of the operation
@@ -1176,7 +1176,7 @@ class GeoDBClient(object):
 
         Args:
             collection (str): Collection to be inserted to
-            database (str): The name of the database teh collection resides in [current database]
+            database (str): The name of the database the collection resides in [current database]
             values (GeoDataFrame): Values to be inserted
             upsert (bool): Whether the insert shall replace existing rows (by PK)
             crs (int): crs (in the form of an SRID) of the geometries. If not present, the method will attempt
