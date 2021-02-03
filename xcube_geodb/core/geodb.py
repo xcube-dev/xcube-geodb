@@ -199,11 +199,12 @@ class GeoDBClient(object):
         self._auth_access_token_uri = os.getenv('GEODB_AUTH_ACCESS_TOKEN_URI') or self._auth_access_token_uri
         self._database = os.getenv('GEODB_DATABASE') or self._database
 
-    def get_collection_info(self, collection: str) -> Dict:
+    def get_collection_info(self, collection: str, database: Optional[str] = None) -> Dict:
         """
 
         Args:
             collection (str): The name of the collection to inspect
+            database (str): The database the database resides in [current database]
 
         Returns:
             A dictionary with collection information
@@ -229,7 +230,9 @@ class GeoDBClient(object):
             }
         """
         capabilities = self.capabilities
-        collection = self.database + '_' + collection
+        database = database or self.database
+
+        collection = database + '_' + collection
 
         if collection in capabilities['definitions']:
             return capabilities['definitions'][collection]
@@ -1240,6 +1243,33 @@ class GeoDBClient(object):
 
         return Message(f"{total_rows} rows inserted into {collection}")
 
+    @staticmethod
+    def transform_bbox_crs(bbox: Tuple[float, float, float, float], from_crs: int, to_crs: int):
+        """
+        This function can be used to reproject bboxes particularly with the use of GeoDBClient.get_collection_by_bbox.
+
+        Args:
+            bbox Tuple[float, float, float, float]: bbox to be reprojected
+            from_crs: Source crs e.g. 3974
+            to_crs: Target crs e.g. 4326
+
+        Returns:
+            Tuple[float, float, float, float]: The reprojected bounding box
+
+        Examples:
+             >>> bbox = transform_bbox_crs(bbox=(450000, 100000, 470000, 110000), from_crs=3794, to_crs=4326)
+             >>> bbox
+             (49.36588643725233, 46.012889756941775, 14.311548793848758, 9.834303086688251)
+
+        """
+        from pyproj import Transformer
+
+        transformer = Transformer.from_crs(f"EPSG:{from_crs}", f"EPSG:{to_crs}")
+        p1 = transformer.transform(bbox[0], bbox[2])
+        p2 = transformer.transform(bbox[1], bbox[3])
+
+        return (p1[0], p2[0], p1[1], p2[1])
+
     @deprecated_kwarg('namespace', 'database')
     def get_collection_by_bbox(self, collection: str,
                                bbox: Tuple[float, float, float, float],
@@ -1252,7 +1282,11 @@ class GeoDBClient(object):
                                database: Optional[str] = None,
                                **kwargs) -> GeoDataFrame:
         """
-        Query the database by a boundnng box.
+        Query the database by a bounding box. Please be careful with the bbox crs. The easiest is
+        using the same crs as the collection. However, if the bbox crs differs from the collection,
+        the geoDB client will attempt to automatially transform the bbox crs according to the collection's crs.
+        You can also directly use the method GeoDBClient.transform_bbox_crs yourself before you pass the bbox into
+        this method.
 
         Args:
             collection (str): The name of teh collection to be quried
@@ -1263,7 +1297,7 @@ class GeoDBClient(object):
             where (str): Additional SQL where statement to further filter the collection
             limit (int): The maximum number of rows to be returned
             offset (int): Offset (start) of rows to return. Used in combination with limit.
-            database (str): The name of the database teh collection resides in [current database]
+            database (str): The name of the database the collection resides in [current database]
 
         Returns:
             A GeoPandas Dataframe
@@ -1282,6 +1316,12 @@ class GeoDBClient(object):
 
         self._raise_for_collection_exists(collection=dn)
         self._raise_for_stored_procedure_exists('geodb_get_by_bbox')
+
+        coll_crs = self.get_collection_srid(collection=collection, database=database)
+
+        if coll_crs != bbox_crs:
+            bbox = self.transform_bbox_crs(bbox, bbox_crs, coll_crs)
+            bbox_crs = coll_crs
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
@@ -1315,7 +1355,7 @@ class GeoDBClient(object):
         Args:
             collection (str): The collection's name
             num_lines (int): The number of line to return
-            database (str): The name of the database teh collection resides in [current database]
+            database (str): The name of the database the collection resides in [current database]
 
         Returns:
             GeoDataFrame or DataFrame: results
@@ -1341,7 +1381,7 @@ class GeoDBClient(object):
         Args:
             collection (str): The collection's name
             query (str): A query. Follow the http://postgrest.org/en/v6.0/api.html query convention.
-            database (str): The name of the database teh collection resides in [current database]
+            database (str): The name of the database the collection resides in [current database]
 
         Returns:
             GeoDataFrame or DataFrame: results
@@ -1406,7 +1446,7 @@ class GeoDBClient(object):
             order (Optional[str]): SQL ORDER statement
             limit (Optional[int]): Limit for paging
             offset (Optional[int]): Offset (start) of rows to return. Used in combination with limit.
-            database (str): The name of the database teh collection resides in [current database]
+            database (str): The name of the database the collection resides in [current database]
 
         Returns:
             GeoDataFrame or DataFrame: results
@@ -1615,8 +1655,12 @@ class GeoDBClient(object):
         Raises:
             GeoDBError on invalid configuration
         """
-        if self._auth_username and self._auth_password and self._auth_client_id and self._auth_client_secret \
-                and self._auth_aud == "password":
+        if self._auth_username \
+                and self._auth_password \
+                and self._auth_client_id \
+                and self._auth_client_secret \
+                and self._auth_aud  \
+                and self._auth_mode == "password":
             return True
         else:
             raise GeoDBError("System: Invalid password flow configuration")
@@ -1631,7 +1675,10 @@ class GeoDBClient(object):
         Raises:
             GeoDBError on invalid configuration
         """
-        if self._auth_client_id and self._auth_client_secret and self._auth_aud == "client-credentials":
+        if self._auth_client_id \
+                and self._auth_client_secret \
+                and self._auth_aud \
+                and self._auth_mode == "client-credentials":
             return True
         else:
             raise GeoDBError("System: Invalid client_credentials configuration.")
