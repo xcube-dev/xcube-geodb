@@ -1289,7 +1289,7 @@ class GeoDBClient(object):
         this method.
 
         Args:
-            collection (str): The name of teh collection to be quried
+            collection (str): The name of the collection to be quried
             bbox (int, int, int, int): minx, maxx, miny, maxy
             comparison_mode (str): Filter mode. Can be 'contains' or 'within' ['contains']
             bbox_crs (int): Projection code. [4326]
