@@ -78,8 +78,8 @@ BEGIN
 END;
 $$;
 
-CREATE EVENT TRIGGER ddl_postgrest ON ddl_command_end
-EXECUTE PROCEDURE public.notify_ddl_postgrest();
+DROP EVENT TRIGGER IF EXISTS ddl_postgrest;
+CREATE EVENT TRIGGER ddl_postgrest ON ddl_command_end EXECUTE PROCEDURE public.notify_ddl_postgrest();
 
 -- FUNCTION: public.geodb_create_collection(text, json, text)
 
@@ -97,6 +97,8 @@ $BODY$
 DECLARE
     ct INT;
 BEGIN
+    -- noinspection SqlAggregates
+
     SELECT COUNT(*) as ct
     FROM geodb_user_databases
     WHERE collection LIKE name || '_%'
@@ -129,6 +131,8 @@ DECLARE
     ct  INT;
 BEGIN
     usr := (SELECT geodb_whoami());
+
+    -- noinspection SqlAggregates
 
     SELECT COUNT(*) as ct FROM geodb_user_databases WHERE name = database INTO ct;
 
@@ -749,7 +753,7 @@ $$;
 -- DROP FUNCTION public.geodb_check_user_grants(text);
 
 CREATE OR REPLACE FUNCTION public.geodb_check_user_grants(grt text)
-    RETURNS void
+    RETURNS boolean
     LANGUAGE 'plpgsql'
     COST 100
     VOLATILE PARALLEL UNSAFE
@@ -766,6 +770,8 @@ BEGIN
     IF ct = 0 THEN
         raise 'Not enough access rights to perform this operation: %', grt;
     END IF;
+
+    RETURN TRUE;
 END
 $$;
 
