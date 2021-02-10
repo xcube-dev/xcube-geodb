@@ -1,4 +1,4 @@
-## v0.1.12 dev
+## v0.1.12
 
 ### New Features
 
