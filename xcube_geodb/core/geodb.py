@@ -213,6 +213,7 @@ class GeoDBClient(object):
             GeoDBError: When the collection does not exist
 
         Examples:
+            >>> geodb = GeoDBClient(auth_mode='client_credentials', client_id='***', client_secret='***')
             >>> geodb.get_collection_info('my_collection')
             {
                 'required': ['id', 'geometry'],
@@ -253,6 +254,7 @@ class GeoDBClient(object):
             A Dataframe of collection names
 
         Examples:
+            >>> geodb = GeoDBClient(auth_mode='client_credentials', client_id='***', client_secret='***')
             >>> geodb.get_my_collections()
             	owner	                        database	                    table_name
             0	geodb_9bfgsdfg-453f-445b-a459	geodb_9bfgsdfg-453f-445b-a459	land_use
@@ -498,6 +500,7 @@ class GeoDBClient(object):
             A dict containing the usage in bytes (int) or as a human readable string
 
         Example:
+            >>> geodb = GeoDBClient()
             >>> geodb.get_my_usage(True)
             {'usage': '6432 kB'}
         """
@@ -580,11 +583,10 @@ class GeoDBClient(object):
             bool: Success
 
         Examples:
-
             >>> geodb = GeoDBClient()
-            >>> colls = {'[MyCollection]': {'crs': 1234, 'properties': \
-                {'[MyProp1]': 'float', '[MyProp2]': 'date'}}}
-            >>> geodb.create_collections(colls)
+            >>> collections = {'[MyCollection]': {'crs': 1234, 'properties': \
+                    {'[MyProp1]': 'float', '[MyProp2]': 'date'}}}
+            >>> geodb.create_collections(collections)
         """
 
         self._refresh_capabilities()
@@ -595,7 +597,7 @@ class GeoDBClient(object):
             return Message("Database does not exist.")
 
         if clear:
-            self.drop_collections(collections=collections, database=database)
+            self.drop_collections(collections=collections, database=database, cascade=True)
 
         buffer = {}
         for collection in collections:
@@ -647,12 +649,15 @@ class GeoDBClient(object):
         return self.create_collections(collections=collections, database=database, clear=clear)
 
     @deprecated_kwarg('namespace', 'database')
-    def drop_collection(self, collection: str, database: Optional[str] = None, **kwargs) -> Message:
+    def drop_collection(self, collection: str, cascade: bool = False, database: Optional[str] = None,
+                        **kwargs) -> Message:
         """
 
         Args:
             collection (str): Name of the collection to be dropped
             database (str): The database the colections resides in [current database]
+            cascade (bool): Drop in cascade mode. This can be necessary if e.g. sequences have not been
+                            deleted properly
             kwargs: Placeholder for deprecated options
 
         Returns:
@@ -664,15 +669,18 @@ class GeoDBClient(object):
         """
 
         database = database or self.database
-        return self.drop_collections([collection], database)
+        return self.drop_collections(collections=[collection], database=database, cascade=True)
 
     @deprecated_kwarg('namespace', 'database')
-    def drop_collections(self, collections: Sequence[str], database: Optional[str] = None, **kwargs) -> Message:
+    def drop_collections(self, collections: Sequence[str], cascade: bool = False, database: Optional[str] = None,
+                         **kwargs) -> Message:
         """
 
         Args:
             database (str): The database the colections resides in [current database]
             collections (Sequence[str]): Collections to be dropped
+            cascade (bool): Drop in cascade mode. This can be necessary if e.g. sequences have not been
+                            deleted properly
             kwargs: Placeholder for deprecated options
 
         Returns:
@@ -687,9 +695,10 @@ class GeoDBClient(object):
 
         database = database or self.database
         collections = [database + '_' + collection for collection in collections]
+        payload = {'collections': collections, 'cascade': 'TRUE' if cascade else 'FALSE'}
 
         try:
-            self._post(path='/rpc/geodb_drop_collections', payload={'collections': collections})
+            self._post(path='/rpc/geodb_drop_collections', payload=payload)
             return Message(f"Collection {str(collections)} deleted")
         except GeoDBError as e:
             return Message(f"Error: {str(e)}")
@@ -712,6 +721,7 @@ class GeoDBClient(object):
             HttpError: when http request fails
 
         Examples:
+            >>> geodb = GeoDBClient()
             >>> geodb.grant_access_to_collection('[Collection]', '[User who gets access]')
             Access granted on Collection to User who gets access}
         """
@@ -751,6 +761,7 @@ class GeoDBClient(object):
             database (str): The database the collection resides in
 
         Examples:
+            >>> geodb = GeoDBClient()
             >>> geodb.move_collection('[Collection]', '[New Database]')
         """
 
@@ -770,6 +781,7 @@ class GeoDBClient(object):
             new_database (str): The database the collection will be copied to
 
         Examples:
+            >>> geodb = GeoDBClient()
             >>> geodb.copy_collection('[Collection]', '[New Collection]')
         """
 
@@ -790,6 +802,7 @@ class GeoDBClient(object):
             Message: Message whether operation succeeded
 
         Examples:
+            >>> geodb = GeoDBClient()
             >>> geodb.publish_collection('[Collection]')
         """
         try:
@@ -813,6 +826,7 @@ class GeoDBClient(object):
             Message: Message whether operation succeeded
 
         Examples:
+            >>> geodb = GeoDBClient()
             >>> geodb.unpublish_collection('[Collection]')
         """
 
@@ -1249,7 +1263,7 @@ class GeoDBClient(object):
         This function can be used to reproject bboxes particularly with the use of GeoDBClient.get_collection_by_bbox.
 
         Args:
-            bbox Tuple[float, float, float, float]: bbox to be reprojected
+            bbox: Tuple[float, float, float, float]: bbox to be reprojected
             from_crs: Source crs e.g. 3974
             to_crs: Target crs e.g. 4326
 
@@ -1257,7 +1271,7 @@ class GeoDBClient(object):
             Tuple[float, float, float, float]: The reprojected bounding box
 
         Examples:
-             >>> bbox = transform_bbox_crs(bbox=(450000, 100000, 470000, 110000), from_crs=3794, to_crs=4326)
+             >>> bbox = GeoDBClient.transform_bbox_crs(bbox=(450000, 100000, 470000, 110000), from_crs=3794, to_crs=4326)
              >>> bbox
              (49.36588643725233, 46.012889756941775, 14.311548793848758, 9.834303086688251)
 
@@ -1268,7 +1282,7 @@ class GeoDBClient(object):
         p1 = transformer.transform(bbox[0], bbox[2])
         p2 = transformer.transform(bbox[1], bbox[3])
 
-        return (p1[0], p2[0], p1[1], p2[1])
+        return p1[0], p2[0], p1[1], p2[1]
 
     @deprecated_kwarg('namespace', 'database')
     def get_collection_by_bbox(self, collection: str,
@@ -1290,7 +1304,7 @@ class GeoDBClient(object):
 
         Args:
             collection (str): The name of the collection to be quried
-            bbox (int, int, int, int): minx, maxx, miny, maxy
+            bbox (Tuple[float, float, float, float]): minx, maxx, miny, maxy
             comparison_mode (str): Filter mode. Can be 'contains' or 'within' ['contains']
             bbox_crs (int): Projection code. [4326]
             op (str): Operator for where (AND, OR) ['AND']
@@ -1320,7 +1334,7 @@ class GeoDBClient(object):
         coll_crs = self.get_collection_srid(collection=collection, database=database)
 
         if coll_crs != bbox_crs:
-            bbox = self.transform_bbox_crs(bbox, bbox_crs, coll_crs)
+            bbox = self.transform_bbox_crs(bbox, bbox_crs, int(coll_crs))
             bbox_crs = coll_crs
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
@@ -1659,7 +1673,7 @@ class GeoDBClient(object):
                 and self._auth_password \
                 and self._auth_client_id \
                 and self._auth_client_secret \
-                and self._auth_aud  \
+                and self._auth_aud \
                 and self._auth_mode == "password":
             return True
         else:
