@@ -80,6 +80,22 @@ class GeoDBError(ValueError):
 
 # noinspection PyShadowingNames,PyUnusedLocal
 class GeoDBClient(object):
+    """
+
+    Args:
+        server_url (str): The URL of the PostGrest Rest API service
+        server_port (str): The port to the PostGrest Rest API service
+        client_id (str): Client ID (overrides environment variables)
+        client_secret (str): Client secret (overrides environment variables)
+        auth_mode (str): Authentication mode [silent]. Can be 'client-credentials', 'password' and 'interactive'
+        auth_aud (str): Authentication audience
+        username Optional[str]: User name when auth_mode is 'password'
+        password Optional[str]: Password when auth_mode is 'password'
+        database Optional[str]: Default database [current user name]
+        config_file (str): Filename that stores config info for the geodb client
+        dotenv_file (str): Name of the dotenv file [.env] to set client IDs and secrets
+    """
+
     def __init__(self,
                  server_url: Optional[str] = None,
                  server_port: Optional[int] = None,
@@ -94,18 +110,6 @@ class GeoDBClient(object):
                  config_file: str = str(Path.home()) + '/.geodb',
                  database: Optional[str] = None,
                  access_token_uri: Optional[str] = None):
-        """
-
-        Args:
-            server_url (str): The URL of the PostGrest Rest API service
-            server_port (str): The port to the PostGrest Rest API service
-            dotenv_file (str): Name of the dotenv file [.env] to set client IDs and secrets
-            client_secret (str): Client secret (overrides environment variables)
-            client_id (str): Client ID (overrides environment variables)
-            auth_mode (str): Authentication mode [silent]. Can be 'client-credentials', 'password' and 'interactive'
-            auth_aud (str): Authentication audience
-            config_file (str): Filename that stores config info for the geodb client
-        """
 
         self._dotenv_file = dotenv_file
         self._database = None

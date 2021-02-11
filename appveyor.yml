@@ -1,0 +1,73 @@
+#
+# This is a basic build configuration for Travis CI.
+# See http://conda.pydata.org/docs/travis.html for more info.
+#
+
+version: '{build}'
+
+image:
+  - macOS
+  - Ubuntu2004
+
+configuration: Release
+
+platform:
+  - x64
+
+os:
+  - linux
+  - osx
+  - windows
+
+
+for:
+-
+  matrix:
+    only:
+      - image: macos
+  install:
+    - curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh > miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+-
+  matrix:
+    only:
+      - image: Ubuntu2004
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+
+install:
+  - export PATH="$HOME/miniconda/bin:$PATH";
+  - export SKIP_PSQL_TESTS=1;
+  - hash -r
+  - conda install -y -c conda-forge mamba;
+  - conda info -a
+  - mamba env create
+  - source activate xcube_geodb
+  - mamba install -y -c conda-forge postgis;
+  - cd xcube_geodb/sql;
+  - make install;
+  - cd ../..;
+  - python setup.py install
+
+build_script:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      for f in xcube_geodb/sql/*.sql;
+        do
+          pgsanity $f;
+        done
+    fi
+  - py.test -v --cov=xcube_geodb
+  - pip install codecov
+  - codecov --env TRAVIS_PYTHON_VERSION
+  - for nb in notebooks/*.ipynb;
+    do
+      jupyter nbconvert --to python  --ExecutePreprocessor.kernel_name=python3 $nb;
+    done
+  - mv notebooks/data .
+  - mv notebooks/geodb_*.py .
+  - for nb in geodb_*.py;
+    do
+      echo "Testing ${nb}";
+      python $nb;
+    done
