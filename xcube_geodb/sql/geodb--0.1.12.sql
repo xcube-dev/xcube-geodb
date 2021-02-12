@@ -97,6 +97,8 @@ $BODY$
 DECLARE
     ct INT;
 BEGIN
+    -- noinspection SqlAggregates
+
     SELECT COUNT(*) as ct
     FROM geodb_user_databases
     WHERE collection LIKE name || '_%'
@@ -129,6 +131,8 @@ DECLARE
     ct  INT;
 BEGIN
     usr := (SELECT geodb_whoami());
+
+    -- noinspection SqlAggregates
 
     SELECT COUNT(*) as ct FROM geodb_user_databases WHERE name = database INTO ct;
 
