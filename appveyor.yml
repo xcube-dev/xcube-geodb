@@ -15,16 +15,14 @@ platform:
   - x64
 
 os:
-  - linux
-  - osx
-  - windows
-
+  - Ubuntu2004
+  - macOS
 
 for:
 -
   matrix:
     only:
-      - image: macos
+      - image: macOs
   install:
     - curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh > miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
