@@ -6,35 +6,18 @@
 version: '{build}'
 
 image:
-  - macOS
-  - Ubuntu2004
+  - Ubuntu
 
 configuration: Release
 
 platform:
   - x64
 
-os:
-  - Ubuntu2004
-  - macOS
-
 for:
 -
-  matrix:
-    only:
-      - image: macOs
-  install:
-    - curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh > miniconda.sh
-    - bash miniconda.sh -b -p $HOME/miniconda
--
-  matrix:
-    only:
-      - image: Ubuntu2004
-  install:
-    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-    - bash miniconda.sh -b -p $HOME/miniconda
-
 install:
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH";
   - export SKIP_PSQL_TESTS=1;
   - hash -r
@@ -49,12 +32,10 @@ install:
   - python setup.py install
 
 build_script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      for f in xcube_geodb/sql/*.sql;
+  - for f in xcube_geodb/sql/*.sql;
         do
           pgsanity $f;
         done
-    fi
   - py.test -v --cov=xcube_geodb
   - pip install codecov
   - codecov --env TRAVIS_PYTHON_VERSION
