@@ -311,6 +311,14 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual(ident, 'dd')
         self.assertEqual(str(geo), exp_geo)
 
+    def test_reproject_bbox(self, m):
+        bbox_expected = (49.36588643725233, 46.012889756941775, 14.311548793848758, 9.834303086688251)
+
+        bbox = GeoDBClient.transform_bbox_crs(bbox=(450000, 100000, 470000, 110000), from_crs=3794, to_crs=4326)
+
+        self.assertEqual(bbox_expected, bbox)
+
+
     def test_delete_from_collection(self, m):
         path = '/helge_tt?id=eq.1'
         expected_response = 'success'

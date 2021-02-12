@@ -72,12 +72,14 @@ CREATE TABLE IF NOT EXISTS public.geodb_user_databases
 CREATE OR REPLACE FUNCTION public.notify_ddl_postgrest()
     RETURNS event_trigger
     LANGUAGE plpgsql
-AS $$
+AS
+$$
 BEGIN
     NOTIFY ddl_command_end;
 END;
 $$;
 
+DROP EVENT TRIGGER IF EXISTS ddl_postgrest;
 CREATE EVENT TRIGGER ddl_postgrest ON ddl_command_end
 EXECUTE PROCEDURE public.notify_ddl_postgrest();
 
@@ -307,8 +309,10 @@ BEGIN
 END
 $BODY$;
 
+-- geodb_drop_collections(json) has been replace by public.geodb_drop_collections(json, bool)
+DROP FUNCTION IF EXISTS public.geodb_drop_collections(json);
 
-CREATE OR REPLACE FUNCTION public.geodb_drop_collections(collections json)
+CREATE OR REPLACE FUNCTION public.geodb_drop_collections(collections json, "cascade" bool DEFAULT TRUE)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS
@@ -318,7 +322,11 @@ DECLARE
 BEGIN
     FOR collection_row IN SELECT collection FROM json_array_elements_text(collections) as collection
         LOOP
-            EXECUTE format('DROP TABLE %I', collection_row.collection);
+            IF "cascade" THEN
+                EXECUTE format('DROP TABLE %I CASCADE', collection_row.collection);
+            ELSE
+                EXECUTE format('DROP TABLE %I', collection_row.collection);
+            END IF;
         END LOOP;
 END
 $BODY$;
@@ -395,26 +403,31 @@ BEGIN
     END IF;
 
     qry := format('SELECT JSON_AGG(src) as js ' ||
-                  'FROM (SELECT owner,
-                              name as database,
-                              regexp_replace(table_name, name || ''_'', '''') as table_name
-                          FROM information_schema."tables"
-                          LEFT JOIN geodb_user_databases
-                              ON table_name LIKE name || ''_%%''
-                          WHERE table_schema = ''public''
-                              AND table_name NOT LIKE ''geodb_user%%''
-                              AND table_name NOT LIKE ''geodb_functions%%''
-                              AND table_name NOT LIKE ''geodb_size_log%%''
-                              AND table_name != ''spatial_ref_sys''
-                              AND table_name != ''geography_columns''
-                              AND table_name != ''geometry_columns''
-                              AND table_name != ''raster_columns''
-                              AND table_name != ''raster_overviews''
-                              AND table_name NOT LIKE ''pg_%%''
-                              AND owner IS NOT NULL
-                              %s
-                            ORDER BY owner, database, table_name
-
+                  '
+                  FROM (
+                    SELECT
+                        owner,
+                        db as database,
+                        regexp_replace(table_name, db || ''_'', '''') as table_name
+                    FROM
+                    (
+                        SELECT table_name,
+                           (SELECT name FROM geodb_user_databases WHERE table_name LIKE name || ''_%%'' ORDER BY name DESC LIMIT 1) AS db,
+                           (SELECT owner FROM geodb_user_databases WHERE table_name LIKE name || ''_%%'' ORDER BY name DESC LIMIT 1) AS owner
+                        FROM information_schema."tables"
+                        WHERE table_schema = ''public''
+                            AND table_name NOT LIKE ''geodb_user%%''
+                            AND table_name NOT LIKE ''geodb_functions%%''
+                            AND table_name NOT LIKE ''geodb_size_log%%''
+                            AND table_name != ''spatial_ref_sys''
+                            AND table_name != ''geography_columns''
+                            AND table_name != ''geometry_columns''
+                            AND table_name != ''raster_columns''
+                            AND table_name != ''raster_overviews''
+                            AND table_name NOT LIKE ''pg_%%''
+                        ORDER BY table_name
+                    ) as inf
+                    %s
                  ) AS src',
                   database_cond);
 
@@ -519,8 +532,8 @@ AS
 $BODY$
 DECLARE
     allowed INT;
-    usr TEXT;
-    qry TEXT;
+    usr     TEXT;
+    qry     TEXT;
 BEGIN
     usr := (SELECT geodb_whoami());
 
@@ -753,7 +766,7 @@ $$;
 -- DROP FUNCTION public.geodb_check_user_grants(text);
 
 CREATE OR REPLACE FUNCTION public.geodb_check_user_grants(grt text)
-    RETURNS void
+    RETURNS boolean
     LANGUAGE 'plpgsql'
     COST 100
     VOLATILE PARALLEL UNSAFE
@@ -770,6 +783,8 @@ BEGIN
     IF ct = 0 THEN
         raise 'Not enough access rights to perform this operation: %', grt;
     END IF;
+
+    RETURN TRUE;
 END
 $$;
 
@@ -967,7 +982,8 @@ BEGIN
     qry := format(
                                                                                                         'SELECT JSON_AGG(src) as js
                                                                                                          FROM (SELECT * FROM %I
-                                                                                                         WHERE (%s) %s %s(''SRID=%s;POLYGON((' || minx
+                                                                                                         WHERE (%s) %s %s(''SRID=%s;POLYGON((' ||
+                                                                                                        minx
                                                                                                     || ' ' || miny
                                                                                             || ', ' || maxx
                                                                                     || ' ' || miny

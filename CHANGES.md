@@ -9,6 +9,11 @@
 - Added a method list_users, register_users
 - Added a deprecation warning if '3.120.53.215.nip.io' is used as 
   server address.
+- version is now a static propery of the geoDB client
+- `get_collection_from_bbox` will now attempt to transform the bbix crs if teh crses differ between the 
+  bbox and the collection
+- Added the method `transform_bbox_crs` to manage the crs of bboxes
+- Added a cascade option to `GeoDBClient.drop_collections`
 
 ### Fixes
 
@@ -18,6 +23,9 @@
 - The geodb SQL setup does not fail anymore when items exist already
 - Renamed method post to _post to be in line with all other rest methods
 - Ensured that renaming collections throws an error when the rename-to-database does not exist or the user does not have access to teh new database
+- Get collection info has now a `database` option 
+- `GeoDBClient.get_my_collections `
+
 ## v0.1.11
 
 ### New Features
