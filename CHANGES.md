@@ -9,7 +9,7 @@
 - Added a method list_users, register_users
 - Added a deprecation warning if '3.120.53.215.nip.io' is used as 
   server address.
-- version is now a static propery of the geoDB client
+- version is now a static property of the geoDB client
 - `get_collection_from_bbox` will now attempt to transform the bbix crs if teh crses differ between the 
   bbox and the collection
 - Added the method `transform_bbox_crs` to manage the crs of bboxes
