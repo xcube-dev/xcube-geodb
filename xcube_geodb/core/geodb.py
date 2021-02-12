@@ -1751,7 +1751,7 @@ class GeoDBClient(object):
         try:
             return data['access_token']
         except KeyError:
-            raise GeoDBError("The authorization request did net return an access token.")
+            raise GeoDBError("The authorization request did not return an access token.")
 
     # noinspection PyMethodMayBeStatic
     def _validate(self, df: gpd.GeoDataFrame) -> bool:

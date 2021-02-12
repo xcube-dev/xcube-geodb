@@ -47,7 +47,7 @@ class GeoDBClientTest(unittest.TestCase):
         pass
 
     def set_global_mocks(self, m):
-        m._post(self._server_test_auth_domain + "/oauth/token", json={
+        m.post(self._server_test_auth_domain + "/oauth/token", json={
             "access_token": "A long lived token",
             "expires_in": 12345
         })
@@ -56,10 +56,10 @@ class GeoDBClientTest(unittest.TestCase):
         m.get(url, text=json.dumps("helge"))
 
         url = f"{self._server_full_address}/rpc/geodb_get_collection_srid"
-        m._post(url, text=json.dumps([{"src": [{"srid": 4326}]}]))
+        m.post(url, text=json.dumps([{"src": [{"srid": 4326}]}]))
 
     def set_auth_change_mocks(self, m):
-        m._post(self._server_test_auth_domain + "/oauth/token", json={
+        m.post(self._server_test_auth_domain + "/oauth/token", json={
             "access_token": "A long lived token but a different user",
             "expires_in": 12345
         })
@@ -72,7 +72,7 @@ class GeoDBClientTest(unittest.TestCase):
     def test_my_usage(self, m):
         # self.set_global_mocks(m)
 
-        m._post(self._server_test_auth_domain + "/oauth/token", json={
+        m.post(self._server_test_auth_domain + "/oauth/token", json={
             "access_token": "A long lived token",
             "expires_in": 12345
         })
@@ -80,7 +80,7 @@ class GeoDBClientTest(unittest.TestCase):
         expected_response = {'usage': "10MB"}
         server_response = [{'src': [expected_response]}]
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_my_usage"
-        m._post(url, text=json.dumps(server_response))
+        m.post(url, text=json.dumps(server_response))
 
         res = self._api.get_my_usage()
         self.assertDictEqual(expected_response, res)
@@ -88,7 +88,7 @@ class GeoDBClientTest(unittest.TestCase):
         expected_response = {'usage': "10000"}
         server_response = [{'src': [expected_response]}]
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_my_usage"
-        m._post(url, text=json.dumps(server_response))
+        m.post(url, text=json.dumps(server_response))
 
         res = self._api.get_my_usage(pretty=False)
         self.assertDictEqual(expected_response, res)
@@ -110,7 +110,7 @@ class GeoDBClientTest(unittest.TestCase):
         server_response = [{"src": server_response}]
 
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_my_collections"
-        m._post(url, text=json.dumps(server_response))
+        m.post(url, text=json.dumps(server_response))
 
         res = self._api.get_my_collections()
         self.assertIsInstance(res, pandas.DataFrame)
@@ -181,7 +181,7 @@ class GeoDBClientTest(unittest.TestCase):
     def test_create_database(self, m):
         expected_response = True
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
-        m._post(url, text=json.dumps(expected_response))
+        m.post(url, text=json.dumps(expected_response))
         self.set_global_mocks(m)
 
         res = self._api.create_database(database='test')
@@ -190,7 +190,7 @@ class GeoDBClientTest(unittest.TestCase):
     def test_truncate_database(self, m):
         expected_response = True
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_truncate_database"
-        m._post(url, text=json.dumps(expected_response))
+        m.post(url, text=json.dumps(expected_response))
         self.set_global_mocks(m)
 
         res = self._api.truncate_database(database='test')
@@ -199,9 +199,11 @@ class GeoDBClientTest(unittest.TestCase):
     def test_create_collection(self, m):
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
-        m._post(url, text=json.dumps(expected_response))
+        m.post(url, text=json.dumps(expected_response))
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
-        m._post(url, text=json.dumps(expected_response))
+        m.post(url, text=json.dumps(expected_response))
+        url = f"{self._server_test_url}:{self._server_test_port}/geodb_user_databases?name=eq.helge"
+        m.get(url, text=json.dumps('helge'))
         self.set_global_mocks(m)
 
         res = self._api.create_collection(collection='test', properties={'test_col': 'inger'})
@@ -210,9 +212,11 @@ class GeoDBClientTest(unittest.TestCase):
     def test_create_collection2(self, m):
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
-        m._post(url, text=json.dumps(expected_response))
+        m.post(url, text=json.dumps(expected_response))
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
-        m._post(url, text=json.dumps(expected_response))
+        m.post(url, text=json.dumps(expected_response))
+        url = f"{self._server_test_url}:{self._server_test_port}/geodb_user_databases?name=eq.helge"
+        m.get(url, text=json.dumps('helge'))
         self.set_global_mocks(m)
 
         res = self._api.create_collection(collection='test', properties={'test_col': 'inger'})
@@ -224,9 +228,11 @@ class GeoDBClientTest(unittest.TestCase):
                                                                                 'RABA_ID': 'float',
                                                                                 'RABA_PID': 'float'}}}}
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
-        m._post(url, text=json.dumps(expected_response))
+        m.post(url, text=json.dumps(expected_response))
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
-        m._post(url, text=json.dumps(expected_response))
+        m.post(url, text=json.dumps(expected_response))
+        url = f"{self._server_test_url}:{self._server_test_port}/geodb_user_databases?name=eq.helge"
+        m.get(url, text=json.dumps('helge'))
         self.set_global_mocks(m)
 
         collections = {
@@ -247,14 +253,14 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertDictEqual(expected_response, res.config)
 
         with self.assertWarns(DeprecationWarning) as e:
-            self._api.create_collections(collections=collections, namespace='ee')
+            self._api.create_collections(collections=collections, namespace='helge')
         msg = "Call to deprecated parameter 'namespace' in function 'create_collections'. Use 'database' instead. "
         self.assertEqual(msg, str(e.warning))
 
     def test_drop_collection(self, m):
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_drop_collections"
-        m._post(url, text=json.dumps(expected_response))
+        m.post(url, text=json.dumps(expected_response))
         self.set_global_mocks(m)
 
         res = self._api.drop_collection('test')
@@ -265,7 +271,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_add_properties"
-        m._post(url, text=json.dumps(expected_response))
+        m.post(url, text=json.dumps(expected_response))
 
         # noinspection PyTypeChecker
         res = self._api.add_properties('test', [{'name': 'test_col', 'type': 'insssssteger'}])
@@ -293,7 +299,7 @@ class GeoDBClientTest(unittest.TestCase):
         m.get(url=url, text=json.dumps({'paths': ['/rpc/geodb_get_by_bbox'],
                                         'definitions': ['helge_collection']}))
 
-        m._post(url + path, text=json.dumps(expected_response))
+        m.post(url + path, text=json.dumps(expected_response))
 
         gdf = self._api.get_collection_by_bbox(collection='collection',
                                                bbox=(452750.0, 88909.549, 464000.0, 102486.299))
@@ -372,7 +378,7 @@ class GeoDBClientTest(unittest.TestCase):
         expected_response = 'success'
 
         m.get(url=self._server_full_address, text=json.dumps({'definitions': ['tt']}))
-        m._post(self._server_full_address + path, text=expected_response)
+        m.post(self._server_full_address + path, text=expected_response)
         self.set_global_mocks(m)
 
         df = self.make_test_df()
@@ -392,7 +398,7 @@ class GeoDBClientTest(unittest.TestCase):
         path = '/rpc/geodb_list_grants'
         expected_response = [{'src': [{'table_name': 'test', 'grantee': 'ernie'}]}]
 
-        m._post(self._server_full_address + path, json=expected_response)
+        m.post(self._server_full_address + path, json=expected_response)
         self.set_global_mocks(m)
 
         r = self._api.list_my_grants()
@@ -403,7 +409,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         expected_response = []
 
-        m._post(self._server_full_address + path, json=expected_response)
+        m.post(self._server_full_address + path, json=expected_response)
         self.set_global_mocks(m)
 
         r = self._api.list_my_grants()
@@ -413,7 +419,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         expected_response = 'vijdasovjidasjo'
 
-        m._post(self._server_full_address + path, text=expected_response)
+        m.post(self._server_full_address + path, text=expected_response)
         self.set_global_mocks(m)
 
         with self.assertRaises(GeoDBError) as e:
@@ -424,7 +430,7 @@ class GeoDBClientTest(unittest.TestCase):
 
     @unittest.skip("Not yet implemented")
     def test_register_user_to_geoserver(self, m):
-        m._post(self._server_full_address + '/rpc/geodb_register_user', text="success")
+        m.post(self._server_full_address + '/rpc/geodb_register_user', text="success")
         self.set_global_mocks(m)
 
         # self._api.register_user_to_geoserver('mama', 'mamaspassword')
@@ -434,7 +440,7 @@ class GeoDBClientTest(unittest.TestCase):
                                                                     'paths': ['/rpc/geodb_get_pg']}))
 
         expected_result = {'src': []}
-        m._post(self._server_full_address + '/rpc/geodb_get_pg', json=expected_result)
+        m.post(self._server_full_address + '/rpc/geodb_get_pg', json=expected_result)
 
         self.set_global_mocks(m)
 
@@ -444,7 +450,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual("Collection helge_tesdsct does not exist", str(e.exception))
 
         expected_result = {'src': [{'count': 142, 'D_OD': '2019-03-21'}, {'count': 114, 'D_OD': '2019-02-20'}]}
-        m._post(self._server_full_address + '/rpc/geodb_get_pg', json=expected_result)
+        m.post(self._server_full_address + '/rpc/geodb_get_pg', json=expected_result)
 
         r = self._api.get_collection_pg('test', select='count(D_OD)', group='D_OD', limit=1, offset=2)
         self.assertIsInstance(r, DataFrame)
@@ -464,7 +470,7 @@ class GeoDBClientTest(unittest.TestCase):
             'RABA_PID': 5983161,
             'RABA_ID': 1100,
             'D_OD': '2019-03-11'}]}
-        m._post(self._server_full_address + '/rpc/geodb_get_pg', json=expected_result)
+        m.post(self._server_full_address + '/rpc/geodb_get_pg', json=expected_result)
 
         r = self._api.get_collection_pg('test', limit=1, offset=2)
         self.assertIsInstance(r, GeoDataFrame)
@@ -493,12 +499,12 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual("auth_mode can only be 'interactive', 'password', or 'client-credentials'!", str(e.exception))
 
     def test_auth_token(self, m):
-        m._post(self._server_test_auth_domain + "/oauth/token", json={"broken_access_token": "A long lived token"})
+        m.post(self._server_test_auth_domain + "/oauth/token", json={"broken_access_token": "A long lived token"})
 
         with self.assertRaises(ValueError) as e:
             access_token = self._api.auth_access_token
 
-        self.assertEqual("The authorization request did net return an access token. Please contact helpdesk.",
+        self.assertEqual("The authorization request did not return an access token.",
                          str(e.exception))
 
     def test_get_collection_info(self, m):
@@ -513,7 +519,7 @@ class GeoDBClientTest(unittest.TestCase):
                                           'geometry': {'format': 'public.geometry(Geometry,3794)', 'type': 'string'},
                                           'raba_pid': {'format': 'double precision', 'type': 'number'}},
                            'type': 'object'}
-        m._post(self._server_full_address + '/rpc/geodb_get_raw', json=expected_result)
+        m.post(self._server_full_address + '/rpc/geodb_get_raw', json=expected_result)
 
         expected_result = {'id': 'integer'}
         m.get(url=self._server_full_address + "/", text=json.dumps({'definitions': {'helge_test': expected_result},
