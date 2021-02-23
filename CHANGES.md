@@ -1,3 +1,7 @@
+## v0.1.13
+
+- In this version the default auth mode is `client-credentials` instead of `password`
+
 ## v0.1.12
 
 ### New Features
