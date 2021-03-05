@@ -1,4 +1,4 @@
-VERSION := 0.1.14.dev0
+VERSION := 0.1.14
 EXTENSION = geodb
 DATA = geodb--$(VERSION).sql
 
