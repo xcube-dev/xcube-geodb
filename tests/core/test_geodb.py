@@ -299,6 +299,8 @@ class GeoDBClientTest(unittest.TestCase):
         m.get(url=url, text=json.dumps({'paths': ['/rpc/geodb_get_by_bbox'],
                                         'definitions': ['helge_collection']}))
 
+        m.get(url=url + '/helge_collection?limit=10', json={'test': 1})
+
         m.post(url + path, text=json.dumps(expected_response))
 
         gdf = self._api.get_collection_by_bbox(collection='collection',
@@ -339,6 +341,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertTrue(r)
 
     def test_update_collection(self, m):
+        m.get(url=self._server_full_address + '/helge_tt?limit=10', json={'test': 1})
         path = '/helge_tt?id=eq.1'
         expected_response = 'success'
 
@@ -436,6 +439,8 @@ class GeoDBClientTest(unittest.TestCase):
         # self._api.register_user_to_geoserver('mama', 'mamaspassword')
 
     def test_filter_raw(self, m):
+        m.get(url=self._server_full_address + '/helge_test?limit=10', json={'test': 1})
+        m.get(url=self._server_full_address + '/helge_tesdsct?limit=10', json={}, status_code=404)
         m.get(url=self._server_full_address + "/", text=json.dumps({'definitions': ['helge_test'],
                                                                     'paths': ['/rpc/geodb_get_pg']}))
 
@@ -444,10 +449,10 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.set_global_mocks(m)
 
-        with self.assertRaises(ValueError) as e:
+        with self.assertRaises(GeoDBError) as e:
             self._api.get_collection_pg('tesdsct', select='min(tt)', group='tt', limit=1, offset=2)
 
-        self.assertEqual("Collection helge_tesdsct does not exist", str(e.exception))
+        self.assertEqual("Collection tesdsct does not exist", str(e.exception))
 
         expected_result = {'src': [{'count': 142, 'D_OD': '2019-03-21'}, {'count': 114, 'D_OD': '2019-02-20'}]}
         m.post(self._server_full_address + '/rpc/geodb_get_pg', json=expected_result)

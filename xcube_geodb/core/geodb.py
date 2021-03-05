@@ -260,6 +260,8 @@ class GeoDBClient(object):
             0	geodb_9bfgsdfg-453f-445b-a459	geodb_9bfgsdfg-453f-445b-a459	land_use
 
         """
+
+        database = database or self._database
         payload = {'database': database}
         r = self._post(path='/rpc/geodb_get_my_collections', payload=payload)
         js = r.json()[0]['src']
@@ -1129,7 +1131,7 @@ class GeoDBClient(object):
         database = database or self.database
         dn = database + '_' + collection
 
-        self._raise_for_collection_exists(collection=dn)
+        self._raise_for_collection_exists(collection=collection, database=database)
 
         if isinstance(values, Dict):
             if 'id' in values.keys():
@@ -1328,7 +1330,7 @@ class GeoDBClient(object):
         database = database or self.database
         dn = database + '_' + collection
 
-        self._raise_for_collection_exists(collection=dn)
+        self._raise_for_collection_exists(collection=collection, database=database)
         self._raise_for_stored_procedure_exists('geodb_get_by_bbox')
 
         coll_crs = self.get_collection_srid(collection=collection, database=database)
@@ -1477,7 +1479,7 @@ class GeoDBClient(object):
         tab_prefix = database or self.database
         dn = f"{tab_prefix}_{collection}"
 
-        self._raise_for_collection_exists(collection=dn)
+        self._raise_for_collection_exists(collection=collection, database=database)
         self._raise_for_stored_procedure_exists('geodb_get_pg')
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
@@ -1780,13 +1782,16 @@ class GeoDBClient(object):
         Returns:
              Whether the collection exists
         """
-        tab_prefix = database or self.database
-        dn = f"{tab_prefix}_{collection}"
-        if collection in self.capabilities['definitions']:
-            return True
-        return False
+        database = database or self.database
 
-    def _raise_for_collection_exists(self, collection: str) -> bool:
+        try:
+            c = self.head_collection(collection, database=database)
+        except GeoDBError:
+            return False
+
+        return True
+
+    def _raise_for_collection_exists(self, collection: str, database: str) -> bool:
         """
 
         Args:
@@ -1798,7 +1803,9 @@ class GeoDBClient(object):
         Raises:
             GeoDBError if the collection does not exist
         """
-        if collection in self.capabilities['definitions']:
+
+        collection_exists = self.collection_exists(collection, database=database)
+        if collection_exists is True:
             return True
         else:
             raise GeoDBError(f"Collection {collection} does not exist")
