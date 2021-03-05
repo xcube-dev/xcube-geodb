@@ -1,6 +1,6 @@
-VERSION := 0.1.13
+VERSION := 0.1.14.dev0
 EXTENSION = geodb
-DATA = geodb--0.1.13.sql
+DATA = geodb--$(VERSION).sql
 
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
