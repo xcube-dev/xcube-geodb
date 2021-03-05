@@ -1,3 +1,10 @@
+## v0.1.14
+
+### Fixes
+
+- Fixed isue that get_my_collections() would not use the paramater `database` correctly
+- Fixed that colectinion_exists fails on newly created collections due to postgres/postgrest caching delays
+
 ## v0.1.13
 
 - In this version the default auth mode is `client-credentials` instead of `password`
