@@ -99,7 +99,7 @@ class GeoDBClient(object):
         NotImplementedError: on auth mode interactive
 
     Examples:
-        >>> geodb = GeoDBClient(auth_mode='client_credentials', client_id='***', client_secret='***')
+        >>> geodb = GeoDBClient(auth_mode='client-credentials', client_id='***', client_secret='***')
         >>> geodb.whoami
         my_user
     """
@@ -213,7 +213,7 @@ class GeoDBClient(object):
             GeoDBError: When the collection does not exist
 
         Examples:
-            >>> geodb = GeoDBClient(auth_mode='client_credentials', client_id='***', client_secret='***')
+            >>> geodb = GeoDBClient(auth_mode='client-credentials', client_id='***', client_secret='***')
             >>> geodb.get_collection_info('my_collection')
             {
                 'required': ['id', 'geometry'],
@@ -254,7 +254,7 @@ class GeoDBClient(object):
             A Dataframe of collection names
 
         Examples:
-            >>> geodb = GeoDBClient(auth_mode='client_credentials', client_id='***', client_secret='***')
+            >>> geodb = GeoDBClient(auth_mode='client-credentials', client_id='***', client_secret='***')
             >>> geodb.get_my_collections()
             	owner	                        database	                    table_name
             0	geodb_9bfgsdfg-453f-445b-a459	geodb_9bfgsdfg-453f-445b-a459	land_use
@@ -809,7 +809,6 @@ class GeoDBClient(object):
         """
         try:
             database = database or self.database
-            dn = f"{database}_{collection}"
 
             self.grant_access_to_collection(collection=collection, usr='public', database=database)
         except GeoDBError as e:

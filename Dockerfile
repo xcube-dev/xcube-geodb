@@ -4,7 +4,7 @@ FROM quay.io/bcdev/datascience-notebook:latest
 # Person responsible
 LABEL maintainer="helge.dzierzon@brockmann-consult.de"
 LABEL name=xcube_geodb
-ENV XCUBE_GEODB_VERSION=0.1.11.dev1
+ENV XCUBE_GEODB_VERSION=0.1.14
 
 LABEL version=${XCUBE_GEODB_VERSION}
 

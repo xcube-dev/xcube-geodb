@@ -345,7 +345,7 @@ $BODY$
 DECLARE
     seq_name text;
 BEGIN
-    select replace(pg_get_serial_sequence(collection, 'id'), 'public.', '') into seq_name;
+    select pg_get_serial_sequence('"' || collection || '"', 'id') into seq_name;
     IF seq_name IS NULL
     THEN
         raise exception 'No sequence for collection %', collection;
