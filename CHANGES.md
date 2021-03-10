@@ -1,3 +1,9 @@
+## v0.1.15
+
+### Fixes
+
+- Fixed default value auth_mode from `client_credentials` to `client-credentials`
+
 ## v0.1.14
 
 ### Fixes
