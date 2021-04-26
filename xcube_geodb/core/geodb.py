@@ -174,7 +174,7 @@ class GeoDBClient(object):
         if "3.120.53.215.nip.io" in self._server_url:
             msg = f"The geodb server address {self._server_url} is deprecated for security reasons. Please use " \
                   f"'https://xcube-geodb.brockmann-consult.de'. You can set the address via an environment " \
-                  f"variable (GEODB_API_SERVER_URL = 'https://stage.xcube-geodb.brockmann-consult.de') or" \
+                  f"variable (GEODB_API_SERVER_URL = 'https://xcube-geodb.brockmann-consult.de') or" \
                   f"by passing the new URL into the client constructor: " \
                   f"geodb=GeoDBClient(server_url='https://xcube-geodb.brockmann-consult.de')"
             warn(msg=msg)
@@ -1152,9 +1152,13 @@ class GeoDBClient(object):
             elif gpdf.crs and gpdf.crs.srs:
                 import re
                 m = re.search(r'epsg:([0-9]*)', gpdf.crs.srs)
+                if m is None:
+                    raise GeoDBError("Invalid crs in geopandas data frame. You can pass the crs as parameter "
+                                     "(crs=[your crs])")
                 crs = m.group(1)
             else:
-                crs = 4326
+                raise GeoDBError("Invalid crs in geopandas data frame. You can pass the crs as parameter "
+                                 "(crs=[your crs])")
 
         def add_srid(point):
             point_str = str(point)
@@ -1208,7 +1212,6 @@ class GeoDBClient(object):
         Example:
 
         """
-
         # self._collection_exists(collection=collection)
         srid = self.get_collection_srid(collection, database)
         if crs and srid and srid != crs:
@@ -1280,8 +1283,8 @@ class GeoDBClient(object):
         from pyproj import Transformer
 
         transformer = Transformer.from_crs(f"EPSG:{from_crs}", f"EPSG:{to_crs}")
-        p1 = transformer.transform(bbox[0], bbox[2])
-        p2 = transformer.transform(bbox[1], bbox[3])
+        p1 = transformer.transform(bbox[0], bbox[1])
+        p2 = transformer.transform(bbox[2], bbox[3])
 
         return p1[0], p2[0], p1[1], p2[1]
 
@@ -1361,6 +1364,81 @@ class GeoDBClient(object):
         else:
             return GeoDataFrame(columns=["Empty Result"])
 
+    def get_collection_geometry(self, collection: str,
+                                bbox: Tuple[float, float, float, float],
+                                comparison_mode: str = 'contains',
+                                bbox_crs: int = 4326,
+                                limit: int = 0,
+                                offset: int = 0,
+                                where: Optional[str] = "id>-1",
+                                op: str = 'AND',
+                                database: Optional[str] = None,
+                                **kwargs) -> GeoDataFrame:
+        """
+        Query the database by a bounding box. Please be careful with the bbox crs. The easiest is
+        using the same crs as the collection. However, if the bbox crs differs from the collection,
+        the geoDB client will attempt to automatially transform the bbox crs according to the collection's crs.
+        You can also directly use the method GeoDBClient.transform_bbox_crs yourself before you pass the bbox into
+        this method.
+
+        Args:
+            collection (str): The name of the collection to be quried
+            bbox (Tuple[float, float, float, float]): minx, maxx, miny, maxy
+            comparison_mode (str): Filter mode. Can be 'contains' or 'within' ['contains']
+            bbox_crs (int): Projection code. [4326]
+            op (str): Operator for where (AND, OR) ['AND']
+            where (str): Additional SQL where statement to further filter the collection
+            limit (int): The maximum number of rows to be returned
+            offset (int): Offset (start) of rows to return. Used in combination with limit.
+            database (str): The name of the database the collection resides in [current database]
+
+        Returns:
+            A GeoPandas Dataframe
+
+        Raises:
+            HttpError: When the database raises an error
+
+        Examples:
+            >>> geodb = GeoDBClient()
+            >>> geodb.get_collection_by_bbox(table="[MyCollection]", bbox=(452750.0, 88909.549, 464000.0, \
+                102486.299), comparison_mode="contains", bbox_crs=3794, limit=10, offset=10)
+        """
+
+        database = database or self.database
+        dn = database + '_' + collection
+
+        self._raise_for_collection_exists(collection=collection, database=database)
+        self._raise_for_stored_procedure_exists('geodb_get_by_bbox')
+
+        coll_crs = self.get_collection_srid(collection=collection, database=database)
+
+        if coll_crs != bbox_crs:
+            bbox = self.transform_bbox_crs(bbox, bbox_crs, int(coll_crs))
+            bbox_crs = coll_crs
+
+        headers = {'Accept': 'application/vnd.pgrst.object+json'}
+
+        r = self._post('/rpc/geodb_get_collection_geometry_by_bbox', headers=headers, payload={
+            "collection": dn,
+            "minx": bbox[0],
+            "miny": bbox[1],
+            "maxx": bbox[2],
+            "maxy": bbox[3],
+            "bbox_mode": comparison_mode,
+            "bbox_crs": bbox_crs,
+            "limit": limit,
+            "where": where,
+            "op": op,
+            "offset": offset
+        })
+
+        js = r.json()['src']
+        if js:
+            srid = self.get_collection_srid(collection, database)
+            return self._df_from_json(js, srid)
+        else:
+            return GeoDataFrame(columns=["Empty Result"])
+
     @deprecated_kwarg('namespace', 'database')
     def head_collection(self, collection: str, num_lines: int = 10, database: Optional[str] = None, **kwargs) -> \
             Union[GeoDataFrame, DataFrame]:
@@ -1388,8 +1466,7 @@ class GeoDBClient(object):
 
     @deprecated_kwarg('namespace', 'database')
     def get_collection(self, collection: str, query: Optional[str] = None, database: Optional[str] = None,
-                       **kwargs) \
-            -> Union[GeoDataFrame, DataFrame]:
+                       limit: int = None, offset: int = None) -> Union[GeoDataFrame, DataFrame]:
         """
         Query a collection
 
