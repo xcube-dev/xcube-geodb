@@ -1,3 +1,14 @@
+## v0.1.16
+
+### Fixes
+- Corrected transform_bbox_crs method. Uses now minx, miny, maxx, maxy notation for the bbox
+
+### New Features
+
+- Added a parameter to transform_bbox_crs bbox allowing to use Lon Lat notation for EPSG 4326 when
+  transforming the bbox's CRS to EPSG 4326.
+
+
 ## v0.1.15
 
 ### Fixes
