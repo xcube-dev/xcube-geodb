@@ -11,6 +11,7 @@ import json
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
 
+from xcube_geodb.const import MINX, MINY, MAXX, MAXY
 from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.message import Message
 from xcube_geodb.defaults import GEODB_DEFAULTS
@@ -1262,7 +1263,8 @@ class GeoDBClient(object):
         return Message(f"{total_rows} rows inserted into {collection}")
 
     @staticmethod
-    def transform_bbox_crs(bbox: Tuple[float, float, float, float], from_crs: int, to_crs: int):
+    def transform_bbox_crs(bbox: Tuple[float, float, float, float], from_crs: int, to_crs: int,
+                           wsg84_order: str = "lat_lon"):
         """
         This function can be used to reproject bboxes particularly with the use of GeoDBClient.get_collection_by_bbox.
 
@@ -1270,7 +1272,8 @@ class GeoDBClient(object):
             bbox: Tuple[float, float, float, float]: bbox to be reprojected
             from_crs: Source crs e.g. 3974
             to_crs: Target crs e.g. 4326
-
+            wsg84_order (str): WSG84 (EPSG:4326) is expected to be in Lat Lon format ("lat_lon"). Use "lon_lat" if
+                               Lon Lat is used.
         Returns:
             Tuple[float, float, float, float]: The reprojected bounding box
 
@@ -1282,11 +1285,17 @@ class GeoDBClient(object):
         """
         from pyproj import Transformer
 
-        transformer = Transformer.from_crs(f"EPSG:{from_crs}", f"EPSG:{to_crs}")
-        p1 = transformer.transform(bbox[0], bbox[1])
-        p2 = transformer.transform(bbox[2], bbox[3])
+        if wsg84_order == 'lat_lon' and from_crs == 4326:
+            bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
 
-        return p1[0], p2[0], p1[1], p2[1]
+        transformer = Transformer.from_crs(f"EPSG:{from_crs}", f"EPSG:{to_crs}")
+        p1 = transformer.transform(bbox[MINX], bbox[MINY])
+        p2 = transformer.transform(bbox[MAXX], bbox[MAXY])
+
+        if wsg84_order == 'lat_lon' and to_crs == 4326:
+            return p1[1], p1[0], p2[1], p2[0]
+
+        return p1[0], p1[1], p2[0], p2[1]
 
     @deprecated_kwarg('namespace', 'database')
     def get_collection_by_bbox(self, collection: str,
@@ -1298,6 +1307,7 @@ class GeoDBClient(object):
                                where: Optional[str] = "id>-1",
                                op: str = 'AND',
                                database: Optional[str] = None,
+                               wsg84_order="lat_lon",
                                **kwargs) -> GeoDataFrame:
         """
         Query the database by a bounding box. Please be careful with the bbox crs. The easiest is
@@ -1308,7 +1318,7 @@ class GeoDBClient(object):
 
         Args:
             collection (str): The name of the collection to be quried
-            bbox (Tuple[float, float, float, float]): minx, maxx, miny, maxy
+            bbox (Tuple[float, float, float, float]): minx, miny, maxx, maxy
             comparison_mode (str): Filter mode. Can be 'contains' or 'within' ['contains']
             bbox_crs (int): Projection code. [4326]
             op (str): Operator for where (AND, OR) ['AND']
@@ -1316,6 +1326,8 @@ class GeoDBClient(object):
             limit (int): The maximum number of rows to be returned
             offset (int): Offset (start) of rows to return. Used in combination with limit.
             database (str): The name of the database the collection resides in [current database]
+            wsg84_order (str): WSG84 (EPSG:4326) is expected to be in Lat Lon format ("lat_lon"). Use "lon_lat" if
+            Lon Lat is used.
 
         Returns:
             A GeoPandas Dataframe
@@ -1338,87 +1350,12 @@ class GeoDBClient(object):
         coll_crs = self.get_collection_srid(collection=collection, database=database)
 
         if coll_crs != bbox_crs:
-            bbox = self.transform_bbox_crs(bbox, bbox_crs, int(coll_crs))
+            bbox = self.transform_bbox_crs(bbox, bbox_crs, int(coll_crs), wsg84_order=wsg84_order)
             bbox_crs = coll_crs
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
         r = self._post('/rpc/geodb_get_by_bbox', headers=headers, payload={
-            "collection": dn,
-            "minx": bbox[0],
-            "miny": bbox[1],
-            "maxx": bbox[2],
-            "maxy": bbox[3],
-            "bbox_mode": comparison_mode,
-            "bbox_crs": bbox_crs,
-            "limit": limit,
-            "where": where,
-            "op": op,
-            "offset": offset
-        })
-
-        js = r.json()['src']
-        if js:
-            srid = self.get_collection_srid(collection, database)
-            return self._df_from_json(js, srid)
-        else:
-            return GeoDataFrame(columns=["Empty Result"])
-
-    def get_collection_geometry(self, collection: str,
-                                bbox: Tuple[float, float, float, float],
-                                comparison_mode: str = 'contains',
-                                bbox_crs: int = 4326,
-                                limit: int = 0,
-                                offset: int = 0,
-                                where: Optional[str] = "id>-1",
-                                op: str = 'AND',
-                                database: Optional[str] = None,
-                                **kwargs) -> GeoDataFrame:
-        """
-        Query the database by a bounding box. Please be careful with the bbox crs. The easiest is
-        using the same crs as the collection. However, if the bbox crs differs from the collection,
-        the geoDB client will attempt to automatially transform the bbox crs according to the collection's crs.
-        You can also directly use the method GeoDBClient.transform_bbox_crs yourself before you pass the bbox into
-        this method.
-
-        Args:
-            collection (str): The name of the collection to be quried
-            bbox (Tuple[float, float, float, float]): minx, maxx, miny, maxy
-            comparison_mode (str): Filter mode. Can be 'contains' or 'within' ['contains']
-            bbox_crs (int): Projection code. [4326]
-            op (str): Operator for where (AND, OR) ['AND']
-            where (str): Additional SQL where statement to further filter the collection
-            limit (int): The maximum number of rows to be returned
-            offset (int): Offset (start) of rows to return. Used in combination with limit.
-            database (str): The name of the database the collection resides in [current database]
-
-        Returns:
-            A GeoPandas Dataframe
-
-        Raises:
-            HttpError: When the database raises an error
-
-        Examples:
-            >>> geodb = GeoDBClient()
-            >>> geodb.get_collection_by_bbox(table="[MyCollection]", bbox=(452750.0, 88909.549, 464000.0, \
-                102486.299), comparison_mode="contains", bbox_crs=3794, limit=10, offset=10)
-        """
-
-        database = database or self.database
-        dn = database + '_' + collection
-
-        self._raise_for_collection_exists(collection=collection, database=database)
-        self._raise_for_stored_procedure_exists('geodb_get_by_bbox')
-
-        coll_crs = self.get_collection_srid(collection=collection, database=database)
-
-        if coll_crs != bbox_crs:
-            bbox = self.transform_bbox_crs(bbox, bbox_crs, int(coll_crs))
-            bbox_crs = coll_crs
-
-        headers = {'Accept': 'application/vnd.pgrst.object+json'}
-
-        r = self._post('/rpc/geodb_get_collection_geometry_by_bbox', headers=headers, payload={
             "collection": dn,
             "minx": bbox[0],
             "miny": bbox[1],

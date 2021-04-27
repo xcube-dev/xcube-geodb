@@ -320,12 +320,42 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual(str(geo), exp_geo)
 
     def test_reproject_bbox(self, m):
-        bbox_expected = (49.36588643725233, 46.012889756941775, 14.311548793848758, 9.834303086688251)
+        bbox_4326 = (9.8, 53.51, 10.0, 53.57)
+        crs_4326 = 4326
 
-        bbox = GeoDBClient.transform_bbox_crs(bbox=(450000, 100000, 470000, 110000), from_crs=3794, to_crs=4326)
+        bbox_3857 = (1090931.0097740812, 7077896.970141199, 1113194.9079327357, 7089136.418602032)
+        crs_3857 = 3857
 
-        self.assertEqual(bbox_expected, bbox)
+        bbox = GeoDBClient.transform_bbox_crs(bbox=bbox_4326,
+                                              from_crs=crs_4326, to_crs=crs_3857, wsg84_order="lat_lon")
 
+        for i in range(4):
+            self.assertAlmostEquals(bbox_3857[i], bbox[i])
+
+        bbox = GeoDBClient.transform_bbox_crs(bbox=bbox_3857,
+                                              from_crs=crs_3857, to_crs=crs_4326, wsg84_order="lat_lon")
+
+        for i in range(4):
+            self.assertAlmostEquals(bbox_4326[i], bbox[i])
+
+    def test_reproject_bbox_lon_lat(self, m):
+        bbox_4326 = (53.51, 9.8, 53.57, 10.0)
+        crs_4326 = 4326
+
+        bbox_3857 = (1090931.0097740812, 7077896.970141199, 1113194.9079327357, 7089136.418602032)
+        crs_3857 = 3857
+
+        bbox = GeoDBClient.transform_bbox_crs(bbox=bbox_4326,
+                                              from_crs=crs_4326, to_crs=crs_3857, wsg84_order="lon_lat")
+
+        for i in range(4):
+            self.assertAlmostEquals(bbox_3857[i], bbox[i])
+
+        bbox = GeoDBClient.transform_bbox_crs(bbox=bbox_3857,
+                                              from_crs=crs_3857, to_crs=crs_4326, wsg84_order="lon_lat")
+
+        for i in range(4):
+            self.assertAlmostEquals(bbox_4326[i], bbox[i])
 
     def test_delete_from_collection(self, m):
         path = '/helge_tt?id=eq.1'
@@ -562,4 +592,3 @@ class GeoDBClientTest(unittest.TestCase):
             token = geodb.auth_access_token
 
         self.assertEqual("System Error: auth mode unknown.", str(e.exception))
-

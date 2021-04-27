@@ -1,0 +1,4 @@
+MINX = 0
+MINY = 1
+MAXX = 2
+MAXY = 3

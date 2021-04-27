@@ -979,27 +979,26 @@ BEGIN
         lmt_str := lmt_str || ' OFFSET ' || "offset";
     END IF;
 
-    qry := format(
-                                                                                                        'SELECT JSON_AGG(src) as js
-                                                                                                         FROM (SELECT * FROM %I
-                                                                                                         WHERE (%s) %s %s(''SRID=%s;POLYGON((' ||
-                                                                                                        minx
-                                                                                                    || ' ' || miny
-                                                                                            || ', ' || maxx
-                                                                                    || ' ' || miny
-                                                                            || ', ' || maxx
-                                                                    || ' ' || maxy
-                                                            || ', ' || minx
-                                                    || ' ' || maxy
-                                            || ', ' || minx
-                                    || ' ' || miny
-                            || '))'', geometry) '
-                        || 'ORDER BY id '
-                    || lmt_str || ') as src',
-                                                                                                        collection,
-                                                                                                        "where", op,
-                                                                                                        bbox_func,
-                                                                                                        bbox_crs
+    qry := format('SELECT JSON_AGG(src) as js
+                     FROM (SELECT * FROM %I
+                     WHERE (%s) %s %s(''SRID=%s;POLYGON((' ||
+                  minx
+                      || ' ' || miny
+                      || ', ' || maxx
+                      || ' ' || miny
+                      || ', ' || maxx
+                      || ' ' || maxy
+                      || ', ' || minx
+                      || ' ' || maxy
+                      || ', ' || minx
+                      || ' ' || miny
+                      || '))'', geometry) '
+                      || 'ORDER BY id '
+                      || lmt_str || ') as src',
+                  collection,
+                  "where", op,
+                  bbox_func,
+                  bbox_crs
         );
 
     RETURN QUERY EXECUTE qry;
