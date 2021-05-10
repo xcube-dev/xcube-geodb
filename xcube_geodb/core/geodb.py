@@ -421,8 +421,8 @@ class GeoDBClient(object):
         try:
             r = requests.get(self._get_full_url(path=path), params=params, headers=headers)
             r.raise_for_status()
-        except requests.exceptions.HTTPError:
-            raise GeoDBError(r.json())
+        except requests.exceptions.HTTPError as e:
+            raise GeoDBError(r.content)
 
         return r
 
@@ -451,7 +451,7 @@ class GeoDBClient(object):
             r = requests.delete(self._get_full_url(path=path), params=params, headers=headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError:
-            raise GeoDBError(r.json())
+            raise GeoDBError(r.content)
         return r
 
     def _patch(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
@@ -481,7 +481,7 @@ class GeoDBClient(object):
                                headers=headers)
             r.raise_for_status()
         except requests.HTTPError:
-            raise GeoDBError(r.json())
+            raise GeoDBError(r.content)
         return r
 
     def logout(self):
