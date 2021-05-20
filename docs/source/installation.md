@@ -10,14 +10,14 @@ how to setup the backend.
 Into existing conda environment (>= Python 3.6)
 
 ```bash
-$ conda install -c conda-forge xcube-geodb
+$ conda install -c conda-forge xcube_geodb
 ```
 
 Into new conda environment
    
 ```bash
 $ conda create -c conda-forge -n xcube-geodb python3
-$ conda install -c conda-forge xcube-geodb
+$ conda install -c conda-forge xcube_geodb
 ```
 
 ## Installation from sources
