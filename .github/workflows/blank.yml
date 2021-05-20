@@ -6,7 +6,8 @@ name: xcube-geodb-deploy
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [ master ]
+    branches: 
+      - dzelge*
   pull_request:
     branches: [ master ]
 
