@@ -17,7 +17,7 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  install:
+  test:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -55,3 +55,25 @@ jobs:
           do
             pgsanity $f;
           done
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_REG_USERNAME }}
+          password: ${{ secrets.QUAY_REG_PASSWORD }}
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v2.4.0
+        with:
+          push: true
+          tags: quay.io/bcdev/xcube-geodb:test
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}

@@ -4,7 +4,7 @@ FROM quay.io/bcdev/datascience-notebook:latest
 # Person responsible
 LABEL maintainer="helge.dzierzon@brockmann-consult.de"
 LABEL name=xcube_geodb
-ENV XCUBE_GEODB_VERSION=0.1.14
+ENV XCUBE_GEODB_VERSION=0.1.16
 
 LABEL version=${XCUBE_GEODB_VERSION}
 
@@ -21,7 +21,6 @@ RUN jupyter serverextension enable --sys-prefix jupyterlab_github
 WORKDIR /tmp
 ADD environment.yml /tmp/environment.yml
 RUN mamba env update -n base
-
 
 ADD --chown=1000:100 . ./xcube-geodb
 WORKDIR /tmp/xcube-geodb
