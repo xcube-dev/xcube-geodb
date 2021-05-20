@@ -1,6 +1,8 @@
 This module is a PostgreSQL extension which provides the Oracle compatible nvl function feature.
 Use below command in source directory of geodb to install the module.
+
 make install
+
 Then use the below command to create extension geodb in database.
 CREATE EXTENSION geodb;
 Use the below command to remove the geodb extension from database.
