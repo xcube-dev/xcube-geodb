@@ -30,9 +30,11 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2.1.1
         with:
-          auto-activate-base: true
-          auto-update-conda: true
-          python-version: 3.7
+          python-version: 3.8
+          mamba-version: "*"
+          channels: conda-forge
+          activate-environment: xcube_geodb
+          environment-file: environment.yml
 
       - name: Conda info
         shell: bash -l {0}
