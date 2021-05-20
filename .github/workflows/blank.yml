@@ -29,7 +29,11 @@ jobs:
       # Runs a single command using the runners shell
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2.1.1
+      - name: Conda info
+        shell: bash -l {0}
+        run: conda info
 
       # Runs a set of commands using the runners shell
-      - name: INstall mamba
+      - name: Install mamba
+        shell: bash -l {0}
         run: conda install -c conda-forge mamba
