@@ -257,6 +257,41 @@ class GeoDBClientTest(unittest.TestCase):
         msg = "Call to deprecated parameter 'namespace' in function 'create_collections'. Use 'database' instead. "
         self.assertEqual(msg, str(e.warning))
 
+    def test_create_collections_epsg_string(self, m):
+        expected_response = {'collections': {'helge_land_use3': {'crs': 3794,
+                                                                 'properties': {'D_OD': 'date',
+                                                                                'RABA_ID': 'float',
+                                                                                'RABA_PID': 'float'}}}}
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
+        m.post(url, text=json.dumps(expected_response))
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
+        m.post(url, text=json.dumps(expected_response))
+        url = f"{self._server_test_url}:{self._server_test_port}/geodb_user_databases?name=eq.helge"
+        m.get(url, text=json.dumps('helge'))
+        self.set_global_mocks(m)
+
+        collections = {
+            "land_use3":
+                {
+                    "crs": "epsg:3794",
+                    "properties":
+                        {
+                            "RABA_PID": "float",
+                            "RABA_ID": "float",
+                            "D_OD": "date"
+                        }
+                }
+        }
+
+        res = self._api.create_collections(collections=collections)
+        self.assertIsInstance(res, Collections)
+        self.assertDictEqual(expected_response, res.config)
+
+        with self.assertWarns(DeprecationWarning) as e:
+            self._api.create_collections(collections=collections, namespace='helge')
+        msg = "Call to deprecated parameter 'namespace' in function 'create_collections'. Use 'database' instead. "
+        self.assertEqual(msg, str(e.warning))
+
     def test_drop_collection(self, m):
         expected_response = 'Success'
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_drop_collections"
@@ -325,6 +360,25 @@ class GeoDBClientTest(unittest.TestCase):
 
         bbox_3857 = (1090931.0097740812, 7077896.970141199, 1113194.9079327357, 7089136.418602032)
         crs_3857 = 3857
+
+        bbox = GeoDBClient.transform_bbox_crs(bbox=bbox_4326,
+                                              from_crs=crs_4326, to_crs=crs_3857, wsg84_order="lat_lon")
+
+        for i in range(4):
+            self.assertAlmostEquals(bbox_3857[i], bbox[i])
+
+        bbox = GeoDBClient.transform_bbox_crs(bbox=bbox_3857,
+                                              from_crs=crs_3857, to_crs=crs_4326, wsg84_order="lat_lon")
+
+        for i in range(4):
+            self.assertAlmostEquals(bbox_4326[i], bbox[i])
+
+    def test_reproject_bbox_epsg_string(self, m):
+        bbox_4326 = (9.8, 53.51, 10.0, 53.57)
+        crs_4326 = 'EPSG:4326'
+
+        bbox_3857 = (1090931.0097740812, 7077896.970141199, 1113194.9079327357, 7089136.418602032)
+        crs_3857 = 'EPSG:3857'
 
         bbox = GeoDBClient.transform_bbox_crs(bbox=bbox_4326,
                                               from_crs=crs_4326, to_crs=crs_3857, wsg84_order="lat_lon")
@@ -426,6 +480,22 @@ class GeoDBClientTest(unittest.TestCase):
             self._api.insert_into_collection('tt', [1, 2, 3])
 
         self.assertEqual("Error: Format <class 'list'> not supported.", str(e.exception))
+
+    def test_insert_into_collection_epsg_string(self, m):
+        path = '/helge_tt'
+        expected_response = 'success'
+
+        m.get(url=self._server_full_address, text=json.dumps({'definitions': ['tt']}))
+        m.post(self._server_full_address + path, text=expected_response)
+        self.set_global_mocks(m)
+
+        df = self.make_test_df()
+        values = GeoDataFrame(df, crs='epsg:4326', geometry=df['geometry'])
+
+        r = self._api.insert_into_collection('tt', values)
+
+        self.assertEqual('<h1>11002 rows inserted into tt</h1>', str(r))
+
 
     def test_list_grants(self, m):
         path = '/rpc/geodb_list_grants'

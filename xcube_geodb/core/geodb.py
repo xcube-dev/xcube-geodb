@@ -1,23 +1,23 @@
+import functools
+import json
 import os
+import warnings
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, Optional, Union, Sequence, Tuple
 
 import geopandas as gpd
+import requests
+from dotenv import load_dotenv, find_dotenv
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkb
-import requests
-import json
-from dotenv import load_dotenv, find_dotenv
-from pathlib import Path
 
 from xcube_geodb.const import MINX, MINY, MAXX, MAXY
 from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.message import Message
 from xcube_geodb.defaults import GEODB_DEFAULTS
 from xcube_geodb.version import version
-import warnings
-import functools
 
 
 def warn(msg: str):
@@ -80,6 +80,20 @@ class GeoDBError(ValueError):
 
 
 # noinspection PyShadowingNames,PyUnusedLocal
+def check_crs(crs):
+    """This function is needed in order to ensure xcube_geodb to understand EPSG crs as well as ensure backward
+    compatibility. Furthermore, the database only accepts integer as crs."""
+
+    if isinstance(crs, int):
+        return crs
+    if isinstance(crs, str):
+        try:
+            crs = int(crs.split(':')[-1])
+            return crs
+        except:
+            return crs
+
+
 class GeoDBClient(object):
     """
     Constructing the geoDB client. Dpending on the setup it will automatically setup credentials from
@@ -514,7 +528,7 @@ class GeoDBClient(object):
     def create_collection_if_not_exists(self,
                                         collection: str,
                                         properties: Dict,
-                                        crs: int = 4326,
+                                        crs: Union[int, str] = 4326,
                                         database: Optional[str] = None,
                                         **kwargs) -> Optional[Collections]:
         """
@@ -523,7 +537,7 @@ class GeoDBClient(object):
         Args:
             collection (str): The name of the collection to be created
             properties (Dict): Properties to be added to the collection
-            crs (int): projection
+            crs (int, str): projection
             database (str): The database the collection is to be created in [current database]
             kwargs: Placeholder for deprecated parameters
 
@@ -536,6 +550,9 @@ class GeoDBClient(object):
         """
         exists = self.collection_exists(collection=collection, database=database)
         if not exists:
+            if 'crs' in collection:
+                collection['crs'] = check_crs(collection['crs'])
+
             return self.create_collection(collection=collection,
                                           properties=properties,
                                           crs=crs,
@@ -592,6 +609,10 @@ class GeoDBClient(object):
             >>> geodb.create_collections(collections)
         """
 
+        for collection in collections:
+            if 'crs' in collections[collection]:
+                collections[collection]['crs'] = check_crs(collections[collection]['crs'])
+
         self._refresh_capabilities()
 
         database = database or self.database
@@ -617,7 +638,7 @@ class GeoDBClient(object):
     def create_collection(self,
                           collection: str,
                           properties: Dict,
-                          crs: int = 4326,
+                          crs: Union[int, str] = 4326,
                           database: Optional[str] = None,
                           clear: bool = False,
                           **kwargs) -> Collections:
@@ -639,6 +660,7 @@ class GeoDBClient(object):
             >>> properties = {'[MyProp1]': 'float', '[MyProp2]': 'date'}
             >>> geodb.create_collection(collection='[MyCollection]', crs=3794, properties=properties)
         """
+        crs = check_crs(crs)
         collections = {
             collection:
                 {
@@ -1186,7 +1208,7 @@ class GeoDBClient(object):
                                collection: str,
                                values: GeoDataFrame,
                                upsert: bool = False,
-                               crs: int = None,
+                               crs: Union[int, str] = None,
                                database: Optional[str] = None,
                                max_transfer_chunk_size: int = 1000,
                                **kwargs) \
@@ -1199,7 +1221,7 @@ class GeoDBClient(object):
             database (str): The name of the database the collection resides in [current database]
             values (GeoDataFrame): Values to be inserted
             upsert (bool): Whether the insert shall replace existing rows (by PK)
-            crs (int): crs (in the form of an SRID) of the geometries. If not present, the method will attempt
+            crs (int, str): crs (in the form of an SRID) of the geometries. If not present, the method will attempt
             guessing it from the GeoDataFrame input. Must be in sync with the target collection in the GeoDatabase
             max_transfer_chunk_size (int): Maximum number of rows per chunk to be sent to the geodb.
 
@@ -1215,6 +1237,7 @@ class GeoDBClient(object):
         """
         # self._collection_exists(collection=collection)
         srid = self.get_collection_srid(collection, database)
+        crs = check_crs(crs)
         if crs and srid and srid != crs:
             raise ValueError(f"crs {crs} is not compatible with collection's crs {srid}")
 
@@ -1263,7 +1286,7 @@ class GeoDBClient(object):
         return Message(f"{total_rows} rows inserted into {collection}")
 
     @staticmethod
-    def transform_bbox_crs(bbox: Tuple[float, float, float, float], from_crs: int, to_crs: int,
+    def transform_bbox_crs(bbox: Tuple[float, float, float, float], from_crs: Union[int, str], to_crs: Union[int, str],
                            wsg84_order: str = "lat_lon"):
         """
         This function can be used to reproject bboxes particularly with the use of GeoDBClient.get_collection_by_bbox.
@@ -1285,6 +1308,9 @@ class GeoDBClient(object):
         """
         from pyproj import Transformer
 
+        from_crs = check_crs(from_crs)
+        to_crs = check_crs(to_crs)
+
         if wsg84_order == 'lat_lon' and from_crs == 4326:
             bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
 
@@ -1301,7 +1327,7 @@ class GeoDBClient(object):
     def get_collection_by_bbox(self, collection: str,
                                bbox: Tuple[float, float, float, float],
                                comparison_mode: str = 'contains',
-                               bbox_crs: int = 4326,
+                               bbox_crs: Union[int, str] = 4326,
                                limit: int = 0,
                                offset: int = 0,
                                where: Optional[str] = "id>-1",
@@ -1320,7 +1346,7 @@ class GeoDBClient(object):
             collection (str): The name of the collection to be quried
             bbox (Tuple[float, float, float, float]): minx, miny, maxx, maxy
             comparison_mode (str): Filter mode. Can be 'contains' or 'within' ['contains']
-            bbox_crs (int): Projection code. [4326]
+            bbox_crs (int, str): Projection code. [4326]
             op (str): Operator for where (AND, OR) ['AND']
             where (str): Additional SQL where statement to further filter the collection
             limit (int): The maximum number of rows to be returned
@@ -1340,7 +1366,7 @@ class GeoDBClient(object):
             >>> geodb.get_collection_by_bbox(table="[MyCollection]", bbox=(452750.0, 88909.549, 464000.0, \
                 102486.299), comparison_mode="contains", bbox_crs=3794, limit=10, offset=10)
         """
-
+        bbox_crs = check_crs(bbox_crs)
         database = database or self.database
         dn = database + '_' + collection
 
