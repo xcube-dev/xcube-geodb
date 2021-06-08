@@ -7,10 +7,7 @@ class Message:
         return self._message
 
     def _repr_pretty_(self, p, cycle):
-        if cycle:
-            p.text(self._message)
-        else:
-            p.text(self._message)
+        p.text(self._message)
 
     def __repr__(self):
         return f"<h1>{self._message}</h1>"
