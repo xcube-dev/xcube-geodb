@@ -316,13 +316,13 @@ class GeoDBClientTest(unittest.TestCase):
                                               from_crs=crs_4326, to_crs=crs_3857, wsg84_order="lat_lon")
 
         for i in range(4):
-            self.assertAlmostEquals(bbox_3857[i], bbox[i])
+            self.assertAlmostEqual(bbox_3857[i], bbox[i])
 
         bbox = GeoDBClient.transform_bbox_crs(bbox=bbox_3857,
                                               from_crs=crs_3857, to_crs=crs_4326, wsg84_order="lat_lon")
 
         for i in range(4):
-            self.assertAlmostEquals(bbox_4326[i], bbox[i])
+            self.assertAlmostEqual(bbox_4326[i], bbox[i])
 
     def test_reproject_bbox_lon_lat(self, m):
         bbox_4326 = (53.51, 9.8, 53.57, 10.0)
@@ -335,13 +335,13 @@ class GeoDBClientTest(unittest.TestCase):
                                               from_crs=crs_4326, to_crs=crs_3857, wsg84_order="lon_lat")
 
         for i in range(4):
-            self.assertAlmostEquals(bbox_3857[i], bbox[i])
+            self.assertAlmostEqual(bbox_3857[i], bbox[i])
 
         bbox = GeoDBClient.transform_bbox_crs(bbox=bbox_3857,
                                               from_crs=crs_3857, to_crs=crs_4326, wsg84_order="lon_lat")
 
         for i in range(4):
-            self.assertAlmostEquals(bbox_4326[i], bbox[i])
+            self.assertAlmostEqual(bbox_4326[i], bbox[i])
 
     def test_delete_from_collection(self, m):
         path = '/helge_tt?id=eq.1'
