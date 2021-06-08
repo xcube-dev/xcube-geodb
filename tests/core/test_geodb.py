@@ -1,5 +1,4 @@
 import json
-import os
 import unittest
 from io import StringIO
 
@@ -10,6 +9,7 @@ from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkt
 
+from tests.utils import del_env
 from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.geodb import GeoDBClient, GeoDBError
 
@@ -40,11 +40,11 @@ class GeoDBClientTest(unittest.TestCase):
 
         self._server_test_auth_domain = "https://auth"
 
-        os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'ipyauth-auth0-demo_test.env'
-        os.environ['GEODB_AUTH0_CONFIG_FOLDER'] = 'tests/envs/'
+        # os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'ipyauth-auth0-demo_test.env'
+        # os.environ['GEODB_AUTH0_CONFIG_FOLDER'] = 'tests/envs/'
 
     def tearDown(self) -> None:
-        pass
+        del_env(dotenv_path="tests/envs/.env_test")
 
     def set_global_mocks(self, m):
         m.post(self._server_test_auth_domain + "/oauth/token", json={
@@ -169,8 +169,6 @@ class GeoDBClientTest(unittest.TestCase):
     def test_auth(self, m):
         self.set_global_mocks(m)
 
-        cfg_file = "tests/.geodb"
-        expected_response = False
         auth_access_token = self._api.auth_access_token
         self.assertEqual("A long lived token", auth_access_token)
 
@@ -209,24 +207,12 @@ class GeoDBClientTest(unittest.TestCase):
         res = self._api.create_collection(collection='test', properties={'test_col': 'inger'})
         self.assertTrue(res)
 
-    def test_create_collection2(self, m):
-        expected_response = 'Success'
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
-        m.post(url, text=json.dumps(expected_response))
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
-        m.post(url, text=json.dumps(expected_response))
-        url = f"{self._server_test_url}:{self._server_test_port}/geodb_user_databases?name=eq.helge"
-        m.get(url, text=json.dumps('helge'))
-        self.set_global_mocks(m)
-
-        res = self._api.create_collection(collection='test', properties={'test_col': 'inger'})
-        self.assertTrue(res)
-
     def test_create_collections(self, m):
         expected_response = {'collections': {'helge_land_use3': {'crs': 3794,
                                                                  'properties': {'D_OD': 'date',
                                                                                 'RABA_ID': 'float',
                                                                                 'RABA_PID': 'float'}}}}
+        # noinspection DuplicatedCode
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
         m.post(url, text=json.dumps(expected_response))
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
@@ -592,3 +578,35 @@ class GeoDBClientTest(unittest.TestCase):
             token = geodb.auth_access_token
 
         self.assertEqual("System Error: auth mode unknown.", str(e.exception))
+
+    def test_publish_to_geoserver(self, m):
+        self.set_global_mocks(m)
+        url = self._server_full_address + "/api/v2/services/geoservice/databases/geodb_admin/collections"
+        m.put(url=url, json={'name': 'land_use'})
+
+        res = self._api.publish_to_geoserve(collection="land_use", database="geodb_admin")
+        self.assertDictEqual({'name': 'land_use'}, res)
+
+        m.put(url=url, text='Error', status_code=400)
+
+        with self.assertRaises(GeoDBError) as e:
+            self._api.publish_to_geoserve(collection="land_use", database="geodb_admin")
+
+        self.assertEqual("Error", str(e.exception))
+        self.assertIsInstance(e.exception, GeoDBError)
+
+    def test_unpublish_from_geoserver(self, m):
+        self.set_global_mocks(m)
+        url = self._server_full_address + "/api/v2/services/geoservice/databases/geodb_admin/collections/land_use"
+        m.delete(url=url)
+
+        res = self._api.unpublish_from_geoserve(collection="land_use", database="geodb_admin")
+        self.assertTrue(res)
+
+        m.delete(url=url, text='Error', status_code=400)
+
+        with self.assertRaises(GeoDBError) as e:
+            self._api.unpublish_from_geoserve(collection="land_use", database="geodb_admin")
+
+        self.assertEqual("Error", str(e.exception))
+        self.assertIsInstance(e.exception, GeoDBError)

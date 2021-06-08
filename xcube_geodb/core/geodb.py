@@ -451,7 +451,7 @@ class GeoDBClient(object):
             r = requests.delete(self._get_full_url(path=path), params=params, headers=headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError:
-            raise GeoDBError(r.content)
+            raise GeoDBError(r.text)
         return r
 
     def _patch(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
@@ -482,6 +482,35 @@ class GeoDBClient(object):
             r.raise_for_status()
         except requests.HTTPError:
             raise GeoDBError(r.content)
+        return r
+
+    def _put(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
+             headers: Optional[Dict] = None) -> requests.models.Response:
+        """
+
+        Args:
+            headers (Optional[Dict]): Request headers. Allows Overriding common header entries.
+            payload (Union[Dict, Sequence]): Post body as Dict. Will be dumped to JSON
+            path (str): API path
+            params (Optional[Dict]): Request parameters
+
+        Returns:
+            requests.models.Response: A Request object
+
+        Raises:
+            GeoDBError: If the database raises an error
+        """
+
+        common_headers = self._get_common_headers()
+        headers = common_headers.update(headers) if headers else self._get_common_headers()
+
+        r = None
+        try:
+            r = requests.put(self._get_full_url(path=path), json=payload, params=params,
+                             headers=headers)
+            r.raise_for_status()
+        except requests.HTTPError:
+            raise GeoDBError(r.text)
         return r
 
     def logout(self):
@@ -1602,6 +1631,17 @@ class GeoDBClient(object):
         if 'geometry' in d:
             d['geometry'] = wkb.loads(d['geometry'], hex=True)
         return d
+
+    def publish_to_geoserve(self, collection: str, database: str):
+        r = self._put(path=f'/api/v2/services/geoservice/databases/{database}/collections',
+                      payload={'collection_id': collection})
+
+        return r.json()
+
+    def unpublish_from_geoserve(self, collection: str, database: str):
+        r = self._delete(path=f'/api/v2/services/geoservice/databases/{database}/collections/{collection}')
+
+        return True
 
     @property
     def auth_access_token(self) -> str:
