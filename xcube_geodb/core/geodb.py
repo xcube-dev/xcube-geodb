@@ -172,14 +172,6 @@ class GeoDBClient(object):
             raise NotImplementedError("The interactive mode has not been implemented.")
             # self._auth_login()
 
-        if "3.120.53.215.nip.io" in self._server_url:
-            msg = f"The geodb server address {self._server_url} is deprecated for security reasons. Please use " \
-                  f"'https://xcube-geodb.brockmann-consult.de'. You can set the address via an environment " \
-                  f"variable (GEODB_API_SERVER_URL = 'https://xcube-geodb.brockmann-consult.de') or" \
-                  f"by passing the new URL into the client constructor: " \
-                  f"geodb=GeoDBClient(server_url='https://xcube-geodb.brockmann-consult.de')"
-            warn(msg=msg)
-
     def _set_from_env(self):
         """
         Load configurations from environment variables. Overrides defaults.
@@ -305,43 +297,6 @@ class GeoDBClient(object):
 
         """
         return self._capabilities or self._get(path='/').json()
-
-    def _auth_login(self):
-        self._auth0_login()
-
-    def _auth0_login(self):
-        """
-        Interactive login
-
-        Raises:
-            GeoDBError: When nor shell is present
-            ImportError: When ipyauth ir IPython is not installed
-        """
-        try:
-            from ipyauth import ParamsAuth0, Auth
-            import IPython
-            from IPython.display import display
-        except ImportError:
-            raise GeoDBError("You need to install IPython and ipyauth dependencies")
-
-        auth0_config_file = os.environ.get('GEODB_AUTH0_CONFIG_FILE') or 'ipyauth-auth0-demo.env'
-        auth0_config_folder = os.environ.get('GEODB_AUTH0_CONFIG_FOLDER') or '.'
-
-        if not os.path.isfile(os.path.join(auth0_config_folder, auth0_config_file)):
-            raise FileExistsError("Mandatory auth configuration file ipyauth-auth0-demo.env must exist")
-
-        self._ipython_shell = IPython.get_ipython()
-
-        if self._ipython_shell is None:
-            raise GeoDBError("You do not seem to be in an interactive ipython session. Interactive login cannot "
-                             "be used.")
-
-        auth_params = ParamsAuth0(dotenv_file=auth0_config_file, dotenv_folder=auth0_config_folder)
-        auth = Auth(params=auth_params)
-
-        self._ipython_shell.push({'__auth__': auth}, interactive=True)
-        # noinspection PyTypeChecker
-        display(auth)
 
     def _refresh_capabilities(self):
         self._capabilities = None
@@ -1218,6 +1173,7 @@ class GeoDBClient(object):
                                crs: int = None,
                                database: Optional[str] = None,
                                max_transfer_chunk_size: int = 1000,
+                               format='geopandas',
                                **kwargs) \
             -> Message:
         """
@@ -1249,7 +1205,28 @@ class GeoDBClient(object):
 
         crs = crs or srid
 
-        if isinstance(values, GeoDataFrame):
+        if isinstance(values, str):
+            with open(values, 'r') as f:
+                cont = True
+                trans = ""
+                ct = 0
+                while cont:
+                    database = database or self.database
+                    dn = database + '_' + collection
+
+                    headers = {'Content-type': 'text/csv'}
+
+                    if upsert:
+                        headers['Prefer'] = 'resolution=merge-duplicates'
+
+                    line = f.readline()
+                    trans += line
+
+                    if ct % max_transfer_chunk_size == 0:
+                        self._post(f'/{dn}', data=trans, headers=headers)
+                        trans = ''
+
+        elif isinstance(values, GeoDataFrame):
             # headers = {'Content-type': 'text/csv'}
             # values = self._gdf_prepare_geom(values, crs)
             ct = 0

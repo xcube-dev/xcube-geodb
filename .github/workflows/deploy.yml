@@ -21,7 +21,8 @@ jobs:
   test:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
+    env:
+      CHART_PATH: "ke/helm/xcube-geodb-lab"
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -73,13 +74,10 @@ jobs:
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
           password: ${{ secrets.QUAY_REG_PASSWORD }}
-      - name: Pull first
-        run: docker pull quay.io/bcdev/xcube-geodb-lab:${{ steps.releasename.outputs.VERSION }}
       - name: Build and push Docker images
         uses: docker/build-push-action@v2.4.0
         with:
           push: true
-          pull: true
           tags: quay.io/bcdev/xcube-geodb-lab:${{ steps.releasename.outputs.VERSION }}
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
@@ -96,7 +94,6 @@ jobs:
         run: |
           git clone https://bcdev:${{ secrets.XCUBE_GITHUB_K8S_CONFIGS_PAT }}@github.com/bcdev/k8s-configs
           cd k8s-configs
-          git checkout dzelge_xxx_geodb_jh
           git config --global user.email "bcdev@brockmann-consult.de"
           git config --global user.name "BC Dev"
       # Deploy to dev and stage for dev releases
@@ -107,11 +104,9 @@ jobs:
           echo "Deploy dev version ${{ steps.releasename.outputs.VERSION }}"
           echo "##############################################"
           cd k8s-configs
-          git checkout dzelge_xxx_geodb_jh
-          sed -i -e 's/tag: [a-z0-9\.]*$/tag:  ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-geodb-lab/values-stage.yaml
+          sed -i -e 's/tag: [a-z0-9\.]*$/tag:  ${{ steps.releasename.outputs.VERSION }}/g' ${ CHART_PATH }/values-stage.yaml
           git commit -a -m "Updated xcube-hub dev version to ${{ steps.releasename.outputs.VERSION }}"
       - name: Push to k8s-configs
         run: |
           cd k8s-configs
-          git checkout dzelge_xxx_geodb_jh
-          git push origin dzelge_xxx_geodb_jh
+          git push origin main
