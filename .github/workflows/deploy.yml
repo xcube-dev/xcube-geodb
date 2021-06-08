@@ -107,9 +107,11 @@ jobs:
           echo "Deploy dev version ${{ steps.releasename.outputs.VERSION }}"
           echo "##############################################"
           cd k8s-configs
+          git checkout dzelge_xxx_geodb_jh
           sed -i -e 's/tag: [a-z0-9\.]*$/tag:  ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-geodb-lab/values-stage.yaml
           git commit -a -m "Updated xcube-hub dev version to ${{ steps.releasename.outputs.VERSION }}"
       - name: Push to k8s-configs
         run: |
           cd k8s-configs
-          git push origin main
+          git checkout dzelge_xxx_geodb_jh
+          git push origin dzelge_xxx_geodb_jh
