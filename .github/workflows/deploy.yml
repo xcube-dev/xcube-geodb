@@ -81,3 +81,33 @@ jobs:
           tags: quay.io/bcdev/xcube-geodb-lab:${{ steps.releasename.outputs.VERSION }}
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Set Release Name
+        id: releasename
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/*/}
+      # Clone k8s-config to udpate versions in values-*.yml
+      - name: Clone k8s-configs
+        run: |
+          git clone https://bcdev:${{ secrets.XCUBE_GITHUB_K8S_CONFIGS_PAT }}@github.com/bcdev/k8s-configs
+          cd k8s-configs
+
+          git config --global user.email "bcdev@brockmann-consult.de"
+          git config --global user.name "BC Dev"
+      # Deploy to dev and stage for dev releases
+      - name: trigger deploy dev
+        if: github.event_name == 'push'
+        run: |
+          echo "##############################################"
+          echo "Deploy dev version ${{ steps.releasename.outputs.VERSION }}"
+          echo "##############################################"
+          cd k8s-configs
+          sed -i -e 's/tag: [a-z0-9\.]*$/tag:  ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-geodb-lab/values-stage.yaml
+          git commit -a -m "Updated xcube-hub dev version to ${{ steps.releasename.outputs.VERSION }}"
+      - name: Push to k8s-configs
+        run: |
+          cd k8s-configs
+          git push origin main
