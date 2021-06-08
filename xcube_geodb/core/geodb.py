@@ -468,14 +468,6 @@ class GeoDBClient(object):
             raise GeoDBError(r.text)
         return r
 
-    def logout(self):
-        """
-        Log a user off the geoDB.
-
-        """
-        self._auth_access_token = ''
-        os.remove(self._config_file)
-
     def get_my_usage(self, pretty=True) -> Dict:
         """
         Get my geoDB data usage.
@@ -547,7 +539,7 @@ class GeoDBClient(object):
         res = dict()
         for collection in collections:
             exists = self.collection_exists(collection=collection, database=database)
-            if exists:
+            if exists is None:
                 res[collection] = collections[collection]
 
         return self.create_collections(collections=res, database=database)
@@ -738,6 +730,8 @@ class GeoDBClient(object):
 
         self._post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
 
+        return Message(f"Collection renamed from {collection} to {new_name}")
+
     def move_collection(self, collection: str, new_database: str, database: Optional[str] = None):
         """
         Move a collection from one database to another
@@ -758,6 +752,8 @@ class GeoDBClient(object):
 
         self._post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
 
+        return Message(f"Collection moved from {database} to {new_database}")
+
     def copy_collection(self, collection: str, new_collection: str, new_database: str, database: Optional[str] = None):
         """
 
@@ -777,6 +773,8 @@ class GeoDBClient(object):
         to_dn = f"{new_database}_{new_collection}"
 
         self._post(path='/rpc/geodb_copy_collection', payload={'old_collection': from_dn, 'new_collection': to_dn})
+
+        return Message(f"Collection copied from {database}/{collection} to {new_database}/{new_collection}")
 
     def publish_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
@@ -972,7 +970,7 @@ class GeoDBClient(object):
     def _raise_for_mandatory_columns(self, properties: Sequence[str]):
         common_props = list(set(properties) & set(self._mandatory_properties))
         if len(common_props) > 0:
-            raise ValueError("Don't delete the following columns: " + str(common_props))
+            raise GeoDBError("Don't delete the following columns: " + str(common_props))
 
     @deprecated_kwarg('namespace', 'database')
     def get_properties(self, collection: str, database: Optional[str] = None, **kwargs) -> DataFrame:
@@ -1201,32 +1199,12 @@ class GeoDBClient(object):
         # self._collection_exists(collection=collection)
         srid = self.get_collection_srid(collection, database)
         if crs and srid and srid != crs:
-            raise ValueError(f"crs {crs} is not compatible with collection's crs {srid}")
+            raise GeoDBError(f"crs {crs} is not compatible with collection's crs {srid}")
 
         crs = crs or srid
+        total_rows = 0
 
-        if isinstance(values, str):
-            with open(values, 'r') as f:
-                cont = True
-                trans = ""
-                ct = 0
-                while cont:
-                    database = database or self.database
-                    dn = database + '_' + collection
-
-                    headers = {'Content-type': 'text/csv'}
-
-                    if upsert:
-                        headers['Prefer'] = 'resolution=merge-duplicates'
-
-                    line = f.readline()
-                    trans += line
-
-                    if ct % max_transfer_chunk_size == 0:
-                        self._post(f'/{dn}', data=trans, headers=headers)
-                        trans = ''
-
-        elif isinstance(values, GeoDataFrame):
+        if isinstance(values, GeoDataFrame):
             # headers = {'Content-type': 'text/csv'}
             # values = self._gdf_prepare_geom(values, crs)
             ct = 0
@@ -1449,16 +1427,6 @@ class GeoDBClient(object):
         else:
             return DataFrame(columns=["Empty Result"])
 
-    # noinspection PyMethodMayBeStatic
-    def _raise_for_injection(self, select: str):
-        select = select.lower()
-        if "update" in select \
-                or "delete" in select \
-                or "drop" in select \
-                or "create" in select \
-                or "function" in select:
-            raise GeoDBError("Please don't inject!")
-
     # noinspection SqlDialectInspection,SqlNoDataSourceInspection,SqlInjection
     @deprecated_kwarg('namespace', 'database')
     def get_collection_pg(self,
@@ -1642,14 +1610,7 @@ class GeoDBClient(object):
             return token
 
         # get token depending on auth mode
-        if self._auth_mode == "interactive":
-            if not self._ipython_shell:
-                raise GeoDBError("System Error: Cannot find interactive ipython shell")
-            token = self._ipython_shell.user_ns['__auth__'].access_token
-        else:
-            token = self._get_geodb_client_credentials_access_token()
-
-        return token
+        return self._get_geodb_client_credentials_access_token()
 
     def refresh_auth_access_token(self):
         """

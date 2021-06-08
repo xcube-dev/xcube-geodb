@@ -13,9 +13,6 @@ class Collections:
     def config(self, value):
         self._config = value
 
-    def _repr_pretty_(self, p, cycle):
+    def _repr_pretty_(self, p):
         import pprint
-        if cycle:
-            p.text(pprint.pformat(self._config))
-        else:
-            p.text(pprint.pformat(self._config))
+        p.text(pprint.pformat(self._config))
