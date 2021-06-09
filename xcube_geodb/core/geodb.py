@@ -1208,7 +1208,7 @@ class GeoDBClient(object):
                                collection: str,
                                values: GeoDataFrame,
                                upsert: bool = False,
-                               crs: Union[int, str] = None,
+                               crs: Optional[Union[int, str]] = None,
                                database: Optional[str] = None,
                                max_transfer_chunk_size: int = 1000,
                                **kwargs) \
