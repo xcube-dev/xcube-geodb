@@ -1,4 +1,5 @@
 import json
+import os
 import unittest
 from io import StringIO
 from unittest.mock import MagicMock
@@ -8,6 +9,7 @@ import pandas as pd
 import requests_mock
 from geopandas import GeoDataFrame
 from pandas import DataFrame
+from psycopg2 import OperationalError
 from shapely import wkt
 
 from tests.utils import del_env
@@ -258,6 +260,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual("error", str(e.exception))
 
     def test_auth(self, m):
+        self._api.use_auth_cache = False
         self.set_global_mocks(m)
 
         auth_access_token = self._api.auth_access_token
@@ -562,7 +565,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         df = self.make_test_df()
-        values = GeoDataFrame(df, crs={'init': 'epsg:4326'}, geometry=df['geometry'])
+        values = GeoDataFrame(df, crs='epsg:4326', geometry=df['geometry'])
 
         r = self._api.insert_into_collection('tt', values)
 
@@ -582,6 +585,17 @@ class GeoDBClientTest(unittest.TestCase):
             self._api.insert_into_collection('tt', values, crs=3307)
 
         self.assertEqual("crs 3307 is not compatible with collection's crs 4326", str(e.exception))
+
+        values = GeoDataFrame(df, crs='epsg:4326', geometry=df['geometry'])
+
+        values.crs.to_epsg = MagicMock('to_epsg', return_value=None)
+        self._api.get_collection_srid = MagicMock('get_collection_srid', return_value=None)
+
+        with self.assertRaises(GeoDBError) as e:
+            self._api.insert_into_collection('tt', values)
+
+        self.assertEqual("Invalid crs in geopandas data frame. You can pass the crs as parameter (crs=[your crs])",
+                         str(e.exception))
 
     def test_grant_access_to_collection(self, m):
         self.set_global_mocks(m)
@@ -709,6 +723,13 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual("auth_mode can only be 'interactive', 'password', or 'client-credentials'!", str(e.exception))
 
     def test_auth_token(self, m):
+        self._api.use_auth_cache = False
+        m.post(self._server_test_auth_domain + "/oauth/token", json={"access_token": "A long lived token"})
+
+        access_token = self._api.auth_access_token
+
+        self.assertEqual("A long lived token", access_token)
+
         m.post(self._server_test_auth_domain + "/oauth/token", json={"broken_access_token": "A long lived token"})
 
         with self.assertRaises(ValueError) as e:
@@ -716,6 +737,39 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual("The authorization request did not return an access token.",
                          str(e.exception))
+
+        self._api._auth_access_token = 'Another token'
+
+        access_token = self._api.auth_access_token
+
+        self.assertEqual("Another token", access_token)
+
+    def test_access_token_cache(self, m):
+        self._api.use_auth_cache = True
+        self._api._auth_access_token = None
+        self.set_global_mocks(m)
+        cache = {"client": "aclient", "data": {"access_token": "a cache token", "token_type": "bearer"},
+                 "date": "2021-06-09 08:30:00.679198"}
+
+        with open(self._api._config_file, 'w') as f:
+            f.write(json.dumps(cache))
+
+        self._api._auth_access_token = None
+        access_token = self._api.auth_access_token
+        self.assertEqual("a cache token", access_token)
+
+        os.remove(self._api._config_file)
+
+        # test cache broken. Will return token from _get_geodb_client_credentials_access_token
+        cache = {"client": "aclient", "data": {"access_token_broken": "a cache token", "token_type": "bearer"},
+                 "date": "2021-06-09 08:30:00.679198"}
+
+        with open(self._api._config_file, 'w') as f:
+            f.write(json.dumps(cache))
+
+            self._api._auth_access_token = None
+        access_token = self._api.auth_access_token
+        self.assertEqual("A long lived token", access_token)
 
     def test_get_collection_info(self, m):
         self.set_global_mocks(m)
@@ -755,6 +809,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         geodb = GeoDBClient()
+        geodb.use_auth_cache = False
         geodb._auth_access_token = "testölasdjdkas"
 
         self.assertEqual("testölasdjdkas", geodb.auth_access_token)
@@ -908,4 +963,11 @@ class GeoDBClientTest(unittest.TestCase):
             warn('test')
 
         self.assertEqual("test", str(e.warning))
+
+    def test_setup(self, m):
+        geodb = GeoDBClient()
+        with self.assertRaises(OperationalError) as e:
+            geodb.setup()
+
+        self.assertIn("could not connect to server", str(e.exception))
 

@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Optional, Union, Sequence, Tuple
 
 import geopandas as gpd
@@ -121,6 +121,7 @@ class GeoDBClient(object):
                  config_file: str = str(Path.home()) + '/.geodb',
                  database: Optional[str] = None,
                  access_token_uri: Optional[str] = None):
+        self._use_auth_cache = True
         self._dotenv_file = dotenv_file
         self._database = None
         # Access token is set here or on request
@@ -1130,16 +1131,9 @@ class GeoDBClient(object):
     # noinspection PyMethodMayBeStatic
     def _gdf_prepare_geom(self, gpdf: GeoDataFrame, crs: int = None) -> DataFrame:
         if crs is None:
-            if isinstance(gpdf.crs, dict):
-                crs = gpdf.crs["init"].replace("epsg:", "")
-            elif gpdf.crs and gpdf.crs.srs:
-                import re
-                m = re.search(r'epsg:([0-9]*)', gpdf.crs.srs)
-                if m is None:
-                    raise GeoDBError("Invalid crs in geopandas data frame. You can pass the crs as parameter "
-                                     "(crs=[your crs])")
-                crs = m.group(1)
-            else:
+            crs = gpdf.crs.to_epsg()
+
+            if crs is None:
                 raise GeoDBError("Invalid crs in geopandas data frame. You can pass the crs as parameter "
                                  "(crs=[your crs])")
 
@@ -1171,7 +1165,6 @@ class GeoDBClient(object):
                                crs: int = None,
                                database: Optional[str] = None,
                                max_transfer_chunk_size: int = 1000,
-                               format='geopandas',
                                **kwargs) \
             -> Message:
         """
@@ -1577,16 +1570,47 @@ class GeoDBClient(object):
             d['geometry'] = wkb.loads(d['geometry'], hex=True)
         return d
 
-    def publish_to_geoserve(self, collection: str, database: str):
+    def publish_to_geoserve(self, collection: str, database: Optional[str] = None):
+        """
+        Publishes collection in a specific database to a geoserver instance
+        Args:
+            collection (str): Name of the collection
+            database (Optional[str]): Name of the database. Defaults to user database
+
+        Returns:
+            Dict
+
+        """
+        database = database or self.database
+
         r = self._put(path=f'/api/v2/services/geoservice/databases/{database}/collections',
                       payload={'collection_id': collection})
 
         return r.json()
 
     def unpublish_from_geoserve(self, collection: str, database: str):
+        """
+        'Unpublishes' a collection of a specific database from a geoserver instance
+        Args:
+            collection (str): Name of the collection
+            database (Optional[str]): Name of the database. Defaults to user database
+
+        Returns:
+            Dict
+
+        """
+
         r = self._delete(path=f'/api/v2/services/geoservice/databases/{database}/collections/{collection}')
 
         return True
+
+    @property
+    def use_auth_cache(self):
+        return self._use_auth_cache
+
+    @use_auth_cache.setter
+    def use_auth_cache(self, value):
+        self._use_auth_cache = value
 
     @property
     def auth_access_token(self) -> str:
@@ -1600,10 +1624,12 @@ class GeoDBClient(object):
             GeoDBError on missing ipython shell
         """
 
+        token = None
         # Get token from cache
         if self._auth_access_token is not None:
             token = self._auth_access_token
-        else:
+
+        if self.use_auth_cache and token is None:
             token = self._get_token_from_cache()
 
         if token:
@@ -1619,7 +1645,7 @@ class GeoDBClient(object):
         """
         self._auth_access_token = None
 
-    def _get_token_from_cache(self) -> Union[str, bool]:
+    def _get_token_from_cache(self) -> Union[str, type(None)]:
         """
         Load a token from a cache file
 
@@ -1632,25 +1658,12 @@ class GeoDBClient(object):
                 try:
                     cfg_data = json.load(f)
 
-                    if 'data' not in cfg_data or 'date' not in cfg_data:
-                        return False
-                    if 'expires_in' not in cfg_data["data"]:
-                        return False
-
-                    now = datetime.now()
-                    exp = datetime.strptime(cfg_data['date'], '%Y-%m-%d %H:%M:%S.%f') + timedelta(
-                        seconds=cfg_data['data']['expires_in'])
-                    if now > exp:
-                        return False
-                    elif 'client' in cfg_data and self._auth_client_id != cfg_data['client']:
-                        return False
-
                     if 'access_token' in cfg_data['data']:
                         return cfg_data['data']['access_token']
                 except Exception as e:
-                    return False
+                    return None
 
-        return False
+        return None
 
     def _raise_for_invalid_password_cfg(self) -> bool:
         """
@@ -1736,10 +1749,9 @@ class GeoDBClient(object):
 
         data = r.json()
 
-        if os.path.isfile(self._config_file):
-            with open(self._config_file, 'w') as f:
-                cfg_data = {'date': datetime.now(), 'client': self._auth_client_id, 'data': data}
-                json.dump(cfg_data, f, sort_keys=True, default=str)
+        with open(self._config_file, 'w') as f:
+            cfg_data = {'date': datetime.now(), 'client': self._auth_client_id, 'data': data}
+            json.dump(cfg_data, f, sort_keys=True, default=str)
 
         try:
             return data['access_token']
@@ -1847,41 +1859,3 @@ class GeoDBClient(object):
             cursor.execute(sql_create)
 
         conn.commit()
-
-    def list_users(self):
-        """
-        List the users in a database. Needs DB credentials and the database user requires CREATE TABLE/FUNCTION grants.
-
-        Returns:
-            A list of users
-
-        """
-        r = self._get(path='/rpc/geodb_list_users')
-        if r.status_code == 200:
-            js = r.json()[0]['src'][0]
-
-            if js:
-                return js
-
-        return None
-
-    def register_user(self, user_name: str, password: str) -> bool:
-        """
-        Register a user to the geoDB. Needs DB credentials and the database user requires CREATE TABLE/FUNCTION grants.
-
-        Args:
-            user_name (str): The user name
-            password (str): The password of the user
-        Returns:
-            Whether registering the user was successful
-
-        """
-        payload = {
-            'user_name': user_name,
-            'password': password
-        }
-        r = self._post(path='/rpc/geodb_register_user', payload=payload)
-        if r.status_code == 200:
-            return True
-
-        return False
