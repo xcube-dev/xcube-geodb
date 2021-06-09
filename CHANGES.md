@@ -1,8 +1,11 @@
-## v0.2.0.dev0 (in development)
+## v1.0.0 (in development)
 
 ### Fixes
 
 ### New Features
+- EPSG code strings e.g. 'epsg:4326' or 'EPSG:4326' are now accepted as CRS definition by `geodb.create_collection*` 
+  functions as well as `geodb.insert_into_collection`, `geodb.transform_bbox_crs`, `geodb.get_collection_by_bbox`. 
+  Before only integers were accepted. This ensures alignment with xcube software. 
 
 ## v0.1.16
 
