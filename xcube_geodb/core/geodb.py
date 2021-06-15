@@ -12,7 +12,6 @@ from pandas import DataFrame
 from shapely import wkb
 
 from xcube_geodb.const import MINX, MINY, MAXX, MAXY
-from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.message import Message
 from xcube_geodb.defaults import GEODB_DEFAULTS
 from xcube_geodb.version import version
@@ -90,8 +89,8 @@ def check_crs(crs):
         try:
             crs = int(crs.split(':')[-1])
             return crs
-        except Exception as e:
-            return crs
+        except ValueError as e:
+            raise GeoDBError(str(e))
 
 
 class GeoDBClient(object):
@@ -507,7 +506,7 @@ class GeoDBClient(object):
                                         properties: Dict,
                                         crs: Union[int, str] = 4326,
                                         database: Optional[str] = None,
-                                        **kwargs) -> Optional[Collections]:
+                                        **kwargs) -> Optional[Dict]:
         """
         Creates a collection only if the collection does not exist already.
 
@@ -536,7 +535,7 @@ class GeoDBClient(object):
 
     def create_collections_if_not_exist(self,
                                         collections: Dict,
-                                        database: Optional[str] = None, **kwargs) -> Collections:
+                                        database: Optional[str] = None, **kwargs) -> Dict:
         """
         Creates collections only if collections do not exist already.
 
@@ -565,7 +564,7 @@ class GeoDBClient(object):
                            collections: Dict,
                            database: Optional[str] = None,
                            clear: bool = False,
-                           **kwargs) -> Union[Collections, Message]:
+                           **kwargs) -> Union[Dict, Message]:
         """
         Create collections from a dictionary
         Args:
@@ -604,7 +603,7 @@ class GeoDBClient(object):
         collections = {"collections": buffer}
         try:
             self._post(path='/rpc/geodb_create_collections', payload=collections)
-            return Collections(collections)
+            return collections
         except GeoDBError as e:
             return Message("Error: " + str(e))
 
@@ -615,7 +614,7 @@ class GeoDBClient(object):
                           crs: Union[int, str] = 4326,
                           database: Optional[str] = None,
                           clear: bool = False,
-                          **kwargs) -> Collections:
+                          **kwargs) -> Dict:
         """
         Create collections from a dictionary
 
@@ -833,17 +832,9 @@ class GeoDBClient(object):
             >>> geodb = GeoDBClient()
             >>> geodb.unpublish_collection('[Collection]')
         """
+        database = database or self.database
 
-        try:
-            usr = self.whoami
-            database = database or self.database
-            dn = f"{database}_{collection}"
-
-            self.revoke_access_from_collection(collection=collection, usr='public', database=self.database)
-        except GeoDBError as e:
-            return Message('Error: ' + str(e))
-
-        return Message(f"Access revoked from user public on {collection}")
+        return self.revoke_access_from_collection(collection=collection, usr='public', database=database)
 
     @deprecated_kwarg('namespace', 'database')
     def revoke_access_from_collection(self, collection: str, usr: str, database: Optional[str] = None,
@@ -1166,10 +1157,6 @@ class GeoDBClient(object):
         gpdf2 = DataFrame(gpdf.copy())
         gpdf2['geometry'] = gpdf2['geometry'].apply(add_srid)
         return gpdf2
-
-    def _gdf_to_csv(self, gpdf: GeoDataFrame, crs: int = None) -> str:
-        gpdf = self._gdf_prepare_geom(gpdf, crs)
-        return gpdf.to_csv(header=True, index=False, encoding="utf-8").lstrip()
 
     def _gdf_to_json(self, gpdf: GeoDataFrame, crs: int = None) -> Dict:
         gpdf = self._gdf_prepare_geom(gpdf, crs)
@@ -1593,9 +1580,9 @@ class GeoDBClient(object):
             d['geometry'] = wkb.loads(d['geometry'], hex=True)
         return d
 
-    def publish_to_geoserver(self, collection: str, database: Optional[str] = None):
+    def publish_gs(self, collection: str, database: Optional[str] = None):
         """
-        Publishes collection in a specific database to a geoserver instance
+        Publishes collection to a BC geoservice (geoserver instance). Requires access registration.
         Args:
             collection (str): Name of the collection
             database (Optional[str]): Name of the database. Defaults to user database
@@ -1606,14 +1593,14 @@ class GeoDBClient(object):
         """
         database = database or self.database
 
-        r = self._put(path=f'/api/v2/services/geoservice/databases/{database}/collections',
+        r = self._put(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections',
                       payload={'collection_id': collection})
 
         return r.json()
 
-    def unpublish_from_geoserver(self, collection: str, database: str):
+    def unpublish_gs(self, collection: str, database: str):
         """
-        'Unpublishes' a collection of a specific database from a geoserver instance
+        'UnPublishes' collection to a BC geoservice (geoserver instance). Requires access registration.
         Args:
             collection (str): Name of the collection
             database (Optional[str]): Name of the database. Defaults to user database
@@ -1623,7 +1610,7 @@ class GeoDBClient(object):
 
         """
 
-        r = self._delete(path=f'/api/v2/services/geoservice/databases/{database}/collections/{collection}')
+        self._delete(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections/{collection}')
 
         return True
 
@@ -1667,6 +1654,8 @@ class GeoDBClient(object):
 
         """
         self._auth_access_token = None
+        with open(self._config_file, 'w') as f:
+            f.write('{}')
 
     def _get_token_from_cache(self) -> Union[str, type(None)]:
         """
@@ -1740,7 +1729,6 @@ class GeoDBClient(object):
         Raises:
             GeoDBError, HttpError
         """
-        payload = {}
 
         if self._auth_mode == "client-credentials":
             self._raise_for_invalid_client_credentials_cfg()
@@ -1780,23 +1768,6 @@ class GeoDBClient(object):
             return data['access_token']
         except KeyError:
             raise GeoDBError("The authorization request did not return an access token.")
-
-    # noinspection PyMethodMayBeStatic
-    def _validate(self, df: gpd.GeoDataFrame) -> bool:
-        """
-        Validate whether a GeoDataFrame is a valid geoDB frame
-
-        Args:
-            df (GeoDataFrame): Frame to check
-
-        Returns:
-            Whether id and geometry are properties in the frame
-        """
-
-        cols = set([x.lower() for x in df.columns])
-        valid_columns = {'id', 'geometry'}
-
-        return len(list(valid_columns - cols)) == 0
 
     def collection_exists(self, collection: str, database: str) -> bool:
         """

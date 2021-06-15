@@ -13,8 +13,7 @@ from psycopg2 import OperationalError
 from shapely import wkt
 
 from tests.utils import del_env
-from xcube_geodb.core.collections import Collections
-from xcube_geodb.core.geodb import GeoDBClient, GeoDBError, warn
+from xcube_geodb.core.geodb import GeoDBClient, GeoDBError, warn, check_crs
 from xcube_geodb.core.message import Message
 
 TEST_GEOM = "0103000020D20E000001000000110000007593188402B51B4" \
@@ -126,39 +125,20 @@ class GeoDBClientTest(unittest.TestCase):
                              'grantee': {0: 'geodb_admin', 1: 'PUBLIC'}}
         self.assertDictEqual(expected_response, res)
 
-    def test_get_collections(self, m):
-        self.set_global_mocks(m)
+        m.post(url, json=[{'src': []}])
 
-        server_response = [
-            {
-                "table_name": "geodb_admin_land_use",
-                "grantee": "geodb_admin"
-            },
-            {
-                "table_name": "geodb_admin_land_use",
-                "grantee": "PUBLIC"
-            },
-        ]
-
-        server_response = [{"src": server_response}]
-
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_my_collections"
-        m.post(url, text=json.dumps(server_response))
-
-        res = self._api.get_collections()
-        self.assertIsInstance(res, pandas.DataFrame)
-        res = res.to_dict()
-        expected_response = {'table_name': {0: 'geodb_admin_land_use', 1: 'geodb_admin_land_use'},
-                             'grantee': {0: 'geodb_admin', 1: 'PUBLIC'}}
-        self.assertDictEqual(expected_response, res)
-
-        server_response2 = []
-        server_response2.append(dict(src=[]))
-        m.post(url, text=json.dumps(server_response2))
         res = self._api.get_my_collections()
 
-        self.assertIsInstance(res, DataFrame)
-        self.assertEqual(0, len(res))
+        self.assertIsInstance(res, pandas.DataFrame)
+        self.assertEqual(len(res), 0)
+
+    def test_get_collections(self, m):
+        self._api.get_my_collections = MagicMock(name='get_my_collections')
+
+        with self.assertWarns(DeprecationWarning) as w:
+            self._api.get_collections()
+
+        self.assertEqual("Call to deprecated function 'get_collections'. Use get_my_collections.", str(w.warning))
 
     def test_get_collection(self, m):
         self.set_global_mocks(m)
@@ -304,25 +284,25 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIsNone(res)
 
         self._api.collection_exists = MagicMock(name='collection_exists', return_value=False)
-        self._api.create_collection = MagicMock(name='create_collection', return_value=Collections({'name': 'test'}))
+        self._api.create_collection = MagicMock(name='create_collection', return_value={'name': 'test'})
         res = self._api.create_collection_if_not_exists('test', {})
-        self.assertDictEqual({'name': 'test'}, res.config)
-        self.assertIsInstance(res, Collections)
+        self.assertDictEqual({'name': 'test'}, res)
+        self.assertIsInstance(res, dict)
 
     def test_create_collections_if_not_exist(self, m):
         self.set_global_mocks(m)
 
         self._api.collection_exists = MagicMock(name='collection_exists', return_value=True)
-        self._api.create_collections = MagicMock(name='create_collections', return_value=Collections({}))
+        self._api.create_collections = MagicMock(name='create_collections', return_value={})
         res = self._api.create_collections_if_not_exist({'name': 'test'})
-        self.assertDictEqual({}, res.config)
-        self.assertIsInstance(res, Collections)
+        self.assertDictEqual({}, res)
+        self.assertIsInstance(res, dict)
 
-        self._api.collection_exists = MagicMock(name='collection_exists', return_value=False)
-        self._api.create_collections = MagicMock(name='create_collections', return_value=Collections({'name': 'test'}))
+        self._api.collection_exists = MagicMock(name='collection_exists', return_value=None)
+        self._api.create_collections = MagicMock(name='create_collections', return_value={'name': 'test'})
         res = self._api.create_collections_if_not_exist({'name': 'test'})
-        self.assertDictEqual({'name': 'test'}, res.config)
-        self.assertIsInstance(res, Collections)
+        self.assertDictEqual({'name': 'test'}, res)
+        self.assertIsInstance(res, dict)
 
     def test_create_collection(self, m):
         expected_response = 'Success'
@@ -365,8 +345,8 @@ class GeoDBClientTest(unittest.TestCase):
         }
 
         res = self._api.create_collections(collections=collections)
-        self.assertIsInstance(res, Collections)
-        self.assertDictEqual(expected_response, res.config)
+        self.assertIsInstance(res, dict)
+        self.assertDictEqual(expected_response, res)
 
         with self.assertWarns(DeprecationWarning) as e:
             self._api.create_collections(collections=collections, namespace='helge')
@@ -424,8 +404,8 @@ class GeoDBClientTest(unittest.TestCase):
         }
 
         res = self._api.create_collections(collections=collections)
-        self.assertIsInstance(res, Collections)
-        self.assertDictEqual(expected_response, res.config)
+        self.assertIsInstance(res, dict)
+        self.assertDictEqual(expected_response, res)
 
         with self.assertWarns(DeprecationWarning) as e:
             self._api.create_collections(collections=collections, namespace='helge')
@@ -524,13 +504,13 @@ class GeoDBClientTest(unittest.TestCase):
                                               from_crs=crs_4326, to_crs=crs_3857, wsg84_order="lat_lon")
 
         for i in range(4):
-            self.assertAlmostEquals(bbox_3857[i], bbox[i])
+            self.assertAlmostEqual(bbox_3857[i], bbox[i])
 
         bbox = GeoDBClient.transform_bbox_crs(bbox=bbox_3857,
                                               from_crs=crs_3857, to_crs=crs_4326, wsg84_order="lat_lon")
 
         for i in range(4):
-            self.assertAlmostEquals(bbox_4326[i], bbox[i])
+            self.assertAlmostEqual(bbox_4326[i], bbox[i])
 
     def test_reproject_bbox_lon_lat(self, m):
         bbox_4326 = (53.51, 9.8, 53.57, 10.0)
@@ -774,6 +754,12 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIsInstance(r, DataFrame)
         self.assertEqual(len(r), 0)
 
+        self._api._capabilities= dict(paths = [])
+        with self.assertRaises(GeoDBError) as e:
+            self._api.get_collection_pg('test', limit=1, offset=2)
+
+        self.assertEqual("Stored procedure geodb_get_pg does not exist", str(e.exception))
+
     def test_init(self, m):
         with self.assertRaises(NotImplementedError) as e:
             GeoDBClient(auth_mode='interactive')
@@ -910,25 +896,24 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._server_full_address + "/rpc/geodb_revoke_access_from_collection", text="success")
 
         res = self._api.unpublish_collection('test')
-        self.assertEqual("<h1>Access revoked from user public on test</h1>", str(res))
+        self.assertEqual("<h1>Access revoked from helge on test</h1>", str(res))
 
         m.post(self._server_full_address + "/rpc/geodb_revoke_access_from_collection", text="error", status_code=400)
-        # !!!
         res = self._api.unpublish_collection('test')
-        self.assertEqual("<h1>Access revoked from user public on test</h1>", str(res))
+        self.assertEqual("<h1>Error: error</h1>", str(res))
 
     def test_publish_to_geoserver(self, m):
         self.set_global_mocks(m)
         url = self._server_full_address + "/api/v2/services/geoservice/databases/geodb_admin/collections"
         m.put(url=url, json={'name': 'land_use'})
 
-        res = self._api.publish_to_geoserver(collection="land_use", database="geodb_admin")
+        res = self._api.publish_gs(collection="land_use", database="geodb_admin")
         self.assertDictEqual({'name': 'land_use'}, res)
 
         m.put(url=url, text='Error', status_code=400)
 
         with self.assertRaises(GeoDBError) as e:
-            self._api.publish_to_geoserver(collection="land_use", database="geodb_admin")
+            self._api.publish_gs(collection="land_use", database="geodb_admin")
 
         self.assertEqual("Error", str(e.exception))
         self.assertIsInstance(e.exception, GeoDBError)
@@ -938,13 +923,13 @@ class GeoDBClientTest(unittest.TestCase):
         url = self._server_full_address + "/api/v2/services/geoservice/databases/geodb_admin/collections/land_use"
         m.delete(url=url)
 
-        res = self._api.unpublish_from_geoserver(collection="land_use", database="geodb_admin")
+        res = self._api.unpublish_gs(collection="land_use", database="geodb_admin")
         self.assertTrue(res)
 
         m.delete(url=url, text='Error', status_code=400)
 
         with self.assertRaises(GeoDBError) as e:
-            self._api.unpublish_from_geoserver(collection="land_use", database="geodb_admin")
+            self._api.unpublish_gs(collection="land_use", database="geodb_admin")
 
         self.assertEqual("Error", str(e.exception))
         self.assertIsInstance(e.exception, GeoDBError)
@@ -1040,4 +1025,42 @@ class GeoDBClientTest(unittest.TestCase):
             geodb.setup()
 
         self.assertIn("could not connect to server", str(e.exception))
+
+    def test_crs(self, m):
+        with self.assertRaises(GeoDBError) as e:
+            check_crs('epsg:hh')
+
+        self.assertEqual("invalid literal for int() with base 10: 'hh'", str(e.exception))
+
+    def test_refresh_auth_access_token(self, m):
+        self.set_global_mocks(m)
+        self._api.refresh_auth_access_token()
+
+        self.assertIsNone(self._api._auth_access_token)
+        # auth_access_token will retreive new token
+        self.assertEqual("A long lived token", self._api.auth_access_token)
+
+    def test_auth_access_token(self, m):
+        self.set_global_mocks(m)
+        self._api.use_auth_cache = False
+        self._api._auth_client_id = None
+
+        with self.assertRaises(GeoDBError) as e:
+            r = self._api.auth_access_token
+
+        self.assertEqual("System: Invalid client_credentials configuration.", str(e.exception))
+
+        self._api._auth_mode = 'password'
+
+        with self.assertRaises(GeoDBError) as e:
+            r = self._api.auth_access_token
+
+        self.assertEqual("System: Invalid password flow configuration", str(e.exception))
+
+        self._api._auth_client_id = 'ksdjbvdkasj'
+        self._api._auth_username = 'ksdjbvdkasj'
+        self._api._auth_password = 'ksdjbvdkasj'
+
+        r = self._api.auth_access_token
+
 
