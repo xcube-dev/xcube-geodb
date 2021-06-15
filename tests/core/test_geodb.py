@@ -904,7 +904,7 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_publish_to_geoserver(self, m):
         self.set_global_mocks(m)
-        url = self._server_full_address + "/api/v2/services/geoservice/databases/geodb_admin/collections"
+        url = self._server_full_address + "/api/v2/services/xcube_geoserv/databases/geodb_admin/collections"
         m.put(url=url, json={'name': 'land_use'})
 
         res = self._api.publish_gs(collection="land_use", database="geodb_admin")
@@ -920,7 +920,7 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_unpublish_from_geoserver(self, m):
         self.set_global_mocks(m)
-        url = self._server_full_address + "/api/v2/services/geoservice/databases/geodb_admin/collections/land_use"
+        url = self._server_full_address + "/api/v2/services/xcube_geoserv/databases/geodb_admin/collections/land_use"
         m.delete(url=url)
 
         res = self._api.unpublish_gs(collection="land_use", database="geodb_admin")

@@ -39,7 +39,7 @@ jobs:
         shell: bash -l {0}
         run: conda info
 
-      - name: Conda info
+      - name: Install the client
         shell: bash -l {0}
         run: |
           python setup.py develop
