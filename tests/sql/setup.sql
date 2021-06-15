@@ -9,18 +9,6 @@
 CREATE EXTENSION postgis;
 CREATE EXTENSION geodb;
 
-
-CREATE ROLE authenticator WITH
-    LOGIN
-    NOSUPERUSER
-    INHERIT
-    NOCREATEDB
-    NOCREATEROLE
-    NOREPLICATION;
-
-
-ALTER ROLE authenticator IN DATABASE postgres SET search_path TO public;
-
 ALTER ROLE geodb_admin IN DATABASE postgres SET search_path TO public;
 GRANT geodb_admin TO authenticator;
 

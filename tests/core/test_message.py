@@ -8,6 +8,8 @@ class TestMessage(unittest.TestCase):
         message = Message('helge ist doof')
         self.assertEqual('helge ist doof', message.message)
 
+        self.assertEqual("<h1>helge ist doof</h1>", str(message))
+
 
 if __name__ == '__main__':
     unittest.main()

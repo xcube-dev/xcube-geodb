@@ -10,8 +10,9 @@ LABEL version=${XCUBE_GEODB_VERSION}
 
 USER $NB_UID
 
+RUN apt-get update -y && apt-get upgrade -y
+
 RUN conda install -n base -c conda-forge mamba pip
-RUN mamba install -y -c conda-forge xcube
 RUN pip install ipyauth IPython
 RUN jupyter labextension install ipyauth
 RUN jupyter labextension install @jupyterlab/github
