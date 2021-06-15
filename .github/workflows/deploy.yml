@@ -5,8 +5,6 @@ name: xcube-geodb-deploy
 # Controls when the action will run. 
 on:
   push:
-    branches:
-      - master
   release:
     types:
       - created
