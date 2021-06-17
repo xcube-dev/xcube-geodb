@@ -98,11 +98,11 @@ class GeoDBClientTest(unittest.TestCase):
 
         server_response = [
             {
-                "table_name": "geodb_admin_land_use",
+                "collection": "geodb_admin_land_use",
                 "grantee": "geodb_admin"
             },
             {
-                "table_name": "geodb_admin_land_use",
+                "collection": "geodb_admin_land_use",
                 "grantee": "PUBLIC"
             },
         ]
@@ -115,7 +115,7 @@ class GeoDBClientTest(unittest.TestCase):
         res = self._api.get_my_collections()
         self.assertIsInstance(res, pandas.DataFrame)
         res = res.to_dict()
-        expected_response = {'table_name': {0: 'geodb_admin_land_use', 1: 'geodb_admin_land_use'},
+        expected_response = {'collection': {0: 'geodb_admin_land_use', 1: 'geodb_admin_land_use'},
                              'grantee': {0: 'geodb_admin', 1: 'PUBLIC'}}
         self.assertDictEqual(expected_response, res)
 
@@ -429,14 +429,14 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_list_grants(self, m):
         path = '/rpc/geodb_list_grants'
-        expected_response = [{'src': [{'table_name': 'test', 'grantee': 'ernie'}]}]
+        expected_response = [{'src': [{'collection': 'test', 'grantee': 'ernie'}]}]
 
         m.post(self._server_full_address + path, json=expected_response)
         self.set_global_mocks(m)
 
         r = self._api.list_my_grants()
 
-        self.assertEqual('test', r.table_name[0])
+        self.assertEqual('test', r.collection[0])
         self.assertEqual('ernie', r.grantee[0])
         self.assertIsInstance(r, DataFrame)
 
