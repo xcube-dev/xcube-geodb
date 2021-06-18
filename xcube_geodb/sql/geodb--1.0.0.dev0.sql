@@ -218,7 +218,7 @@ BEGIN
     RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js ' ||
                                 'FROM (SELECT
                                              name as database,
-                                             regexp_replace(table_name, name || ''_'','''') as 'collection',
+                                             regexp_replace(table_name, name || ''_'','''') as "collection",
                                              column_name,
                                              data_type
                                         FROM information_schema.columns
