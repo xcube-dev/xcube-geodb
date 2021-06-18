@@ -1,18 +1,17 @@
+import json
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
+from pathlib import Path
 from typing import Dict, Optional, Union, Sequence, Tuple
 
 import geopandas as gpd
+import requests
+from dotenv import load_dotenv, find_dotenv
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkb
-import requests
-import json
-from dotenv import load_dotenv, find_dotenv
-from pathlib import Path
 
 from xcube_geodb.const import MINX, MINY, MAXX, MAXY
-from xcube_geodb.core.collections import Collections
 from xcube_geodb.core.message import Message
 from xcube_geodb.defaults import GEODB_DEFAULTS
 from xcube_geodb.version import version
@@ -80,6 +79,20 @@ class GeoDBError(ValueError):
 
 
 # noinspection PyShadowingNames,PyUnusedLocal
+def check_crs(crs):
+    """This function is needed in order to ensure xcube_geodb to understand EPSG crs as well as ensure backward
+    compatibility. Furthermore, the database only accepts integer as crs."""
+
+    if isinstance(crs, int):
+        return crs
+    if isinstance(crs, str):
+        try:
+            crs = int(crs.split(':')[-1])
+            return crs
+        except ValueError as e:
+            raise GeoDBError(str(e))
+
+
 class GeoDBClient(object):
     """
     Constructing the geoDB client. Dpending on the setup it will automatically setup credentials from
@@ -121,6 +134,7 @@ class GeoDBClient(object):
                  config_file: str = str(Path.home()) + '/.geodb',
                  database: Optional[str] = None,
                  access_token_uri: Optional[str] = None):
+        self._use_auth_cache = True
         self._dotenv_file = dotenv_file
         self._database = None
         # Access token is set here or on request
@@ -171,14 +185,6 @@ class GeoDBClient(object):
         if self._auth_mode == "interactive":
             raise NotImplementedError("The interactive mode has not been implemented.")
             # self._auth_login()
-
-        if "3.120.53.215.nip.io" in self._server_url:
-            msg = f"The geodb server address {self._server_url} is deprecated for security reasons. Please use " \
-                  f"'https://xcube-geodb.brockmann-consult.de'. You can set the address via an environment " \
-                  f"variable (GEODB_API_SERVER_URL = 'https://xcube-geodb.brockmann-consult.de') or" \
-                  f"by passing the new URL into the client constructor: " \
-                  f"geodb=GeoDBClient(server_url='https://xcube-geodb.brockmann-consult.de')"
-            warn(msg=msg)
 
     def _set_from_env(self):
         """
@@ -306,43 +312,6 @@ class GeoDBClient(object):
         """
         return self._capabilities or self._get(path='/').json()
 
-    def _auth_login(self):
-        self._auth0_login()
-
-    def _auth0_login(self):
-        """
-        Interactive login
-
-        Raises:
-            GeoDBError: When nor shell is present
-            ImportError: When ipyauth ir IPython is not installed
-        """
-        try:
-            from ipyauth import ParamsAuth0, Auth
-            import IPython
-            from IPython.display import display
-        except ImportError:
-            raise GeoDBError("You need to install IPython and ipyauth dependencies")
-
-        auth0_config_file = os.environ.get('GEODB_AUTH0_CONFIG_FILE') or 'ipyauth-auth0-demo.env'
-        auth0_config_folder = os.environ.get('GEODB_AUTH0_CONFIG_FOLDER') or '.'
-
-        if not os.path.isfile(os.path.join(auth0_config_folder, auth0_config_file)):
-            raise FileExistsError("Mandatory auth configuration file ipyauth-auth0-demo.env must exist")
-
-        self._ipython_shell = IPython.get_ipython()
-
-        if self._ipython_shell is None:
-            raise GeoDBError("You do not seem to be in an interactive ipython session. Interactive login cannot "
-                             "be used.")
-
-        auth_params = ParamsAuth0(dotenv_file=auth0_config_file, dotenv_folder=auth0_config_folder)
-        auth = Auth(params=auth_params)
-
-        self._ipython_shell.push({'__auth__': auth}, interactive=True)
-        # noinspection PyTypeChecker
-        display(auth)
-
     def _refresh_capabilities(self):
         self._capabilities = None
 
@@ -451,7 +420,7 @@ class GeoDBClient(object):
             r = requests.delete(self._get_full_url(path=path), params=params, headers=headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError:
-            raise GeoDBError(r.content)
+            raise GeoDBError(r.text)
         return r
 
     def _patch(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
@@ -484,13 +453,34 @@ class GeoDBClient(object):
             raise GeoDBError(r.content)
         return r
 
-    def logout(self):
+    def _put(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
+             headers: Optional[Dict] = None) -> requests.models.Response:
         """
-        Log a user off the geoDB.
 
+        Args:
+            headers (Optional[Dict]): Request headers. Allows Overriding common header entries.
+            payload (Union[Dict, Sequence]): Post body as Dict. Will be dumped to JSON
+            path (str): API path
+            params (Optional[Dict]): Request parameters
+
+        Returns:
+            requests.models.Response: A Request object
+
+        Raises:
+            GeoDBError: If the database raises an error
         """
-        self._auth_access_token = ''
-        os.remove(self._config_file)
+
+        common_headers = self._get_common_headers()
+        headers = common_headers.update(headers) if headers else self._get_common_headers()
+
+        r = None
+        try:
+            r = requests.put(self._get_full_url(path=path), json=payload, params=params,
+                             headers=headers)
+            r.raise_for_status()
+        except requests.HTTPError:
+            raise GeoDBError(r.text)
+        return r
 
     def get_my_usage(self, pretty=True) -> Dict:
         """
@@ -514,16 +504,16 @@ class GeoDBClient(object):
     def create_collection_if_not_exists(self,
                                         collection: str,
                                         properties: Dict,
-                                        crs: int = 4326,
+                                        crs: Union[int, str] = 4326,
                                         database: Optional[str] = None,
-                                        **kwargs) -> Optional[Collections]:
+                                        **kwargs) -> Optional[Dict]:
         """
         Creates a collection only if the collection does not exist already.
 
         Args:
             collection (str): The name of the collection to be created
             properties (Dict): Properties to be added to the collection
-            crs (int): projection
+            crs (int, str): projection
             database (str): The database the collection is to be created in [current database]
             kwargs: Placeholder for deprecated parameters
 
@@ -545,7 +535,7 @@ class GeoDBClient(object):
 
     def create_collections_if_not_exist(self,
                                         collections: Dict,
-                                        database: Optional[str] = None, **kwargs) -> Collections:
+                                        database: Optional[str] = None, **kwargs) -> Dict:
         """
         Creates collections only if collections do not exist already.
 
@@ -563,7 +553,7 @@ class GeoDBClient(object):
         res = dict()
         for collection in collections:
             exists = self.collection_exists(collection=collection, database=database)
-            if exists:
+            if exists is None:
                 res[collection] = collections[collection]
 
         return self.create_collections(collections=res, database=database)
@@ -574,7 +564,7 @@ class GeoDBClient(object):
                            collections: Dict,
                            database: Optional[str] = None,
                            clear: bool = False,
-                           **kwargs) -> Union[Collections, Message]:
+                           **kwargs) -> Union[Dict, Message]:
         """
         Create collections from a dictionary
         Args:
@@ -591,6 +581,10 @@ class GeoDBClient(object):
                     {'[MyProp1]': 'float', '[MyProp2]': 'date'}}}
             >>> geodb.create_collections(collections)
         """
+
+        for collection in collections:
+            if 'crs' in collections[collection]:
+                collections[collection]['crs'] = check_crs(collections[collection]['crs'])
 
         self._refresh_capabilities()
 
@@ -609,7 +603,7 @@ class GeoDBClient(object):
         collections = {"collections": buffer}
         try:
             self._post(path='/rpc/geodb_create_collections', payload=collections)
-            return Collections(collections)
+            return collections
         except GeoDBError as e:
             return Message("Error: " + str(e))
 
@@ -617,10 +611,10 @@ class GeoDBClient(object):
     def create_collection(self,
                           collection: str,
                           properties: Dict,
-                          crs: int = 4326,
+                          crs: Union[int, str] = 4326,
                           database: Optional[str] = None,
                           clear: bool = False,
-                          **kwargs) -> Collections:
+                          **kwargs) -> Dict:
         """
         Create collections from a dictionary
 
@@ -639,6 +633,7 @@ class GeoDBClient(object):
             >>> properties = {'[MyProp1]': 'float', '[MyProp2]': 'date'}
             >>> geodb.create_collection(collection='[MyCollection]', crs=3794, properties=properties)
         """
+        crs = check_crs(crs)
         collections = {
             collection:
                 {
@@ -754,6 +749,8 @@ class GeoDBClient(object):
 
         self._post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
 
+        return Message(f"Collection renamed from {collection} to {new_name}")
+
     def move_collection(self, collection: str, new_database: str, database: Optional[str] = None):
         """
         Move a collection from one database to another
@@ -774,6 +771,8 @@ class GeoDBClient(object):
 
         self._post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
 
+        return Message(f"Collection moved from {database} to {new_database}")
+
     def copy_collection(self, collection: str, new_collection: str, new_database: str, database: Optional[str] = None):
         """
 
@@ -793,6 +792,8 @@ class GeoDBClient(object):
         to_dn = f"{new_database}_{new_collection}"
 
         self._post(path='/rpc/geodb_copy_collection', payload={'old_collection': from_dn, 'new_collection': to_dn})
+
+        return Message(f"Collection copied from {database}/{collection} to {new_database}/{new_collection}")
 
     def publish_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
@@ -831,17 +832,9 @@ class GeoDBClient(object):
             >>> geodb = GeoDBClient()
             >>> geodb.unpublish_collection('[Collection]')
         """
+        database = database or self.database
 
-        try:
-            usr = self.whoami
-            database = database or self.database
-            dn = f"{database}_{collection}"
-
-            self.revoke_access_from_collection(collection=collection, usr='public', database=self.database)
-        except GeoDBError as e:
-            return Message('Error: ' + str(e))
-
-        return Message(f"Access revoked from user public on {collection}")
+        return self.revoke_access_from_collection(collection=collection, usr='public', database=database)
 
     @deprecated_kwarg('namespace', 'database')
     def revoke_access_from_collection(self, collection: str, usr: str, database: Optional[str] = None,
@@ -988,7 +981,7 @@ class GeoDBClient(object):
     def _raise_for_mandatory_columns(self, properties: Sequence[str]):
         common_props = list(set(properties) & set(self._mandatory_properties))
         if len(common_props) > 0:
-            raise ValueError("Don't delete the following columns: " + str(common_props))
+            raise GeoDBError("Don't delete the following columns: " + str(common_props))
 
     @deprecated_kwarg('namespace', 'database')
     def get_properties(self, collection: str, database: Optional[str] = None, **kwargs) -> DataFrame:
@@ -1148,16 +1141,9 @@ class GeoDBClient(object):
     # noinspection PyMethodMayBeStatic
     def _gdf_prepare_geom(self, gpdf: GeoDataFrame, crs: int = None) -> DataFrame:
         if crs is None:
-            if isinstance(gpdf.crs, dict):
-                crs = gpdf.crs["init"].replace("epsg:", "")
-            elif gpdf.crs and gpdf.crs.srs:
-                import re
-                m = re.search(r'epsg:([0-9]*)', gpdf.crs.srs)
-                if m is None:
-                    raise GeoDBError("Invalid crs in geopandas data frame. You can pass the crs as parameter "
-                                     "(crs=[your crs])")
-                crs = m.group(1)
-            else:
+            crs = gpdf.crs.to_epsg()
+
+            if crs is None:
                 raise GeoDBError("Invalid crs in geopandas data frame. You can pass the crs as parameter "
                                  "(crs=[your crs])")
 
@@ -1172,10 +1158,6 @@ class GeoDBClient(object):
         gpdf2['geometry'] = gpdf2['geometry'].apply(add_srid)
         return gpdf2
 
-    def _gdf_to_csv(self, gpdf: GeoDataFrame, crs: int = None) -> str:
-        gpdf = self._gdf_prepare_geom(gpdf, crs)
-        return gpdf.to_csv(header=True, index=False, encoding="utf-8").lstrip()
-
     def _gdf_to_json(self, gpdf: GeoDataFrame, crs: int = None) -> Dict:
         gpdf = self._gdf_prepare_geom(gpdf, crs)
         res = gpdf.to_dict('records')
@@ -1186,7 +1168,7 @@ class GeoDBClient(object):
                                collection: str,
                                values: GeoDataFrame,
                                upsert: bool = False,
-                               crs: int = None,
+                               crs: Optional[Union[int, str]] = None,
                                database: Optional[str] = None,
                                max_transfer_chunk_size: int = 1000,
                                **kwargs) \
@@ -1199,7 +1181,7 @@ class GeoDBClient(object):
             database (str): The name of the database the collection resides in [current database]
             values (GeoDataFrame): Values to be inserted
             upsert (bool): Whether the insert shall replace existing rows (by PK)
-            crs (int): crs (in the form of an SRID) of the geometries. If not present, the method will attempt
+            crs (int, str): crs (in the form of an SRID) of the geometries. If not present, the method will attempt
             guessing it from the GeoDataFrame input. Must be in sync with the target collection in the GeoDatabase
             max_transfer_chunk_size (int): Maximum number of rows per chunk to be sent to the geodb.
 
@@ -1215,10 +1197,12 @@ class GeoDBClient(object):
         """
         # self._collection_exists(collection=collection)
         srid = self.get_collection_srid(collection, database)
+        crs = check_crs(crs)
         if crs and srid and srid != crs:
-            raise ValueError(f"crs {crs} is not compatible with collection's crs {srid}")
+            raise GeoDBError(f"crs {crs} is not compatible with collection's crs {srid}")
 
         crs = crs or srid
+        total_rows = 0
 
         if isinstance(values, GeoDataFrame):
             # headers = {'Content-type': 'text/csv'}
@@ -1263,7 +1247,7 @@ class GeoDBClient(object):
         return Message(f"{total_rows} rows inserted into {collection}")
 
     @staticmethod
-    def transform_bbox_crs(bbox: Tuple[float, float, float, float], from_crs: int, to_crs: int,
+    def transform_bbox_crs(bbox: Tuple[float, float, float, float], from_crs: Union[int, str], to_crs: Union[int, str],
                            wsg84_order: str = "lat_lon"):
         """
         This function can be used to reproject bboxes particularly with the use of GeoDBClient.get_collection_by_bbox.
@@ -1285,6 +1269,9 @@ class GeoDBClient(object):
         """
         from pyproj import Transformer
 
+        from_crs = check_crs(from_crs)
+        to_crs = check_crs(to_crs)
+
         if wsg84_order == 'lat_lon' and from_crs == 4326:
             bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
 
@@ -1301,7 +1288,7 @@ class GeoDBClient(object):
     def get_collection_by_bbox(self, collection: str,
                                bbox: Tuple[float, float, float, float],
                                comparison_mode: str = 'contains',
-                               bbox_crs: int = 4326,
+                               bbox_crs: Union[int, str] = 4326,
                                limit: int = 0,
                                offset: int = 0,
                                where: Optional[str] = "id>-1",
@@ -1320,7 +1307,7 @@ class GeoDBClient(object):
             collection (str): The name of the collection to be quried
             bbox (Tuple[float, float, float, float]): minx, miny, maxx, maxy
             comparison_mode (str): Filter mode. Can be 'contains' or 'within' ['contains']
-            bbox_crs (int): Projection code. [4326]
+            bbox_crs (int, str): Projection code. [4326]
             op (str): Operator for where (AND, OR) ['AND']
             where (str): Additional SQL where statement to further filter the collection
             limit (int): The maximum number of rows to be returned
@@ -1340,7 +1327,7 @@ class GeoDBClient(object):
             >>> geodb.get_collection_by_bbox(table="[MyCollection]", bbox=(452750.0, 88909.549, 464000.0, \
                 102486.299), comparison_mode="contains", bbox_crs=3794, limit=10, offset=10)
         """
-
+        bbox_crs = check_crs(bbox_crs)
         database = database or self.database
         dn = database + '_' + collection
 
@@ -1442,16 +1429,6 @@ class GeoDBClient(object):
             return self._df_from_json(js, srid)
         else:
             return DataFrame(columns=["Empty Result"])
-
-    # noinspection PyMethodMayBeStatic
-    def _raise_for_injection(self, select: str):
-        select = select.lower()
-        if "update" in select \
-                or "delete" in select \
-                or "drop" in select \
-                or "create" in select \
-                or "function" in select:
-            raise GeoDBError("Please don't inject!")
 
     # noinspection SqlDialectInspection,SqlNoDataSourceInspection,SqlInjection
     @deprecated_kwarg('namespace', 'database')
@@ -1603,6 +1580,48 @@ class GeoDBClient(object):
             d['geometry'] = wkb.loads(d['geometry'], hex=True)
         return d
 
+    def publish_gs(self, collection: str, database: Optional[str] = None):
+        """
+        Publishes collection to a BC geoservice (geoserver instance). Requires access registration.
+        Args:
+            collection (str): Name of the collection
+            database (Optional[str]): Name of the database. Defaults to user database
+
+        Returns:
+            Dict
+
+        """
+        database = database or self.database
+
+        r = self._put(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections',
+                      payload={'collection_id': collection})
+
+        return r.json()
+
+    def unpublish_gs(self, collection: str, database: str):
+        """
+        'UnPublishes' collection to a BC geoservice (geoserver instance). Requires access registration.
+        Args:
+            collection (str): Name of the collection
+            database (Optional[str]): Name of the database. Defaults to user database
+
+        Returns:
+            Dict
+
+        """
+
+        self._delete(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections/{collection}')
+
+        return True
+
+    @property
+    def use_auth_cache(self):
+        return self._use_auth_cache
+
+    @use_auth_cache.setter
+    def use_auth_cache(self, value):
+        self._use_auth_cache = value
+
     @property
     def auth_access_token(self) -> str:
         """
@@ -1615,24 +1634,19 @@ class GeoDBClient(object):
             GeoDBError on missing ipython shell
         """
 
+        token = None
         # Get token from cache
         if self._auth_access_token is not None:
             token = self._auth_access_token
-        else:
+
+        if self.use_auth_cache and token is None:
             token = self._get_token_from_cache()
 
         if token:
             return token
 
         # get token depending on auth mode
-        if self._auth_mode == "interactive":
-            if not self._ipython_shell:
-                raise GeoDBError("System Error: Cannot find interactive ipython shell")
-            token = self._ipython_shell.user_ns['__auth__'].access_token
-        else:
-            token = self._get_geodb_client_credentials_access_token()
-
-        return token
+        return self._get_geodb_client_credentials_access_token()
 
     def refresh_auth_access_token(self):
         """
@@ -1640,8 +1654,10 @@ class GeoDBClient(object):
 
         """
         self._auth_access_token = None
+        with open(self._config_file, 'w') as f:
+            f.write('{}')
 
-    def _get_token_from_cache(self) -> Union[str, bool]:
+    def _get_token_from_cache(self) -> Union[str, type(None)]:
         """
         Load a token from a cache file
 
@@ -1654,25 +1670,12 @@ class GeoDBClient(object):
                 try:
                     cfg_data = json.load(f)
 
-                    if 'data' not in cfg_data or 'date' not in cfg_data:
-                        return False
-                    if 'expires_in' not in cfg_data["data"]:
-                        return False
-
-                    now = datetime.now()
-                    exp = datetime.strptime(cfg_data['date'], '%Y-%m-%d %H:%M:%S.%f') + timedelta(
-                        seconds=cfg_data['data']['expires_in'])
-                    if now > exp:
-                        return False
-                    elif 'client' in cfg_data and self._auth_client_id != cfg_data['client']:
-                        return False
-
                     if 'access_token' in cfg_data['data']:
                         return cfg_data['data']['access_token']
                 except Exception as e:
-                    return False
+                    return None
 
-        return False
+        return None
 
     def _raise_for_invalid_password_cfg(self) -> bool:
         """
@@ -1726,7 +1729,6 @@ class GeoDBClient(object):
         Raises:
             GeoDBError, HttpError
         """
-        payload = {}
 
         if self._auth_mode == "client-credentials":
             self._raise_for_invalid_client_credentials_cfg()
@@ -1758,32 +1760,14 @@ class GeoDBClient(object):
 
         data = r.json()
 
-        if os.path.isfile(self._config_file):
-            with open(self._config_file, 'w') as f:
-                cfg_data = {'date': datetime.now(), 'client': self._auth_client_id, 'data': data}
-                json.dump(cfg_data, f, sort_keys=True, default=str)
+        with open(self._config_file, 'w') as f:
+            cfg_data = {'date': datetime.now(), 'client': self._auth_client_id, 'data': data}
+            json.dump(cfg_data, f, sort_keys=True, default=str)
 
         try:
             return data['access_token']
         except KeyError:
             raise GeoDBError("The authorization request did not return an access token.")
-
-    # noinspection PyMethodMayBeStatic
-    def _validate(self, df: gpd.GeoDataFrame) -> bool:
-        """
-        Validate whether a GeoDataFrame is a valid geoDB frame
-
-        Args:
-            df (GeoDataFrame): Frame to check
-
-        Returns:
-            Whether id and geometry are properties in the frame
-        """
-
-        cols = set([x.lower() for x in df.columns])
-        valid_columns = {'id', 'geometry'}
-
-        return len(list(valid_columns - cols)) == 0
 
     def collection_exists(self, collection: str, database: str) -> bool:
         """
@@ -1869,41 +1853,3 @@ class GeoDBClient(object):
             cursor.execute(sql_create)
 
         conn.commit()
-
-    def list_users(self):
-        """
-        List the users in a database. Needs DB credentials and the database user requires CREATE TABLE/FUNCTION grants.
-
-        Returns:
-            A list of users
-
-        """
-        r = self._get(path='/rpc/geodb_list_users')
-        if r.status_code == 200:
-            js = r.json()[0]['src'][0]
-
-            if js:
-                return js
-
-        return None
-
-    def register_user(self, user_name: str, password: str) -> bool:
-        """
-        Register a user to the geoDB. Needs DB credentials and the database user requires CREATE TABLE/FUNCTION grants.
-
-        Args:
-            user_name (str): The user name
-            password (str): The password of the user
-        Returns:
-            Whether registering the user was successful
-
-        """
-        payload = {
-            'user_name': user_name,
-            'password': password
-        }
-        r = self._post(path='/rpc/geodb_register_user', payload=payload)
-        if r.status_code == 200:
-            return True
-
-        return False
