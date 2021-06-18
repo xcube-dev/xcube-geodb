@@ -218,7 +218,7 @@ BEGIN
     RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js ' ||
                                 'FROM (SELECT
                                              name as database,
-                                             regexp_replace(table_name, name || ''_'','''') as table_name,
+                                             regexp_replace(table_name, name || ''_'','''') as 'collection',
                                              column_name,
                                              data_type
                                         FROM information_schema.columns
@@ -408,7 +408,7 @@ BEGIN
                     SELECT
                         owner,
                         db as database,
-                        regexp_replace(table_name, db || ''_'', '''') as table_name
+                        regexp_replace(table_name, db || ''_'', '''') as "collection"
                     FROM
                     (
                         SELECT table_name,
@@ -455,7 +455,7 @@ BEGIN
 
     RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js
                                 FROM (SELECT
-								regexp_replace(table_name, ''%s_'', '''') as table_name,
+								regexp_replace(table_name, ''%s_'', '''') as "collection",
 								grantee
                                 FROM information_schema.role_table_grants
                                 WHERE grantor = ''%s'' AND grantee != ''%s'') AS src',
@@ -648,7 +648,7 @@ BEGIN
              FROM (
                       SELECT c.oid
                            , nspname                               AS table_schema
-                           , relname                               AS "table_name"
+                           , relname                               AS "collection"
                            , c.reltuples                           AS row_estimate
                            , pg_total_relation_size(c.oid)         AS total_bytes
                            , pg_indexes_size(c.oid)                AS index_bytes
