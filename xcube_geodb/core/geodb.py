@@ -263,7 +263,7 @@ class GeoDBClient(object):
         Examples:
             >>> geodb = GeoDBClient(auth_mode='client-credentials', client_id='***', client_secret='***')
             >>> geodb.get_my_collections()
-            	owner	                        database	                    table_name
+            	owner	                        database	                    collection
             0	geodb_9bfgsdfg-453f-445b-a459	geodb_9bfgsdfg-453f-445b-a459	land_use
 
         """
@@ -275,7 +275,7 @@ class GeoDBClient(object):
         if js:
             return self._df_from_json(js)
         else:
-            return DataFrame(columns=["table_name"])
+            return DataFrame(columns=["collection"])
 
     def _get_common_headers(self):
         return {
@@ -1006,7 +1006,7 @@ class GeoDBClient(object):
         if js:
             return self._df_from_json(js)
         else:
-            return DataFrame(columns=["table_name", "column_name", "data_type"])
+            return DataFrame(columns=["collection", "column_name", "data_type"])
 
     def create_database(self, database: str) -> Message:
         """
