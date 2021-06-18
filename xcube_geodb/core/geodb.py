@@ -1598,6 +1598,32 @@ class GeoDBClient(object):
 
         return r.json()
 
+    def get_published_gs(self, database: Optional[str] = None) -> Sequence:
+        """
+
+        Args:
+            database (str): The database to list collections from a database which are published via geoserver
+
+        Returns:
+            A Dataframe of collection names
+
+        Examples:
+            >>> geodb = GeoDBClient(auth_mode='client-credentials', client_id='***', client_secret='***')
+            >>> geodb.get_published_gs()
+            	owner	                        database	                    collection
+            0	geodb_9bfgsdfg-453f-445b-a459	geodb_9bfgsdfg-453f-445b-a459	land_use
+
+        """
+
+        database = database or self._database
+        r = self._get(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections')
+        js = r.json()[0]['result']
+        if js:
+            return self._df_from_json(js)
+        else:
+            return DataFrame(columns=["collection"])
+
+
     def unpublish_gs(self, collection: str, database: str):
         """
         'UnPublishes' collection to a BC geoservice (geoserver instance). Requires access registration.

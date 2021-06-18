@@ -754,7 +754,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIsInstance(r, DataFrame)
         self.assertEqual(len(r), 0)
 
-        self._api._capabilities= dict(paths = [])
+        self._api._capabilities = dict(paths=[])
         with self.assertRaises(GeoDBError) as e:
             self._api.get_collection_pg('test', limit=1, offset=2)
 
@@ -918,6 +918,32 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual("Error", str(e.exception))
         self.assertIsInstance(e.exception, GeoDBError)
 
+    def test_get_published_gs(self, m):
+        self.set_global_mocks(m)
+        url = self._server_full_address + "/api/v2/services/xcube_geoserv/databases/geodb_admin/collections"
+
+        server_response = [
+            {
+                "result": {
+                    "collection_id": "land_use",
+                    "database": "geodb_admin",
+                    "defaultStyle": "string",
+                    "href": "string",
+                    "name": "string",
+                    "wmsUri": "string"
+                }
+            }
+        ]
+
+        m.get(url=url, json=server_response)
+
+        res = self._api.get_published_gs('geodb_admin')
+        self.assertIsInstance(res, pandas.DataFrame)
+        res = res.to_dict()
+        expected_response = {0: {0: 'collection_id', 1: 'database', 2: 'defaultStyle', 3: 'href', 4: 'name', 5: 'wmsUri'}}
+        print(res)
+        self.assertDictEqual(expected_response, res)
+
     def test_unpublish_from_geoserver(self, m):
         self.set_global_mocks(m)
         url = self._server_full_address + "/api/v2/services/xcube_geoserv/databases/geodb_admin/collections/land_use"
@@ -1062,5 +1088,3 @@ class GeoDBClientTest(unittest.TestCase):
         self._api._auth_password = 'ksdjbvdkasj'
 
         r = self._api.auth_access_token
-
-
