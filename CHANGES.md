@@ -2,6 +2,8 @@
 
 ### Fixes
 
+- Fixed version naming issue in the extension's Makefile
+
 ### New Features
 - renaming 'table_name' to 'collection'
 - EPSG code strings e.g. 'epsg:4326' or 'EPSG:4326' are now accepted as CRS definition by `geodb.create_collection*` 
