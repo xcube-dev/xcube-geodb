@@ -1,6 +1,4 @@
-import json
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Union, Sequence, Tuple
 
@@ -1617,12 +1615,11 @@ class GeoDBClient(object):
 
         database = database or self._database
         r = self._get(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections')
-        js = r.json()[0]['result']
+        js = r.json()
         if js:
-            return self._df_from_json(js)
+            return DataFrame.from_dict(js)
         else:
             return DataFrame(columns=["collection"])
-
 
     def unpublish_gs(self, collection: str, database: str):
         """
@@ -1641,14 +1638,6 @@ class GeoDBClient(object):
         return True
 
     @property
-    def use_auth_cache(self):
-        return self._use_auth_cache
-
-    @use_auth_cache.setter
-    def use_auth_cache(self, value):
-        self._use_auth_cache = value
-
-    @property
     def auth_access_token(self) -> str:
         """
         Get the user's access token from
@@ -1660,19 +1649,9 @@ class GeoDBClient(object):
             GeoDBError on missing ipython shell
         """
 
-        token = None
-        # Get token from cache
-        if self._auth_access_token is not None:
-            token = self._auth_access_token
+        token = self._auth_access_token or self._get_geodb_client_credentials_access_token()
 
-        if self.use_auth_cache and token is None:
-            token = self._get_token_from_cache()
-
-        if token:
-            return token
-
-        # get token depending on auth mode
-        return self._get_geodb_client_credentials_access_token()
+        return token
 
     def refresh_auth_access_token(self):
         """
@@ -1680,28 +1659,6 @@ class GeoDBClient(object):
 
         """
         self._auth_access_token = None
-        with open(self._config_file, 'w') as f:
-            f.write('{}')
-
-    def _get_token_from_cache(self) -> Union[str, type(None)]:
-        """
-        Load a token from a cache file
-
-        Returns:
-            An access token or false on failure
-        """
-        if os.path.isfile(self._config_file):
-            with open(self._config_file, 'r') as f:
-                # noinspection PyBroadException
-                try:
-                    cfg_data = json.load(f)
-
-                    if 'access_token' in cfg_data['data']:
-                        return cfg_data['data']['access_token']
-                except Exception as e:
-                    return None
-
-        return None
 
     def _raise_for_invalid_password_cfg(self) -> bool:
         """
@@ -1785,10 +1742,6 @@ class GeoDBClient(object):
         r.raise_for_status()
 
         data = r.json()
-
-        with open(self._config_file, 'w') as f:
-            cfg_data = {'date': datetime.now(), 'client': self._auth_client_id, 'data': data}
-            json.dump(cfg_data, f, sort_keys=True, default=str)
 
         try:
             return data['access_token']
