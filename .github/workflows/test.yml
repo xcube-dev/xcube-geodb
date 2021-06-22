@@ -6,7 +6,7 @@ jobs:
   unittest:
     runs-on: ubuntu-latest
     env:
-      UNITTEST_SKIP_K8S: 0
+      SKIP_PSQL_TESTS: 0
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
@@ -20,6 +20,7 @@ jobs:
         run: |
           conda info
           conda list
+          mamba install -c conda-forge postgis
           python setup.py develop
       - name: unittest-xcube-geodb
         shell: bash -l {0}
