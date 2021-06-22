@@ -1,5 +1,4 @@
 import json
-import os
 import unittest
 from io import StringIO
 from unittest.mock import MagicMock
@@ -754,7 +753,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIsInstance(r, DataFrame)
         self.assertEqual(len(r), 0)
 
-        self._api._capabilities= dict(paths = [])
+        self._api._capabilities = dict(paths=[])
         with self.assertRaises(GeoDBError) as e:
             self._api.get_collection_pg('test', limit=1, offset=2)
 
@@ -799,33 +798,6 @@ class GeoDBClientTest(unittest.TestCase):
         access_token = self._api.auth_access_token
 
         self.assertEqual("Another token", access_token)
-
-    def test_access_token_cache(self, m):
-        self._api.use_auth_cache = True
-        self._api._auth_access_token = None
-        self.set_global_mocks(m)
-        cache = {"client": "aclient", "data": {"access_token": "a cache token", "token_type": "bearer"},
-                 "date": "2021-06-09 08:30:00.679198"}
-
-        with open(self._api._config_file, 'w') as f:
-            f.write(json.dumps(cache))
-
-        self._api._auth_access_token = None
-        access_token = self._api.auth_access_token
-        self.assertEqual("a cache token", access_token)
-
-        os.remove(self._api._config_file)
-
-        # test cache broken. Will return token from _get_geodb_client_credentials_access_token
-        cache = {"client": "aclient", "data": {"access_token_broken": "a cache token", "token_type": "bearer"},
-                 "date": "2021-06-09 08:30:00.679198"}
-
-        with open(self._api._config_file, 'w') as f:
-            f.write(json.dumps(cache))
-
-            self._api._auth_access_token = None
-        access_token = self._api.auth_access_token
-        self.assertEqual("A long lived token", access_token)
 
     def test_get_collection_info(self, m):
         self.set_global_mocks(m)
@@ -917,6 +889,33 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual("Error", str(e.exception))
         self.assertIsInstance(e.exception, GeoDBError)
+
+    def test_get_published_gs(self, m):
+        self.maxDiff = None
+        self.set_global_mocks(m)
+        url = self._server_full_address + "/api/v2/services/xcube_geoserv/databases/geodb_admin/collections"
+
+        server_response = {
+            'collection_id': ['land_use'],
+            'database': ['geodb_admin'],
+            'default_style': [None],
+            'geojson_url': [
+                'https://test/geoserver/geodb_admin/ows?service=WFS&version=1.0.0'],
+            'href': [None],
+            'name': ['land_use'],
+            'preview_url': [
+                'https://test/geoserver/geodb_admin/wms?service=WMS&version=1.1.0'
+            ],
+            'wfs_url': [
+                'https://test/geoserver/geodb_admin/wms?service=WMS&version=1.1.0'
+            ]
+        }
+
+        m.get(url=url, json=server_response)
+
+        res = self._api.get_published_gs('geodb_admin')
+        self.assertIsInstance(res, pandas.DataFrame)
+        self.assertEqual(1, len(res))
 
     def test_unpublish_from_geoserver(self, m):
         self.set_global_mocks(m)
@@ -1062,5 +1061,3 @@ class GeoDBClientTest(unittest.TestCase):
         self._api._auth_password = 'ksdjbvdkasj'
 
         r = self._api.auth_access_token
-
-

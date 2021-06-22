@@ -30,9 +30,8 @@ def make_install_geodb():
 
 
 # noinspection SqlNoDataSourceInspection
-@unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '1') == '1', 'DB Tests skipped')
+# @unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '1') == '1', 'DB Tests skipped')
 class GeoDBSqlTest(unittest.TestCase):
-
     @classmethod
     def setUp(cls) -> None:
         make_install_geodb()
@@ -108,12 +107,13 @@ class GeoDBSqlTest(unittest.TestCase):
         self._cursor.execute(sql)
 
     def test_manage_table(self):
-        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
-        user_table = "test"
+        user_name = "geodb_user"
+        user_table = user_name + "_test"
         self._set_role(user_name)
 
         props = {'tt': 'integer'}
-        sql = f"SELECT geodb_create_collection('test', '{json.dumps(props)}', '4326')"
+        sql = f"SELECT geodb_create_collection('{user_table}', " \
+              f"'{json.dumps(props)}', '4326')"
         self._cursor.execute(sql)
 
         self.assertTrue(self.table_exists(user_table))
@@ -121,8 +121,8 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertTrue(self.column_exists(user_table, 'id', 'integer'))
         self.assertTrue(self.column_exists(user_table, 'geometry', 'USER-DEFINED'))
 
-        datasets = {'tt1': {'crs': '4326', 'properties': {'tt': 'integer'}},
-                    'tt2': {'crs': '4326', 'properties': {'tt': 'integer'}}}
+        datasets = {'geodb_user_tt1': {'crs': '4326', 'properties': {'tt': 'integer'}},
+                    'geodb_user_tt2': {'crs': '4326', 'properties': {'tt': 'integer'}}}
 
         sql = f"SELECT geodb_create_collections('{json.dumps(datasets)}')"
         self._cursor.execute(sql)
@@ -132,18 +132,18 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertTrue(self.column_exists(user_table, 'id', 'integer'))
         self.assertTrue(self.column_exists(user_table, 'geometry', 'USER-DEFINED'))
 
-        datasets = ['test', 'tt1', 'tt2']
+        datasets = ['geodb_user_test', 'geodb_user_tt1', 'geodb_user_tt2']
         sql = f"SELECT geodb_drop_collections('{json.dumps(datasets)}')"
         self._cursor.execute(sql)
         self.assertFalse(self.table_exists(user_table))
 
     def test_manage_properties(self):
-        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
-        table = "land_use"
+        user_name = "geodb_user"
+        table = user_name + "_land_use_test"
         self._set_role(user_name)
 
         props = {'tt': 'integer'}
-        sql = f"SELECT geodb_create_collection('land_use', '{json.dumps(props)}', '4326')"
+        sql = f"SELECT geodb_create_collection('{table}', '{json.dumps(props)}', '4326')"
         self._cursor.execute(sql)
 
         cols = {'test_col1': 'integer', 'test_col2': 'integer'}
@@ -159,24 +159,12 @@ class GeoDBSqlTest(unittest.TestCase):
         self._cursor.execute(sql)
         self.assertFalse(self.column_exists(table, 'test_col', 'integer'))
 
-    def test_manage_users(self):
-        sql = f"SELECT public.geodb_register_user('test', 'test')"
-        self._cursor.execute(sql)
-
-        sql = f"SELECT public.geodb_user_exists('test')"
-        self._cursor.execute(sql)
-
-        sql = f"SELECT public.geodb_drop_user('test')"
-        r = self._cursor.execute(sql)
-
-        print(r)
-
     def test_get_my_usage(self):
-        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
+        user_name = "geodb_user"
         self._set_role(user_name)
 
         props = {'tt': 'integer'}
-        sql = f"SELECT geodb_create_collection('test_usage', '{json.dumps(props)}', '4326')"
+        sql = f"SELECT geodb_create_collection('geodb_user_test_usage', '{json.dumps(props)}', '4326')"
         self._cursor.execute(sql)
 
         sql = f"SELECT public.geodb_get_my_usage()"
@@ -189,7 +177,7 @@ class GeoDBSqlTest(unittest.TestCase):
         print(res)
 
     def test_create_database(self):
-        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
+        user_name = "geodb_user"
         self._set_role(user_name)
 
         sql = f"SELECT geodb_create_database('test')"
@@ -205,7 +193,7 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertEqual(user_name, res[2])
 
     def test_truncate_database(self):
-        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
+        user_name = "geodb_user"
         self._set_role(user_name)
 
         sql = f"INSERT INTO geodb_user_databases(name, owner) VALUES('test_truncate', '{user_name}')"
@@ -221,10 +209,10 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertEqual(0, len(res))
 
     def test_grant_access(self):
-        user_name = "geodb_9bfgsdfg-453f-445b-a459-osdvjosdvjva"
+        user_name = "geodb_user"
         self._set_role(user_name)
 
-        sql = "SELECT geodb_grant_access_to_collection('geodb_9bfgsdfg-453f-445b-a459_land_use', 'public')"
+        sql = "SELECT geodb_grant_access_to_collection('geodb_user_land_use', 'public')"
         self._cursor.execute(sql)
 
 

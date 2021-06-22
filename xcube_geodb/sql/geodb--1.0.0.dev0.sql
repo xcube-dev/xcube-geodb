@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS public.geodb_user_databases
     id    bigint                                         NOT NULL DEFAULT nextval('geodb_user_databases_seq'::regclass),
     name  character varying COLLATE pg_catalog."default" NOT NULL,
     owner character varying COLLATE pg_catalog."default" NOT NULL,
+    iss   character varying COLLATE pg_catalog."default",
     CONSTRAINT geodb_user_databases_pkey PRIMARY KEY (id),
     CONSTRAINT unique_db_name_owner UNIQUE (name, owner)
 )
@@ -142,7 +143,7 @@ BEGIN
         RAISE EXCEPTION 'Database % exists already.', database;
     END IF;
 
-    EXECUTE format('INSERT INTO geodb_user_databases(name, owner) VALUES(''%s'', ''%s'')', "database", usr);
+    EXECUTE format('INSERT INTO geodb_user_databases(name, owner, iss) VALUES(''%s'', ''%s'', '''')', "database", usr);
 END
 $BODY$;
 

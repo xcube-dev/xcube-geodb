@@ -9,6 +9,7 @@
   Before only integers were accepted. This ensures alignment with xcube software.
   
 - The geoDB client has now two new methods (`publish_gs`, `unpublish_gs`) that allow publishing collections to a WMS service (geoserver)
+- The geoDB client has now a new method (`get_published_gs`) that allows to list published collections to a WMS service (geoserver)
 
 
 ## v0.1.16
