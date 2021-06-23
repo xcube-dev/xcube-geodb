@@ -17,6 +17,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Wait for build to succeed
+        uses: fountainhead/action-wait-for-check@v1.0.0
+        id: wait-for-build
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: unittest
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       # Determine release name (e.g. v1.0.0, master)
