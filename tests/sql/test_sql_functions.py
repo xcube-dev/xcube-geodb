@@ -2,6 +2,7 @@ import os
 import unittest
 import json
 
+import psycopg2
 
 GEODB_EXT_INSTALLED = False
 
@@ -30,7 +31,8 @@ def make_install_geodb():
 
 
 # noinspection SqlNoDataSourceInspection
-@unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '1') == '1', 'DB Tests skipped')
+# @unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '1') == '1', 'DB Tests skipped')
+# noinspection SqlInjection
 class GeoDBSqlTest(unittest.TestCase):
     @classmethod
     def setUp(cls) -> None:
@@ -192,6 +194,13 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertEqual('test', res[1])
         self.assertEqual(user_name, res[2])
 
+        # noinspection PyUnresolvedReferences
+        with self.assertRaises(psycopg2.errors.RaiseException) as e:
+            sql = f"SELECT geodb_create_database('test')"
+            self._cursor.execute(sql)
+
+        self.assertIn('Database test exists already.', str(e.exception))
+
     def test_truncate_database(self):
         user_name = "geodb_user"
         self._set_role(user_name)
@@ -215,5 +224,21 @@ class GeoDBSqlTest(unittest.TestCase):
         sql = "SELECT geodb_grant_access_to_collection('geodb_user_land_use', 'public')"
         self._cursor.execute(sql)
 
+    def test_geodb_rename_collection(self):
+        user_name = "geodb_user"
+        self._set_role(user_name)
 
+        sql = "SELECT geodb_rename_collection('geodb_user_land_use', 'geodb_user_land_use2')"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchall()
+
+        self.assertEqual(1, len(res))
+        self.assertEqual('success', res[0][0])
+
+        # noinspection PyUnresolvedReferences
+        with self.assertRaises(psycopg2.errors.RaiseException) as e:
+            sql = "SELECT geodb_rename_collection('geodb_user_land_use', 'postgres_land_use2')"
+            self._cursor.execute(sql)
+
+        self.assertIn('geodb_user has not access to that table or database. ', str(e.exception))
 

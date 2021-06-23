@@ -29,6 +29,7 @@ GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE public.geodb_user_databases TO "ge
 GRANT SELECT, UPDATE, USAGE ON SEQUENCE public.geodb_user_databases_seq TO "geodb_user";
 
 INSERT INTO public.geodb_user_databases("name", "owner", "iss") VALUES('geodb_user', 'geodb_user', '');
+INSERT INTO public.geodb_user_databases("name", "owner", "iss") VALUES('postgres', 'postgres', '');
 
 CREATE TABLE public.postgres_land_use
 (
