@@ -3,6 +3,8 @@
 ### Fixes
 
 - Fixed version naming issue in the extension's Makefile
+- Fixed create database. Does not allow users anymore to write collections
+  to other users' databases. Closes [#164](https://github.com/bcdev/service-eurodatacube/issues/164), [#165](https://github.com/bcdev/service-eurodatacube/issues/165), [#166](https://github.com/bcdev/service-eurodatacube/issues/166), 
 
 ### New Features
 - renaming 'table_name' to 'collection'
