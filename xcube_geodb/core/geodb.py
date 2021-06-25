@@ -131,7 +131,10 @@ class GeoDBClient(object):
                  auth_aud: Optional[str] = None,
                  config_file: str = str(Path.home()) + '/.geodb',
                  database: Optional[str] = None,
-                 access_token_uri: Optional[str] = None):
+                 access_token_uri: Optional[str] = None,
+                 gs_server_url: Optional[str] = None,
+                 gs_server_port: Optional[int] = None):
+
         self._use_auth_cache = True
         self._dotenv_file = dotenv_file
         self._database = None
@@ -139,6 +142,8 @@ class GeoDBClient(object):
 
         # defaults
         self._server_url = GEODB_DEFAULTS["server_url"]
+        self._gs_server_url = GEODB_DEFAULTS["server_url"]
+        self._gs_server_port = GEODB_DEFAULTS["server_port"]
         self._server_port = GEODB_DEFAULTS["server_port"]
         self._auth_client_id = GEODB_DEFAULTS["auth_client_id"]
         self._auth_client_secret = GEODB_DEFAULTS["auth_client_secret"]
@@ -156,6 +161,8 @@ class GeoDBClient(object):
 
         # override defaults and .env if given in constructor
         self._server_url = server_url or self._server_url
+        self._gs_server_url = gs_server_url or self._gs_server_url
+        self._gs_server_port = gs_server_port or self._gs_server_port
         self._server_port = server_port or self._server_port
         self._auth_client_id = client_id or self._auth_client_id
         self._auth_client_secret = client_secret or self._auth_client_secret
@@ -191,6 +198,8 @@ class GeoDBClient(object):
         """
         self._server_url = os.getenv('GEODB_API_SERVER_URL') or self._server_url
         self._server_port = os.getenv('GEODB_API_SERVER_PORT') or self._server_port
+        self._gs_server_url = os.getenv('GEOSERVER_SERVER_URL') or self._gs_server_url
+        self._gs_server_port = os.getenv('GEOSERVER_SERVER_PORT') or self._gs_server_port
         self._auth_client_id = os.getenv('GEODB_AUTH_CLIENT_ID') or self._auth_client_id
         self._auth_client_secret = os.getenv('GEODB_AUTH_CLIENT_SECRET') or self._auth_client_secret
         self._auth_access_token = os.getenv('GEODB_AUTH_ACCESS_TOKEN') or self._auth_access_token
@@ -1558,10 +1567,18 @@ class GeoDBClient(object):
         Returns:
             str: Full URL and path
         """
-        if self._server_port:
-            return f"{self._server_url}:{self._server_port}{path}"
+
+        server_url = self._server_url
+        server_port = self._server_port
+
+        if 'services/xcube_geoserv' in path:
+            server_url = self._gs_server_url
+            server_port = self._gs_server_port
+
+        if server_port:
+            return f"{server_url}:{server_port}{path}"
         else:
-            return f"{self._server_url}{path}"
+            return f"{server_url}{path}"
 
     # noinspection PyMethodMayBeStatic
     def _load_geo(self, d: Dict) -> Dict:
