@@ -12,6 +12,7 @@ dependencies:
   - descartes
   - psycopg2
   - requests
+  - ipyleaflet
   - pip:
       - fastjsonschema
       - gsconfig-py3

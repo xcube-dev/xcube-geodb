@@ -890,6 +890,16 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual("Error", str(e.exception))
         self.assertIsInstance(e.exception, GeoDBError)
 
+    def test_gs_url(self, m):
+        geodb = GeoDBClient(server_url='https://test_geodb', server_port=3000, gs_server_url='https://test_geoserv',
+                            gs_server_port=4000)
+
+        url = geodb._get_full_url('/test')
+        self.assertEqual('https://test_geodb:3000/test', url)
+
+        url = geodb._get_full_url('/services/xcube_geoserv')
+        self.assertEqual('https://test_geoserv:4000/services/xcube_geoserv', url)
+
     def test_get_published_gs(self, m):
         self.maxDiff = None
         self.set_global_mocks(m)

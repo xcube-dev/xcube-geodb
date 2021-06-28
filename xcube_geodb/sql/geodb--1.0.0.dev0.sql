@@ -282,6 +282,8 @@ BEGIN
                     BEFORE UPDATE ON %I
                     FOR EACH ROW EXECUTE PROCEDURE update_modified_column()', trigg, collection);
 
+    EXECUTE 'GRANT ALL ON TABLE "' || collection || '" TO postgres';
+
     EXECUTE format('ALTER TABLE %I OWNER to %I;', collection, usr);
 END
 $BODY$;
@@ -1130,6 +1132,8 @@ BEGIN
 
     IF allowed = 1 THEN
         EXECUTE 'CREATE TABLE "' || new_collection || '"(LIKE "' || old_collection || '" INCLUDING ALL)';
+
+        EXECUTE 'GRANT ALL ON TABLE "' || new_collection || '" TO postgres';
 
         EXECUTE 'CREATE TRIGGER "update_' || new_collection || '_modtime"
                 BEFORE UPDATE
