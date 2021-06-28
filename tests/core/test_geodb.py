@@ -473,6 +473,21 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual(ident, 'dd')
         self.assertEqual(str(geo), exp_geo)
 
+        m.post(url + path, text=json.dumps({'src': []}))
+
+        gdf = self._api.get_collection_by_bbox(collection='collection',
+                                               bbox=(452750.0, 88909.549, 464000.0, 102486.299))
+
+        self.assertIsInstance(gdf, DataFrame)
+        self.assertEqual(0, len(gdf))
+
+        gdf = self._api.get_collection_by_bbox(collection='collection',
+                                               bbox=(452750.0, 88909.549, 464000.0, 102486.299),
+                                               bbox_crs=3307)
+
+        self.assertIsInstance(gdf, DataFrame)
+        self.assertEqual(0, len(gdf))
+
     def test_reproject_bbox(self, m):
         bbox_4326 = (9.8, 53.51, 10.0, 53.57)
         crs_4326 = 4326
@@ -900,6 +915,14 @@ class GeoDBClientTest(unittest.TestCase):
         url = geodb._get_full_url('/services/xcube_geoserv')
         self.assertEqual('https://test_geoserv:4000/services/xcube_geoserv', url)
 
+        geodb._gs_server_port = None
+        url = geodb._get_full_url('/services/xcube_geoserv')
+        self.assertEqual('https://test_geoserv/services/xcube_geoserv', url)
+
+        geodb._server_port = None
+        url = geodb._get_full_url('/test')
+        self.assertEqual('https://test_geodb/test', url)
+
     def test_get_published_gs(self, m):
         self.maxDiff = None
         self.set_global_mocks(m)
@@ -926,6 +949,12 @@ class GeoDBClientTest(unittest.TestCase):
         res = self._api.get_published_gs('geodb_admin')
         self.assertIsInstance(res, pandas.DataFrame)
         self.assertEqual(1, len(res))
+
+        m.get(url=url, json={})
+
+        res = self._api.get_published_gs('geodb_admin')
+        self.assertIsInstance(res, pandas.DataFrame)
+        self.assertEqual(0, len(res))
 
     def test_unpublish_from_geoserver(self, m):
         self.set_global_mocks(m)
@@ -1034,6 +1063,29 @@ class GeoDBClientTest(unittest.TestCase):
             geodb.setup()
 
         self.assertIn("could not connect to server", str(e.exception))
+
+        # noinspection PyPep8Naming
+        class cn:
+            @staticmethod
+            def commit():
+                return True
+
+            # noinspection PyPep8Naming
+            class cursor:
+                @staticmethod
+                def execute(qry):
+                    return True
+
+        cn.cursor.execute = MagicMock()
+        geodb.setup(conn=cn)
+        cn.cursor.execute.assert_called_once()
+
+    def test_df_from_json(self, m):
+        # This test tests an impossible situation as `js` cannot be none. However, you never know.
+        # noinspection PyTypeChecker
+        res = self._api._df_from_json(js=None)
+        self.assertIsInstance(res, DataFrame)
+        self.assertEqual(0, len(res))
 
     def test_crs(self, m):
         with self.assertRaises(GeoDBError) as e:
