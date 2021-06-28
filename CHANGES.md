@@ -5,6 +5,7 @@
 - Fixed version naming issue in the extension's Makefile
 - Fixed create database. Does not allow users anymore to write collections
   to other users' databases. Closes [#164](https://github.com/bcdev/service-eurodatacube/issues/164), [#165](https://github.com/bcdev/service-eurodatacube/issues/165), [#166](https://github.com/bcdev/service-eurodatacube/issues/166), 
+- Fixed that admin users have access to user's collections
 
 ### New Features
 - renaming 'table_name' to 'collection'
@@ -14,6 +15,8 @@
   
 - The geoDB client has now two new methods (`publish_gs`, `unpublish_gs`) that allow publishing collections to a WMS service (geoserver)
 - The geoDB client has now a new method (`get_published_gs`) that allows to list published collections to a WMS service (geoserver)
+- Added a notebook that describes how to use the WMS self service
+- Ensured that teh URL of the geoserver for publishing to WMS is configurable
 
 
 ## v0.1.16
