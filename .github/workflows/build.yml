@@ -27,7 +27,7 @@ jobs:
         name: build-push-docker-image-latest
         if: ${{ github.event_name == 'push' && steps.release.outputs.tag == 'master'  }}
         with:
-          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}
+          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-lab
           tags: master, latest
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
@@ -36,7 +36,7 @@ jobs:
         name: build-push-docker-image-release
         if: ${{ github.event_name == 'release' }}
         with:
-          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}
+          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-lab
           tags: ${{ steps.release.outputs.tag }}
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
