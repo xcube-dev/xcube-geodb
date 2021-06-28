@@ -23,7 +23,7 @@ jobs:
         run: |
           echo "TAG: ${{ steps.release.outputs.tag }}"
           echo "EVENT: ${{ github.event_name }}"
-      - uses: mr-smithers-excellent/docker-build-push@v5
+      - uses: mr-smithers-excellent/docker-build-push@v5.5
         name: build-push-docker-image-latest
         if: ${{ github.event_name == 'push' && steps.release.outputs.tag == 'master'  }}
         with:
@@ -32,7 +32,7 @@ jobs:
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
           password: ${{ secrets.QUAY_REG_PASSWORD }}
-      - uses: mr-smithers-excellent/docker-build-push@v5
+      - uses: mr-smithers-excellent/docker-build-push@v5.5
         name: build-push-docker-image-release
         if: ${{ github.event_name == 'release' }}
         with:
