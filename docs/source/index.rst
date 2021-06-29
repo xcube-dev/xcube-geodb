@@ -14,6 +14,7 @@ geodb has been developed to generate, manipulate, analyse, and publish data cube
    notebooks/geodb_manage_collections.ipynb
    notebooks/geodb_share_collections.ipynb
    notebooks/geodb_explore_collections.ipynb
+   notebooks/geoservice.ipynb
 
 
 .. toctree::
