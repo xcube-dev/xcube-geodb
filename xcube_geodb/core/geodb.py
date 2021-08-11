@@ -536,7 +536,7 @@ class GeoDBClient(object):
                                         properties: Dict,
                                         crs: Union[int, str] = 4326,
                                         database: Optional[str] = None,
-                                        **kwargs) -> Optional[Dict, Message]:
+                                        **kwargs) -> Union[Dict, Message]:
         """
         Creates a collection only if the collection does not exist already.
 
