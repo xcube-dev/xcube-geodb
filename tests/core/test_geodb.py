@@ -32,7 +32,7 @@ TEST_GEOM = "0103000020D20E000001000000110000007593188402B51B4" \
 @requests_mock.mock(real_http=False)
 class GeoDBClientTest(unittest.TestCase):
     def setUp(self) -> None:
-        self._api = GeoDBClient(dotenv_file="tests/envs/.env_test", config_file="tests/.geodb")
+        self._api = GeoDBClient(dotenv_file="tests/envs/.env_test", config_file="tests/.geodb", raise_it=True)
 
         self._server_test_url = self._api._server_url
         self._server_test_port = self._api._server_port
@@ -131,14 +131,6 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIsInstance(res, pandas.DataFrame)
         self.assertEqual(len(res), 0)
 
-    def test_get_collections(self, m):
-        self._api.get_my_collections = MagicMock(name='get_my_collections')
-
-        with self.assertWarns(DeprecationWarning) as w:
-            self._api.get_collections()
-
-        self.assertEqual("Call to deprecated function 'get_collections'. Use get_my_collections.", str(w.warning))
-
     def test_get_collection(self, m):
         self.set_global_mocks(m)
         global TEST_GEOM
@@ -199,7 +191,8 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(url, text="success")
 
         res = self._api.rename_collection('test', 'test_new')
-        self.assertEqual("<h1>Collection renamed from test to test_new</h1>", str(res))
+        expected = {'Message': "Collection renamed from test to test_new"}
+        self.check_message(res, expected)
 
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_rename_collection"
         m.post(url, text="error", status_code=400)
@@ -215,7 +208,8 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(url, text="success")
 
         res = self._api.move_collection('test', 'db_old', 'db_new')
-        self.assertEqual("<h1>Collection moved from db_new to db_old</h1>", str(res))
+        expected = {'Message': "Collection moved from db_new to db_old"}
+        self.check_message(res, expected)
 
         m.post(url, text="error", status_code=400)
 
@@ -230,7 +224,9 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(url, text="success")
 
         res = self._api.copy_collection('test', 'db_new', 'db_new')
-        self.assertEqual("<h1>Collection copied from None/test to db_new/db_new</h1>", str(res))
+
+        expected = {'Message': "Collection copied from None/test to db_new/db_new"}
+        self.check_message(res, expected)
 
         m.post(url, text="error", status_code=400)
 
@@ -256,11 +252,16 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         res = self._api.create_database(database='test')
-        self.assertTrue(res)
+
+        expected = {'Message': 'Database test created'}
+        self.check_message(res, expected)
 
         m.post(url, text="Response invalid", status_code=400)
-        res = self._api.create_database(database='test')
-        self.assertEqual("<h1>Error: Response invalid</h1>", str(res))
+
+        with self.assertRaises(GeoDBError) as e:
+            self._api.create_database(database='test')
+
+        self.assertEqual("Response invalid", str(e.exception))
 
     def test_truncate_database(self, m):
         expected_response = True
@@ -269,11 +270,14 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         res = self._api.truncate_database(database='test')
-        self.assertEqual('<h1>Database test truncated</h1>', str(res))
+        expected = {'Message': 'Database test truncated'}
+        self.check_message(res, expected)
 
         m.post(url, text="Response invalid", status_code=400)
-        res = self._api.truncate_database(database='test')
-        self.assertEqual("<h1>Error: Response invalid</h1>", str(res))
+        with self.assertRaises(GeoDBError) as e:
+            self._api.truncate_database(database='test')
+
+        self.assertEqual("Response invalid", str(e.exception))
 
     def test_create_collection_if_not_exist(self, m):
         self.set_global_mocks(m)
@@ -344,17 +348,13 @@ class GeoDBClientTest(unittest.TestCase):
         }
 
         res = self._api.create_collections(collections=collections)
-        self.assertIsInstance(res, dict)
-        self.assertDictEqual(expected_response, res)
-
-        with self.assertWarns(DeprecationWarning) as e:
-            self._api.create_collections(collections=collections, namespace='helge')
-        msg = "Call to deprecated parameter 'namespace' in function 'create_collections'. Use 'database' instead. "
-        self.assertEqual(msg, str(e.warning))
+        self.assertIsInstance(res, Message)
+        self.assertDictEqual(expected_response, res.to_dict())
 
         self._api.database_exists = MagicMock(name='database_exists', return_value=False)
         res = self._api.create_collections(collections=collections, database='helge')
-        self.assertEqual("<h1>Database does not exist.</h1>", str(res))
+        expected = {'Message': "Database does not exist."}
+        self.check_message(res, expected)
 
         self._api.database_exists = MagicMock(name='database_exists', return_value=True)
         self._api.drop_collections = MagicMock(name='drop_collections')
@@ -364,17 +364,24 @@ class GeoDBClientTest(unittest.TestCase):
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
         m.post(url=url, json=collections, status_code=400)
 
-        res = self._api.create_collections(collections=collections, database='helge', clear=True)
+        with self.assertRaises(GeoDBError) as e:
+             self._api.create_collections(collections=collections, database='helge', clear=True)
 
-        self.assertEqual('<h1>Error: {"land_use3": {"crs": 3794, "properties": '
-                         '{"RABA_PID": "float", "RABA_ID": "float", "D_OD": "date"}}}</h1>', str(res))
+        expected = {'collections': {'helge_land_use3': {'crs': 3794, 'properties':
+            {'RABA_PID': 'float', 'RABA_ID': 'float', 'D_OD': 'date'}}}}
+
+        self.assertDictEqual(expected, res.to_dict())
 
     def test_drop_collections(self, m):
         self.set_global_mocks(m)
         url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_drop_collections"
+
         m.post(url=url, json={'name': 'test'}, status_code=400)
-        res = self._api.drop_collections(['test'])
-        self.assertEqual('<h1>Error: {"name": "test"}</h1>', str(res))
+
+        with self.assertRaises(GeoDBError) as e:
+            self._api.drop_collections(['test'])
+
+        self.assertEqual('{"name": "test"}', str(e.exception))
 
     def test_create_collections_epsg_string(self, m):
         expected_response = {'collections': {'helge_land_use3': {'crs': 3794,
@@ -403,13 +410,8 @@ class GeoDBClientTest(unittest.TestCase):
         }
 
         res = self._api.create_collections(collections=collections)
-        self.assertIsInstance(res, dict)
-        self.assertDictEqual(expected_response, res)
-
-        with self.assertWarns(DeprecationWarning) as e:
-            self._api.create_collections(collections=collections, namespace='helge')
-        msg = "Call to deprecated parameter 'namespace' in function 'create_collections'. Use 'database' instead. "
-        self.assertEqual(msg, str(e.warning))
+        self.assertIsInstance(res.to_dict(), dict)
+        self.assertDictEqual(expected_response, res.to_dict())
 
     def test_drop_collection(self, m):
         expected_response = 'Success'
@@ -556,13 +558,15 @@ class GeoDBClientTest(unittest.TestCase):
 
         r = self._api.delete_from_collection('tt', 'id=eq.1')
 
-        self.assertTrue(r)
+        expected = {"Message": 'Data from tt deleted'}
+        self.check_message(r, expected)
 
         m.delete(url, text="Response Error", status_code=400)
 
-        res = self._api.delete_from_collection('tt', 'id=eq.1')
+        with self.assertRaises(GeoDBError) as e:
+            self._api.delete_from_collection('tt', 'id=eq.1')
 
-        self.assertEqual("<h1>Error: Response Error</h1>", str(res))
+        self.assertEqual("Response Error", str(e.exception))
 
     def test_update_collection(self, m):
         m.get(url=self._server_full_address + '/helge_tt?limit=10', json={'test': 1})
@@ -585,8 +589,11 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual(str(e.exception), "Format <class 'list'> not supported.")
 
         m.patch(self._server_full_address + path, text="Response Error", status_code=400)
-        r = self._api.update_collection('tt', values, 'id=eq.1')
-        self.assertEqual("<h1>Error: b'Response Error'</h1>", str(r))
+
+        with self.assertRaises(GeoDBError) as e:
+            self._api.update_collection('tt', values, 'id=eq.1')
+
+        self.assertEqual('Response Error', str(e.exception))
 
     # noinspection PyMethodMayBeStatic
     def make_test_df(self):
@@ -616,12 +623,12 @@ class GeoDBClientTest(unittest.TestCase):
         values = GeoDataFrame(df, crs='epsg:4326', geometry=df['geometry'])
 
         r = self._api.insert_into_collection('tt', values)
-
-        self.assertEqual('<h1>11002 rows inserted into tt</h1>', str(r))
+        expected = {'Message': '11002 rows inserted into tt'}
+        self.check_message(r, expected)
 
         r = self._api.insert_into_collection('tt', values, upsert=True)
-
-        self.assertEqual('<h1>11002 rows inserted into tt</h1>', str(r))
+        expected = {'Message': '11002 rows inserted into tt'}
+        self.check_message(r, expected)
 
         with self.assertRaises(ValueError) as e:
             # noinspection PyTypeChecker
@@ -650,7 +657,8 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._server_full_address + "/rpc/geodb_grant_access_to_collection", text="success")
 
         res = self._api.grant_access_to_collection('test', 'drwho')
-        self.assertEqual("<h1>Access granted on test to drwho</h1>", str(res))
+        expected = {'Message': 'Access granted on test to drwho'}
+        self.check_message(res, expected)
 
         m.post(self._server_full_address + "/rpc/geodb_grant_access_to_collection", text="error", status_code=400)
 
@@ -672,7 +680,8 @@ class GeoDBClientTest(unittest.TestCase):
 
         r = self._api.insert_into_collection('tt', values)
 
-        self.assertEqual('<h1>11002 rows inserted into tt</h1>', str(r))
+        expected = {'Message': '11002 rows inserted into tt'}
+        self.check_message(r, expected)
 
     def test_list_grants(self, m):
         path = '/rpc/geodb_list_grants'
@@ -705,7 +714,7 @@ class GeoDBClientTest(unittest.TestCase):
         with self.assertRaises(GeoDBError) as e:
             self._api.list_my_grants()
 
-        self.assertEqual("Could not read response from GeoDB. Expecting value: line 1 column 1 (char 0)",
+        self.assertEqual("Expecting value: line 1 column 1 (char 0)",
                          str(e.exception))
 
     @unittest.skip("Not yet implemented")
@@ -871,23 +880,29 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._server_full_address + "/rpc/geodb_grant_access_to_collection", text="success")
 
         res = self._api.publish_collection('test')
-        self.assertEqual("<h1>Access granted on test to public.</h1>", str(res))
+        expected = {'Message': "Access granted on test to public."}
+        self.check_message(res, expected)
 
         m.post(self._server_full_address + "/rpc/geodb_grant_access_to_collection", text="error", status_code=400)
 
-        res = self._api.publish_collection('test')
-        self.assertEqual("<h1>Access could not be granted. List grants with geodb.list_my_grants()error</h1>", str(res))
+        with self.assertRaises(GeoDBError) as e:
+            self._api.publish_collection('test')
+
+        self.assertEqual("error", str(e.exception))
 
     def test_unpublish_collection(self, m):
         self.set_global_mocks(m)
         m.post(self._server_full_address + "/rpc/geodb_revoke_access_from_collection", text="success")
 
         res = self._api.unpublish_collection('test')
-        self.assertEqual("<h1>Access revoked from helge on test</h1>", str(res))
+        expected = {'Message': 'Access revoked from helge on test'}
+        self.check_message(res, expected)
 
         m.post(self._server_full_address + "/rpc/geodb_revoke_access_from_collection", text="error", status_code=400)
-        res = self._api.unpublish_collection('test')
-        self.assertEqual("<h1>Error: error</h1>", str(res))
+
+        with self.assertRaises(GeoDBError) as e:
+            self._api.unpublish_collection('test')
+        self.assertEqual("error", str(e.exception))
 
     def test_publish_to_geoserver(self, m):
         self.set_global_mocks(m)
@@ -972,20 +987,17 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual("Error", str(e.exception))
         self.assertIsInstance(e.exception, GeoDBError)
 
-    def test_list_grants_deprecation(self, m):
-        self.set_global_mocks(m)
-        self._api.list_my_grants = MagicMock(name='list_my_grants')
-        with self.assertWarns(DeprecationWarning) as e:
-            self._api.list_grants()
-        msg = "Call to deprecated function 'list_grants'. Use list_my_grants."
-        self.assertEqual(msg, str(e.warning))
+    def check_message(self, message, expected):
+        self.assertIsInstance(message, Message)
+        self.assertDictEqual(expected, message.to_dict())
 
     def test_add_property(self, m):
         self._api.add_properties = MagicMock(name='add_properties', return_value=Message(f"Properties added"))
 
         res = self._api.add_property('test', 'col', 'INT')
 
-        self.assertEqual("<h1>Properties added</h1>", str(res))
+        expected = {'Message': "Properties added"}
+        self.check_message(res, expected)
         self._api.add_properties.assert_called_once()
 
     def test_drop_property(self, m):
@@ -995,7 +1007,8 @@ class GeoDBClientTest(unittest.TestCase):
 
         res = self._api.drop_property('test', 'col')
 
-        self.assertEqual("<h1>Properties dropped</h1>", str(res))
+        expected = {'Message': "Properties dropped"}
+        self.check_message(res, expected)
         self._api.drop_properties.assert_called_once()
 
     def test_drop_properties(self, m):
@@ -1008,14 +1021,17 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(url=url, json={'collection': 'test', 'properties': ['raba_id', 'allet']})
         res = self._api.drop_properties('test', ['raba_id', 'allet'])
 
-        self.assertEqual("<h1>Properties ['raba_id', 'allet'] dropped from helge_test</h1>", str(res))
+        expected = {'Message': "Properties ['raba_id', 'allet'] dropped from helge_test"}
+        self.check_message(res, expected)
 
+        self._api.raise_it = True
         with self.assertRaises(GeoDBError) as e:
             self._api.drop_properties('test', ['geometry', 'created_at'])
 
         self.assertIn("Don't delete the following columns", str(e.exception))
         self.assertIn("geometry", str(e.exception))
         self.assertIn("created_at", str(e.exception))
+        self._api.raise_it = False
 
     def test_get_properties(self, m):
         self.set_global_mocks(m)
@@ -1023,7 +1039,7 @@ class GeoDBClientTest(unittest.TestCase):
         url = self._server_full_address + "/rpc/geodb_get_properties"
         m.post(url=url, json=[{'src': {'name': 'geometry'}}, ])
         res = self._api.get_properties('test')
-        # !!!
+
         self.assertIsInstance(res, DataFrame)
 
         m.post(url=url, json=[{'src': {}}, ])

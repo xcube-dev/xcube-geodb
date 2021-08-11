@@ -6,9 +6,7 @@ from xcube_geodb.core.message import Message
 class TestMessage(unittest.TestCase):
     def test_message(self):
         message = Message('helge ist durchaus klug')
-        self.assertEqual('helge ist durchaus klug', message.message)
-
-        self.assertEqual("<h1>helge ist durchaus klug</h1>", str(message))
+        self.assertDictEqual({'Message': 'helge ist durchaus klug'}, message.to_dict())
 
 
 if __name__ == '__main__':
