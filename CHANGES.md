@@ -1,4 +1,4 @@
-## v1.0.0 (in development)
+## v1.0.0
 
 ### Fixes
 
@@ -17,7 +17,8 @@
 - The geoDB client has now a new method (`get_published_gs`) that allows to list published collections to a WMS service (geoserver)
 - Added a notebook that describes how to use the WMS self service
 - Ensured that the rest URL of the geoserver for publishing to WMS is configurable
-
+- Messages are handled by class Message allowing to nicer print them in Jupyter notebooks. The user can also choose 
+  whether an error will be raised or just printed.
 
 ## v0.1.16
 

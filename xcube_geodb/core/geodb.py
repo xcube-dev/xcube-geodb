@@ -133,11 +133,13 @@ class GeoDBClient(object):
                  database: Optional[str] = None,
                  access_token_uri: Optional[str] = None,
                  gs_server_url: Optional[str] = None,
-                 gs_server_port: Optional[int] = None):
+                 gs_server_port: Optional[int] = None,
+                 raise_it: bool = False):
 
         self._use_auth_cache = True
         self._dotenv_file = dotenv_file
         self._database = None
+        self._raise_it = raise_it
         # Access token is set here or on request
 
         # defaults
@@ -252,11 +254,7 @@ class GeoDBClient(object):
         if collection in capabilities['definitions']:
             return capabilities['definitions'][collection]
         else:
-            raise GeoDBError(f"Table {collection} does not exist.")
-
-    @deprecated_func(msg='Use get_my_collections')
-    def get_collections(self, database: Optional[str] = None):
-        return self.get_my_collections(database)
+            self._maybe_raise(GeoDBError(f"Table {collection} does not exist."))
 
     def get_my_collections(self, database: Optional[str] = None) -> Sequence:
         """
@@ -275,14 +273,17 @@ class GeoDBClient(object):
 
         """
 
-        database = database or self._database
-        payload = {'database': database}
-        r = self._post(path='/rpc/geodb_get_my_collections', payload=payload)
-        js = r.json()[0]['src']
-        if js:
-            return self._df_from_json(js)
-        else:
-            return DataFrame(columns=["collection"])
+        try:
+            database = database or self._database
+            payload = {'database': database}
+            r = self._post(path='/rpc/geodb_get_my_collections', payload=payload)
+            js = r.json()[0]['src']
+            if js:
+                return self._df_from_json(js)
+            else:
+                return DataFrame(columns=["collection"])
+        except GeoDBError as e:
+            self._maybe_raise(e)
 
     def _get_common_headers(self):
         return {
@@ -290,6 +291,19 @@ class GeoDBClient(object):
             'Content-type': 'application/json',
             'Authorization': f"Bearer {self.auth_access_token}"
         }
+
+    @property
+    def raise_it(self) -> bool:
+        """
+
+        Returns:
+            The current error message behaviour
+        """
+        return self._raise_it
+
+    @raise_it.setter
+    def raise_it(self, value: bool):
+        self._raise_it = value
 
     @property
     def database(self) -> str:
@@ -457,7 +471,7 @@ class GeoDBClient(object):
                                headers=headers)
             r.raise_for_status()
         except requests.HTTPError:
-            raise GeoDBError(r.content)
+            raise GeoDBError(r.text)
         return r
 
     def _put(self, path: str, payload: Union[Dict, Sequence], params: Optional[Dict] = None,
@@ -485,11 +499,17 @@ class GeoDBClient(object):
             r = requests.put(self._get_full_url(path=path), json=payload, params=params,
                              headers=headers)
             r.raise_for_status()
+            return r
         except requests.HTTPError:
             raise GeoDBError(r.text)
-        return r
 
-    def get_my_usage(self, pretty=True) -> Dict:
+    def _maybe_raise(self, e):
+        if self._raise_it:
+            raise e
+        else:
+            return Message(str(e))
+
+    def get_my_usage(self, pretty=True) -> Union[Dict, Message]:
         """
         Get my geoDB data usage.
 
@@ -505,15 +525,18 @@ class GeoDBClient(object):
             {'usage': '6432 kB'}
         """
         payload = {'pretty': pretty} if pretty else {}
-        r = self._post(path='/rpc/geodb_get_my_usage', payload=payload)
-        return r.json()[0]['src'][0]
+        try:
+            r = self._post(path='/rpc/geodb_get_my_usage', payload=payload)
+            return r.json()[0]['src'][0]
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     def create_collection_if_not_exists(self,
                                         collection: str,
                                         properties: Dict,
                                         crs: Union[int, str] = 4326,
                                         database: Optional[str] = None,
-                                        **kwargs) -> Optional[Dict]:
+                                        **kwargs) -> Union[Dict, Message]:
         """
         Creates a collection only if the collection does not exist already.
 
@@ -533,12 +556,14 @@ class GeoDBClient(object):
         """
         exists = self.collection_exists(collection=collection, database=database)
         if not exists:
-            return self.create_collection(collection=collection,
-                                          properties=properties,
-                                          crs=crs,
-                                          database=database,
-                                          **kwargs)
-        return None
+            try:
+                return self.create_collection(collection=collection,
+                                              properties=properties,
+                                              crs=crs,
+                                              database=database,
+                                              **kwargs)
+            except GeoDBError as e:
+                return self._maybe_raise(e)
 
     def create_collections_if_not_exist(self,
                                         collections: Dict,
@@ -565,13 +590,10 @@ class GeoDBClient(object):
 
         return self.create_collections(collections=res, database=database)
 
-    # noinspection PyUnusedLocal
-    @deprecated_kwarg('namespace', 'database')
     def create_collections(self,
                            collections: Dict,
                            database: Optional[str] = None,
-                           clear: bool = False,
-                           **kwargs) -> Union[Dict, Message]:
+                           clear: bool = False) -> Union[Dict, Message]:
         """
         Create collections from a dictionary
         Args:
@@ -592,6 +614,8 @@ class GeoDBClient(object):
         for collection in collections:
             if 'crs' in collections[collection]:
                 collections[collection]['crs'] = check_crs(collections[collection]['crs'])
+            if clear:
+                self.drop_collection(collection=collection, database=database)
 
         self._refresh_capabilities()
 
@@ -600,9 +624,6 @@ class GeoDBClient(object):
         if not self.database_exists(database):
             return Message("Database does not exist.")
 
-        if clear:
-            self.drop_collections(collections=collections, database=database, cascade=True)
-
         buffer = {}
         for collection in collections:
             buffer[database + '_' + collection] = collections[collection]
@@ -610,18 +631,16 @@ class GeoDBClient(object):
         collections = {"collections": buffer}
         try:
             self._post(path='/rpc/geodb_create_collections', payload=collections)
-            return collections
+            return Message(collections)
         except GeoDBError as e:
-            return Message("Error: " + str(e))
+            return self._maybe_raise(e)
 
-    @deprecated_kwarg('namespace', 'database')
     def create_collection(self,
                           collection: str,
                           properties: Dict,
                           crs: Union[int, str] = 4326,
                           database: Optional[str] = None,
-                          clear: bool = False,
-                          **kwargs) -> Dict:
+                          clear: bool = False) -> Dict:
         """
         Create collections from a dictionary
 
@@ -653,17 +672,12 @@ class GeoDBClient(object):
 
         return self.create_collections(collections=collections, database=database, clear=clear)
 
-    @deprecated_kwarg('namespace', 'database')
-    def drop_collection(self, collection: str, cascade: bool = False, database: Optional[str] = None,
-                        **kwargs) -> Message:
+    def drop_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
 
         Args:
             collection (str): Name of the collection to be dropped
             database (str): The database the colections resides in [current database]
-            cascade (bool): Drop in cascade mode. This can be necessary if e.g. sequences have not been
-                            deleted properly
-            kwargs: Placeholder for deprecated options
 
         Returns:
             bool: Success
@@ -676,9 +690,8 @@ class GeoDBClient(object):
         database = database or self.database
         return self.drop_collections(collections=[collection], database=database, cascade=True)
 
-    @deprecated_kwarg('namespace', 'database')
-    def drop_collections(self, collections: Sequence[str], cascade: bool = False, database: Optional[str] = None,
-                         **kwargs) -> Message:
+    def drop_collections(self, collections: Sequence[str], cascade: bool = False, database: Optional[str] = None)\
+            -> Message:
         """
 
         Args:
@@ -686,7 +699,6 @@ class GeoDBClient(object):
             collections (Sequence[str]): Collections to be dropped
             cascade (bool): Drop in cascade mode. This can be necessary if e.g. sequences have not been
                             deleted properly
-            kwargs: Placeholder for deprecated options
 
         Returns:
             Message
@@ -706,7 +718,7 @@ class GeoDBClient(object):
             self._post(path='/rpc/geodb_drop_collections', payload=payload)
             return Message(f"Collection {str(collections)} deleted")
         except GeoDBError as e:
-            return Message(f"Error: {str(e)}")
+            return self._maybe_raise(e)
 
     @deprecated_kwarg('namespace', 'database')
     def grant_access_to_collection(self, collection: str, usr: str, database: Optional[str] = None,
@@ -733,9 +745,12 @@ class GeoDBClient(object):
         database = database or self.database
         dn = f"{database}_{collection}"
 
-        self._post(path='/rpc/geodb_grant_access_to_collection', payload={'collection': dn, 'usr': usr})
+        try:
+            self._post(path='/rpc/geodb_grant_access_to_collection', payload={'collection': dn, 'usr': usr})
 
-        return Message(f"Access granted on {collection} to {usr}")
+            return Message(f"Access granted on {collection} to {usr}")
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     def rename_collection(self, collection: str, new_name: str, database: Optional[str] = None):
         """
@@ -754,9 +769,12 @@ class GeoDBClient(object):
         old_dn = f"{database}_{collection}"
         new_dn = f"{database}_{new_name}"
 
-        self._post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
+        try:
+            self._post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
 
-        return Message(f"Collection renamed from {collection} to {new_name}")
+            return Message(f"Collection renamed from {collection} to {new_name}")
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     def move_collection(self, collection: str, new_database: str, database: Optional[str] = None):
         """
@@ -776,9 +794,12 @@ class GeoDBClient(object):
         old_dn = f"{database}_{collection}"
         new_dn = f"{new_database}_{collection}"
 
-        self._post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
-
-        return Message(f"Collection moved from {database} to {new_database}")
+        try:
+            self._post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
+    
+            return Message(f"Collection moved from {database} to {new_database}")
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     def copy_collection(self, collection: str, new_collection: str, new_database: str, database: Optional[str] = None):
         """
@@ -798,9 +819,12 @@ class GeoDBClient(object):
         from_dn = f"{database}_{collection}"
         to_dn = f"{new_database}_{new_collection}"
 
-        self._post(path='/rpc/geodb_copy_collection', payload={'old_collection': from_dn, 'new_collection': to_dn})
+        try:
+            self._post(path='/rpc/geodb_copy_collection', payload={'old_collection': from_dn, 'new_collection': to_dn})
 
-        return Message(f"Collection copied from {database}/{collection} to {new_database}/{new_collection}")
+            return Message(f"Collection copied from {database}/{collection} to {new_database}/{new_collection}")
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     def publish_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
@@ -820,10 +844,9 @@ class GeoDBClient(object):
             database = database or self.database
 
             self.grant_access_to_collection(collection=collection, usr='public', database=database)
+            return Message(f"Access granted on {collection} to public.")
         except GeoDBError as e:
-            return Message(f"Access could not be granted. List grants with geodb.list_my_grants()" + str(e))
-
-        return Message(f"Access granted on {collection} to public.")
+            return self._maybe_raise(e)
 
     def unpublish_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
@@ -841,9 +864,11 @@ class GeoDBClient(object):
         """
         database = database or self.database
 
-        return self.revoke_access_from_collection(collection=collection, usr='public', database=database)
+        try:
+            return self.revoke_access_from_collection(collection=collection, usr='public', database=database)
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
-    @deprecated_kwarg('namespace', 'database')
     def revoke_access_from_collection(self, collection: str, usr: str, database: Optional[str] = None,
                                       **kwargs) -> Message:
         """
@@ -863,13 +888,9 @@ class GeoDBClient(object):
             self._post(path='/rpc/geodb_revoke_access_from_collection', payload={'collection': dn, 'usr': usr})
             return Message(f"Access revoked from {self.whoami} on {collection}")
         except GeoDBError as e:
-            return Message(f"Error: {str(e)}")
+            return self._maybe_raise(e)
 
-    @deprecated_func(msg='Use list_my_grants')
-    def list_grants(self) -> DataFrame:
-        return self.list_my_grants()
-
-    def list_my_grants(self) -> DataFrame:
+    def list_my_grants(self) -> Union[DataFrame, Message]:
         """
         List the access grants the current user has granted
 
@@ -887,10 +908,9 @@ class GeoDBClient(object):
             else:
                 return DataFrame(data={'Grants': ['No Grants']})
         except Exception as e:
-            raise GeoDBError("Could not read response from GeoDB. " + str(e))
+            return self._maybe_raise(GeoDBError(str(e)))
 
-    @deprecated_kwarg('namespace', 'database')
-    def add_property(self, collection: str, prop: str, typ: str, database: Optional[str] = None, **kwargs) -> Message:
+    def add_property(self, collection: str, prop: str, typ: str, database: Optional[str] = None) -> Message:
         """
         Add a property to an existing collection
 
@@ -908,6 +928,7 @@ class GeoDBClient(object):
             >>> geodb.add_property(collection='[MyCollection]', name='[MyProperty]', type='[PostgresType]')
         """
         prop = {prop: typ}
+
         return self.add_properties(collection=collection, properties=prop, database=database)
 
     @deprecated_kwarg('namespace', 'database')
@@ -933,11 +954,13 @@ class GeoDBClient(object):
         database = database or self.database
         collection = database + '_' + collection
 
-        self._post(path='/rpc/geodb_add_properties', payload={'collection': collection, 'properties': properties})
+        try:
+            self._post(path='/rpc/geodb_add_properties', payload={'collection': collection, 'properties': properties})
 
-        return Message(f"Properties added")
+            return Message(f"Properties added")
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
-    @deprecated_kwarg('namespace', 'database')
     def drop_property(self, collection: str, prop: str, database: Optional[str] = None, **kwargs) -> Message:
         """
         Drop a property from a collection
@@ -981,9 +1004,12 @@ class GeoDBClient(object):
 
         self._raise_for_stored_procedure_exists('geodb_drop_properties')
 
-        self._post(path='/rpc/geodb_drop_properties', payload={'collection': collection, 'properties': properties})
+        try:
+            self._post(path='/rpc/geodb_drop_properties', payload={'collection': collection, 'properties': properties})
 
-        return Message(f"Properties {str(properties)} dropped from {collection}")
+            return Message(f"Properties {str(properties)} dropped from {collection}")
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     def _raise_for_mandatory_columns(self, properties: Sequence[str]):
         common_props = list(set(properties) & set(self._mandatory_properties))
@@ -1006,14 +1032,17 @@ class GeoDBClient(object):
         database = database or self.database
         collection = database + '_' + collection
 
-        r = self._post(path='/rpc/geodb_get_properties', payload={'collection': collection})
+        try:
+            r = self._post(path='/rpc/geodb_get_properties', payload={'collection': collection})
 
-        js = r.json()[0]['src']
+            js = r.json()[0]['src']
 
-        if js:
-            return self._df_from_json(js)
-        else:
-            return DataFrame(columns=["collection", "column_name", "data_type"])
+            if js:
+                return self._df_from_json(js)
+            else:
+                return DataFrame(columns=["collection", "column_name", "data_type"])
+        except GeoDBError as e:
+            self._maybe_raise(e)
 
     def create_database(self, database: str) -> Message:
         """
@@ -1031,7 +1060,7 @@ class GeoDBClient(object):
             self._post(path='/rpc/geodb_create_database', payload={'database': database})
             return Message(f"Database {database} created")
         except GeoDBError as e:
-            return Message(f"Error: " + str(e))
+            return self._maybe_raise(e)
 
     def truncate_database(self, database: str) -> Message:
         """
@@ -1049,7 +1078,7 @@ class GeoDBClient(object):
             self._post(path='/rpc/geodb_truncate_database', payload={'database': database})
             return Message(f"Database {database} truncated")
         except GeoDBError as e:
-            return Message(f"Error: " + str(e))
+            return self._maybe_raise(e)
 
     def get_my_databases(self):
         """
@@ -1060,7 +1089,10 @@ class GeoDBClient(object):
 
         """
 
-        return self.get_collection(collection='user_databases', database='geodb', query=f'owner=eq.{self.whoami}')
+        try:
+            return self.get_collection(collection='user_databases', database='geodb', query=f'owner=eq.{self.whoami}')
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     def database_exists(self, database: str) -> bool:
         """
@@ -1077,11 +1109,13 @@ class GeoDBClient(object):
 
         """
 
-        res = self.get_collection(collection='user_databases', database='geodb', query=f'name=eq.{database}')
-        return len(res) > 0
+        try:
+            res = self.get_collection(collection='user_databases', database='geodb', query=f'name=eq.{database}')
+            return len(res) > 0
+        except GeoDBError as e:
+            self._maybe_raise(e)
 
-    @deprecated_kwarg('namespace', 'database')
-    def delete_from_collection(self, collection: str, query: str, database: Optional[str] = None, **kwargs) -> Message:
+    def delete_from_collection(self, collection: str, query: str, database: Optional[str] = None) -> Message:
         """
         Delete
         Args:
@@ -1089,7 +1123,6 @@ class GeoDBClient(object):
             database (str): The name of the database to be checked
             query (str): Filter which records to delete. Follow the http://postgrest.org/en/v6.0/api.html query
             convention.
-            kwargs: PLaceholder for deprecated options
         Returns:
             Message: Whether the operation has succeeded
 
@@ -1105,7 +1138,7 @@ class GeoDBClient(object):
             self._delete(f'/{dn}?{query}')
             return Message(f"Data from {collection} deleted")
         except GeoDBError as e:
-            return Message("Error: " + str(e))
+            return self._maybe_raise(e)
 
     @deprecated_kwarg('namespace', 'database')
     def update_collection(self, collection: str, values: Dict, query: str, database: Optional[str] = None,
@@ -1143,7 +1176,7 @@ class GeoDBClient(object):
             self._patch(f'/{dn}?{query}', payload=values)
             return Message(f"{collection} updated")
         except GeoDBError as e:
-            return Message(f"Error: " + str(e))
+            return self._maybe_raise(e)
 
     # noinspection PyMethodMayBeStatic
     def _gdf_prepare_geom(self, gpdf: GeoDataFrame, crs: int = None) -> DataFrame:
@@ -1170,15 +1203,13 @@ class GeoDBClient(object):
         res = gpdf.to_dict('records')
         return res
 
-    @deprecated_kwarg('namespace', 'database')
     def insert_into_collection(self,
                                collection: str,
                                values: GeoDataFrame,
                                upsert: bool = False,
                                crs: Optional[Union[int, str]] = None,
                                database: Optional[str] = None,
-                               max_transfer_chunk_size: int = 1000,
-                               **kwargs) \
+                               max_transfer_chunk_size: int = 1000) \
             -> Message:
         """
         Insert data into a collection
@@ -1247,9 +1278,12 @@ class GeoDBClient(object):
                 else:
                     headers = None
 
-                self._post(f'/{dn}', payload=js, headers=headers)
+                try:
+                    self._post(f'/{dn}', payload=js, headers=headers)
+                except GeoDBError as e:
+                    return self._maybe_raise(e)
         else:
-            raise GeoDBError(f'Error: Format {type(values)} not supported.')
+            self._maybe_raise(GeoDBError(f'Error: Format {type(values)} not supported.'))
 
         return Message(f"{total_rows} rows inserted into {collection}")
 
@@ -1302,7 +1336,7 @@ class GeoDBClient(object):
                                op: str = 'AND',
                                database: Optional[str] = None,
                                wsg84_order="lat_lon",
-                               **kwargs) -> GeoDataFrame:
+                               **kwargs) -> Union[GeoDataFrame, Message]:
         """
         Query the database by a bounding box. Please be careful with the bbox crs. The easiest is
         using the same crs as the collection. However, if the bbox crs differs from the collection,
@@ -1343,36 +1377,38 @@ class GeoDBClient(object):
 
         coll_crs = self.get_collection_srid(collection=collection, database=database)
 
-        if coll_crs != bbox_crs:
-            bbox = self.transform_bbox_crs(bbox, bbox_crs, int(coll_crs), wsg84_order=wsg84_order)
-            bbox_crs = coll_crs
+        try:
+            if coll_crs != bbox_crs:
+                bbox = self.transform_bbox_crs(bbox, bbox_crs, int(coll_crs), wsg84_order=wsg84_order)
+                bbox_crs = coll_crs
 
-        headers = {'Accept': 'application/vnd.pgrst.object+json'}
+            headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
-        r = self._post('/rpc/geodb_get_by_bbox', headers=headers, payload={
-            "collection": dn,
-            "minx": bbox[0],
-            "miny": bbox[1],
-            "maxx": bbox[2],
-            "maxy": bbox[3],
-            "bbox_mode": comparison_mode,
-            "bbox_crs": bbox_crs,
-            "limit": limit,
-            "where": where,
-            "op": op,
-            "offset": offset
-        })
+            r = self._post('/rpc/geodb_get_by_bbox', headers=headers, payload={
+                "collection": dn,
+                "minx": bbox[0],
+                "miny": bbox[1],
+                "maxx": bbox[2],
+                "maxy": bbox[3],
+                "bbox_mode": comparison_mode,
+                "bbox_crs": bbox_crs,
+                "limit": limit,
+                "where": where,
+                "op": op,
+                "offset": offset
+            })
 
-        js = r.json()['src']
-        if js:
-            srid = self.get_collection_srid(collection, database)
-            return self._df_from_json(js, srid)
-        else:
-            return GeoDataFrame(columns=["Empty Result"])
+            js = r.json()['src']
+            if js:
+                srid = self.get_collection_srid(collection, database)
+                return self._df_from_json(js, srid)
+            else:
+                return GeoDataFrame(columns=["Empty Result"])
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
-    @deprecated_kwarg('namespace', 'database')
-    def head_collection(self, collection: str, num_lines: int = 10, database: Optional[str] = None, **kwargs) -> \
-            Union[GeoDataFrame, DataFrame]:
+    def head_collection(self, collection: str, num_lines: int = 10, database: Optional[str] = None) -> \
+            Union[GeoDataFrame, DataFrame, Message]:
         """
         Get the first num_lines of a collection
 
@@ -1395,9 +1431,8 @@ class GeoDBClient(object):
 
         return self.get_collection(collection=collection, query=f'limit={num_lines}', database=database)
 
-    @deprecated_kwarg('namespace', 'database')
     def get_collection(self, collection: str, query: Optional[str] = None, database: Optional[str] = None,
-                       limit: int = None, offset: int = None) -> Union[GeoDataFrame, DataFrame]:
+                       limit: int = None, offset: int = None) -> Union[GeoDataFrame, DataFrame, Message]:
         """
         Query a collection
 
@@ -1425,20 +1460,22 @@ class GeoDBClient(object):
 
         # self._raise_for_collection_exists(collection=dn)
 
-        if query:
-            r = self._get(f"/{dn}?{query}")
-        else:
-            r = self._get(f"/{dn}")
+        try:
+            if query:
+                r = self._get(f"/{dn}?{query}")
+            else:
+                r = self._get(f"/{dn}")
 
-        js = r.json()
+            js = r.json()
 
-        if js:
-            return self._df_from_json(js, srid)
-        else:
-            return DataFrame(columns=["Empty Result"])
+            if js:
+                return self._df_from_json(js, srid)
+            else:
+                return DataFrame(columns=["Empty Result"])
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     # noinspection SqlDialectInspection,SqlNoDataSourceInspection,SqlInjection
-    @deprecated_kwarg('namespace', 'database')
     def get_collection_pg(self,
                           collection: str,
                           select: str = "*",
@@ -1447,8 +1484,7 @@ class GeoDBClient(object):
                           order: Optional[str] = None,
                           limit: Optional[int] = None,
                           offset: Optional[int] = None,
-                          database: Optional[str] = None,
-                          **kwargs) -> Union[GeoDataFrame, DataFrame]:
+                          database: Optional[str] = None) -> Union[GeoDataFrame, DataFrame, Message]:
         """
 
         Args:
@@ -1481,24 +1517,27 @@ class GeoDBClient(object):
 
         headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
-        r = self._post("/rpc/geodb_get_pg", headers=headers, payload={
-            'select': select,
-            'where': where,
-            'group': group,
-            'limit': limit,
-            'order': order,
-            'offset': offset,
-            'collection': dn,
-        })
-        r.raise_for_status()
+        try:
+            r = self._post("/rpc/geodb_get_pg", headers=headers, payload={
+                'select': select,
+                'where': where,
+                'group': group,
+                'limit': limit,
+                'order': order,
+                'offset': offset,
+                'collection': dn,
+            })
+            r.raise_for_status()
 
-        js = r.json()['src']
+            js = r.json()['src']
 
-        if js:
-            srid = self.get_collection_srid(collection, database)
-            return self._df_from_json(js, srid)
-        else:
-            return DataFrame(columns=["Empty Result"])
+            if js:
+                srid = self.get_collection_srid(collection, database)
+                return self._df_from_json(js, srid)
+            else:
+                return DataFrame(columns=["Empty Result"])
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     @property
     def server_url(self) -> str:
@@ -1510,7 +1549,7 @@ class GeoDBClient(object):
         """
         return self._server_url
 
-    def get_collection_srid(self, collection: str, database: Optional[str] = None) -> Optional[str]:
+    def get_collection_srid(self, collection: str, database: Optional[str] = None) -> Optional[Union[str, Message]]:
         """
         Get the SRID of a collection
 
@@ -1524,14 +1563,17 @@ class GeoDBClient(object):
         tab_prefix = database or self.database
         dn = f"{tab_prefix}_{collection}"
 
-        r = self._post(path='/rpc/geodb_get_collection_srid', payload={'collection': dn}, raise_for_status=False)
-        if r.status_code == 200:
-            js = r.json()[0]['src'][0]
+        try:
+            r = self._post(path='/rpc/geodb_get_collection_srid', payload={'collection': dn}, raise_for_status=False)
+            if r.status_code == 200:
+                js = r.json()[0]['src'][0]
 
-            if js:
-                return js['srid']
+                if js:
+                    return js['srid']
 
-        return None
+            return None
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     def _df_from_json(self, js: Dict, srid: Optional[int] = None) -> Union[GeoDataFrame, DataFrame]:
         """
@@ -1608,12 +1650,15 @@ class GeoDBClient(object):
         """
         database = database or self.database
 
-        r = self._put(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections',
-                      payload={'collection_id': collection})
+        try:
+            r = self._put(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections',
+                          payload={'collection_id': collection})
 
-        return r.json()
+            return r.json()
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
-    def get_published_gs(self, database: Optional[str] = None) -> Sequence:
+    def get_published_gs(self, database: Optional[str] = None) -> Union[Sequence, Message]:
         """
 
         Args:
@@ -1631,12 +1676,16 @@ class GeoDBClient(object):
         """
 
         database = database or self._database
-        r = self._get(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections')
-        js = r.json()
-        if js:
-            return DataFrame.from_dict(js)
-        else:
-            return DataFrame(columns=["collection"])
+
+        try:
+            r = self._get(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections')
+            js = r.json()
+            if js:
+                return DataFrame.from_dict(js)
+            else:
+                return DataFrame(columns=["collection"])
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     def unpublish_gs(self, collection: str, database: str):
         """
@@ -1650,9 +1699,12 @@ class GeoDBClient(object):
 
         """
 
-        self._delete(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections/{collection}')
+        try:
+            self._delete(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections/{collection}')
 
-        return True
+            return Message(f"Collection {collection} in database {database} deleted from Geoservice")
+        except GeoDBError as e:
+            self._maybe_raise(e)
 
     @property
     def auth_access_token(self) -> str:
@@ -1778,7 +1830,7 @@ class GeoDBClient(object):
         database = database or self.database
 
         try:
-            c = self.head_collection(collection, database=database)
+            self.head_collection(collection, database=database)
         except GeoDBError:
             return False
 

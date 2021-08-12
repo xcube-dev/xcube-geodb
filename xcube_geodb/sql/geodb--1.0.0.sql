@@ -946,7 +946,7 @@ CREATE OR REPLACE FUNCTION public.geodb_get_by_bbox(collection text,
                                                     miny double precision,
                                                     maxx double precision,
                                                     maxy double precision,
-                                                    bbox_mode VARCHAR(255) DEFAULT 'within',
+                                                    comparison_mode VARCHAR(255) DEFAULT 'within',
                                                     bbox_crs int DEFAULT 4326,
                                                     "where" text DEFAULT 'id > 0'::text,
                                                     op text DEFAULT 'AND'::text,
@@ -966,11 +966,25 @@ DECLARE
     lmt_str   text;
     qry       text;
 BEGIN
-    CASE bbox_mode
-        WHEN 'within' THEN bbox_func := 'ST_Within';
-        WHEN 'contains' THEN bbox_func := 'ST_Contains';
-        ELSE RAISE EXCEPTION 'bbox mode % does not exist. Use ''within'' | ''contains''', bbox_mode USING ERRCODE = 'data_exception';
-        END CASE;
+    CASE comparison_mode
+        WHEN 'within' THEN
+            bbox_func := 'ST_Within';
+        WHEN 'contains' THEN
+            bbox_func := 'ST_Contains';
+        WHEN 'intersects' THEN
+            bbox_func := 'ST_Intersects';
+        WHEN 'touches' THEN
+            bbox_func := 'ST_Touches';
+        WHEN 'overlaps' THEN
+            bbox_func := 'ST_Overlaps';
+        WHEN 'crosses' THEN
+            bbox_func := 'ST_Crosses';
+        WHEN 'disjoint' THEN
+            bbox_func := 'ST_Disjoint';
+        WHEN 'equals' THEN
+            bbox_func := 'ST_Equals';
+        ELSE RAISE EXCEPTION 'comparison mode % does not exist. Use ''within'' | ''contains''', comparison_mode USING ERRCODE = 'data_exception';
+    END CASE;
 
     lmt_str := '';
 
