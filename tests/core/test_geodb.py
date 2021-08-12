@@ -971,6 +971,39 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIsInstance(res, pandas.DataFrame)
         self.assertEqual(0, len(res))
 
+    def test_get_all_published_gs(self, m):
+        self.maxDiff = None
+        self.set_global_mocks(m)
+        url = self._server_full_address + "/api/v2/services/xcube_geoserv/collections"
+
+        server_response = {
+            'collection_id': ['land_use'],
+            'database': ['None'],
+            'default_style': [None],
+            'geojson_url': [
+                'https://test/geoserver/geodb_admin/ows?service=WFS&version=1.0.0'],
+            'href': [None],
+            'name': ['land_use'],
+            'preview_url': [
+                'https://test/geoserver/geodb_admin/wms?service=WMS&version=1.1.0'
+            ],
+            'wfs_url': [
+                'https://test/geoserver/geodb_admin/wms?service=WMS&version=1.1.0'
+            ]
+        }
+
+        m.get(url=url, json=server_response)
+
+        res = self._api.get_all_published_gs()
+        self.assertIsInstance(res, pandas.DataFrame)
+        self.assertEqual(1, len(res))
+
+        m.get(url=url, json={})
+
+        res = self._api.get_all_published_gs()
+        self.assertIsInstance(res, pandas.DataFrame)
+        self.assertEqual(0, len(res))
+
     def test_unpublish_from_geoserver(self, m):
         self.set_global_mocks(m)
         url = self._server_full_address + "/api/v2/services/xcube_geoserv/databases/geodb_admin/collections/land_use"

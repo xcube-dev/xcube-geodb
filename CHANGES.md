@@ -8,7 +8,7 @@
 - Fixed that admin users have access to users' collections
 
 ### New Features
-- renaming 'table_name' to 'collection'
+- renaming 'table_name' to 'collection' in SQL functions
 - EPSG code strings e.g. 'epsg:4326' or 'EPSG:4326' are now accepted as CRS definition by `geodb.create_collection*` 
   functions as well as `geodb.insert_into_collection`, `geodb.transform_bbox_crs`, `geodb.get_collection_by_bbox`. 
   Before only integers were accepted. This ensures alignment with xcube software.
@@ -19,6 +19,7 @@
 - Ensured that the rest URL of the geoserver for publishing to WMS is configurable
 - Messages are handled by class Message allowing to nicer print them in Jupyter notebooks. The user can also choose 
   whether an error will be raised or just printed.
+- Added method `geodb.get_all_published_gs` to get all gs published collections
 
 ## v0.1.16
 
