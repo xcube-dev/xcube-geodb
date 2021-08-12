@@ -720,16 +720,13 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e)
 
-    @deprecated_kwarg('namespace', 'database')
-    def grant_access_to_collection(self, collection: str, usr: str, database: Optional[str] = None,
-                                   **kwargs) -> Message:
+    def grant_access_to_collection(self, collection: str, usr: str, database: Optional[str] = None) -> Message:
         """
 
         Args:
             collection (str): Collection name to grant access to
             usr (str): Username to grant access to
             database (str): The database the collection resides in
-            kwargs: Placeholder for deprecated options
 
         Returns:
             bool: Success
@@ -1658,6 +1655,29 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e)
 
+    def get_all_published_gs(self, database: Optional[str] = None) -> Union[Sequence, Message]:
+        """
+
+        Args:
+            database (str): The database to list collections from a database which are published via geoserver
+
+        Returns:
+            A Dataframe of collection names
+
+        """
+
+        path = '/api/v2/services/xcube_geoserv/collections' if database is None else None
+
+        try:
+            r = self._get(path=path)
+            js = r.json()
+            if js:
+                return DataFrame.from_dict(js)
+            else:
+                return DataFrame(columns=["collection"])
+        except GeoDBError as e:
+            return self._maybe_raise(e)
+
     def get_published_gs(self, database: Optional[str] = None) -> Union[Sequence, Message]:
         """
 
@@ -1677,8 +1697,10 @@ class GeoDBClient(object):
 
         database = database or self._database
 
+        path = f'/api/v2/services/xcube_geoserv/databases/{database}/collections'
+
         try:
-            r = self._get(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections')
+            r = self._get(path=path)
             js = r.json()
             if js:
                 return DataFrame.from_dict(js)
