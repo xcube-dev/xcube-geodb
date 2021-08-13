@@ -1726,7 +1726,7 @@ class GeoDBClient(object):
 
             return Message(f"Collection {collection} in database {database} deleted from Geoservice")
         except GeoDBError as e:
-            self._maybe_raise(e)
+            return self._maybe_raise(e)
 
     @property
     def auth_access_token(self) -> str:
