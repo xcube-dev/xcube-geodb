@@ -1387,7 +1387,7 @@ class GeoDBClient(object):
                 "miny": bbox[1],
                 "maxx": bbox[2],
                 "maxy": bbox[3],
-                "bbox_mode": comparison_mode,
+                "comparison_mode": comparison_mode,
                 "bbox_crs": bbox_crs,
                 "limit": limit,
                 "where": where,
@@ -1726,7 +1726,7 @@ class GeoDBClient(object):
 
             return Message(f"Collection {collection} in database {database} deleted from Geoservice")
         except GeoDBError as e:
-            self._maybe_raise(e)
+            return self._maybe_raise(e)
 
     @property
     def auth_access_token(self) -> str:
