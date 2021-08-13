@@ -1387,7 +1387,7 @@ class GeoDBClient(object):
                 "miny": bbox[1],
                 "maxx": bbox[2],
                 "maxy": bbox[3],
-                "bbox_mode": comparison_mode,
+                "comparison_mode": comparison_mode,
                 "bbox_crs": bbox_crs,
                 "limit": limit,
                 "where": where,
