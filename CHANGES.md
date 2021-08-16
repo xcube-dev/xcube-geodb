@@ -6,13 +6,13 @@
 - Fixed create database. Does not allow users anymore to write collections
   to other users' databases. Closes [#164](https://github.com/bcdev/service-eurodatacube/issues/164), [#165](https://github.com/bcdev/service-eurodatacube/issues/165), [#166](https://github.com/bcdev/service-eurodatacube/issues/166), 
 - Fixed that admin users have access to users' collections
+- Collections are now always reported as 'collection' and not 'table_name'
 
 ### New Features
-- renaming 'table_name' to 'collection' in SQL functions
+
 - EPSG code strings e.g. 'epsg:4326' or 'EPSG:4326' are now accepted as CRS definition by `geodb.create_collection*` 
   functions as well as `geodb.insert_into_collection`, `geodb.transform_bbox_crs`, `geodb.get_collection_by_bbox`. 
   Before only integers were accepted. This ensures alignment with xcube software.
-  
 - The geoDB client has now two new methods (`publish_gs`, `unpublish_gs`) that allow publishing collections to a WMS service (geoserver)
 - The geoDB client has now a new method (`get_published_gs`) that allows to list published collections to a WMS service (geoserver)
 - Added a notebook that describes how to use the WMS self service
