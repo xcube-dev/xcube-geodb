@@ -144,9 +144,9 @@ class GeoDBClient(object):
 
         # defaults
         self._server_url = GEODB_DEFAULTS["server_url"]
-        self._gs_server_url = GEODB_DEFAULTS["server_url"]
-        self._gs_server_port = GEODB_DEFAULTS["server_port"]
         self._server_port = GEODB_DEFAULTS["server_port"]
+        self._gs_server_url = None
+        self._gs_server_port = None
         self._auth_client_id = GEODB_DEFAULTS["auth_client_id"]
         self._auth_client_secret = GEODB_DEFAULTS["auth_client_secret"]
         self._auth_access_token = GEODB_DEFAULTS["auth_access_token"]
@@ -175,7 +175,12 @@ class GeoDBClient(object):
         self._auth_domain = auth_aud or self._auth_domain
         self._auth_access_token = access_token or self._auth_access_token
         self._auth_access_token_uri = access_token_uri or self._auth_access_token_uri
+
         self._database = database
+
+        # Set geoserver hosts to geodb host if still unset
+        self._gs_server_url = self._gs_server_url or self._server_url
+        self._gs_server_port = self._gs_server_port or self._server_port
 
         self._capabilities = None
 
@@ -341,7 +346,7 @@ class GeoDBClient(object):
         Refresh the configuration from environment variables. The variables can be preset by a dotenv file.
         Args:
             dotenv_file (str): A dotenv config file
-            use_dotenv (bool): Whether to use a dotenv file.
+            use_dotenv (bool): Whether to useGEODB_AUTH_CLIENT_ID a dotenv file.
 
         """
         if use_dotenv:
