@@ -1,6 +1,9 @@
 name: Notebooktest xcube-geodb
 
-on: [workflow_dispatch, push]
+on:
+  workflow_run:
+    workflows:
+      - unittest
 
 jobs:
   nb-test:
