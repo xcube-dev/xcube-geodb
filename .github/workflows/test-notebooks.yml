@@ -1,0 +1,26 @@
+name: Unittest xcube-geodb
+
+on: [workflow_dispatch, push]
+
+jobs:
+  nb-test:
+    runs-on: ubuntu-latest
+    env:
+      SKIP_PSQL_TESTS: 0
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          channels: conda-forge
+          activate-environment: xcube-geodb
+          environment-file: environment.yml
+      - name: setup xcube-geodb
+        shell: bash -l {0}
+        run: |
+          conda info
+          conda list
+          mamba install -c conda-forge postgis
+          python setup.py develop
+      - name: test-notebooks
+        run: papermill
