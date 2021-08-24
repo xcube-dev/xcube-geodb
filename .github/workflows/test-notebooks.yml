@@ -4,6 +4,8 @@ on:
   workflow_run:
     workflows:
       - unittest
+    types:
+      - completed
 
 jobs:
   nb-test:
