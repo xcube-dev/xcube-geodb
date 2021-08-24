@@ -22,5 +22,14 @@ jobs:
           conda list
           mamba install -c conda-forge postgis
           python setup.py develop
+      - name: install papermill
+        shell: bash -l {0}
+        run: pip install papermill[all]
       - name: test-notebooks
-        run: papermill
+        shell: bash -l {0}
+        working-directory: notebooks
+        run: |
+          for nb in *.ipynb
+          do
+            papermill $nb
+          done
