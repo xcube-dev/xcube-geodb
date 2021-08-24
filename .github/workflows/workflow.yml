@@ -1,0 +1,105 @@
+name: Unittest xcube-geodb
+
+on: [workflow_dispatch, push]
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    env:
+      SKIP_PSQL_TESTS: 0
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          channels: conda-forge
+          activate-environment: xcube-geodb
+          environment-file: environment.yml
+      - name: setup xcube-geodb
+        shell: bash -l {0}
+        run: |
+          conda info
+          conda list
+          mamba install -c conda-forge postgis
+          python setup.py develop
+      - name: unittest-xcube-geodb
+        shell: bash -l {0}
+        run: |
+          pip install pytest
+          pip install pytest-cov
+          pytest --cov=./ --cov-report=xml
+      - uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
+  nb-test:
+    runs-on: ubuntu-latest
+    needs: unittest
+    env:
+      SKIP_PSQL_TESTS: 0
+      GEODB_API_SERVER_URL: ${{ secrets.GEODB_API_SERVER_URL }}
+      GEODB_AUTH_CLIENT_ID: ${{ secrets.GEODB_AUTH_CLIENT_ID }}
+      GEODB_AUTH_CLIENT_SECRET: ${{ secrets.GEODB_AUTH_CLIENT_SECRET }}
+      GEODB_AUTH_DOMAIN: ${{ secrets.GEODB_AUTH_DOMAIN }}
+      GEOSERVER_SERVER_URL: ${{ secrets.GEOSERVER_SERVER_URL }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          channels: conda-forge
+          activate-environment: xcube-geodb
+          environment-file: environment.yml
+      - name: setup xcube-geodb
+        shell: bash -l {0}
+        run: |
+          conda info
+          conda list
+          python setup.py develop
+      - name: install papermill
+        shell: bash -l {0}
+        run: pip install papermill[all]
+      - name: test-notebooks
+        shell: bash -l {0}
+        working-directory: notebooks
+        run: |
+          for nb in *.ipynb
+          do
+            papermill $nb  $(basename -s .ipynb $nb)_out.ipynb
+          done
+  build-docker-image:
+    runs-on: ubuntu-latest
+    needs: nb-test
+    name: build-docker-image
+    env:
+      APP_NAME: xcube-geodb
+      ORG_NAME: bcdev
+    steps:
+      - name: git-checkout
+        uses: actions/checkout@v2
+      - name: get-release-tag
+        id: release
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+      - name: info
+        id: info
+        run: |
+          echo "TAG: ${{ steps.release.outputs.tag }}"
+          echo "EVENT: ${{ github.event_name }}"
+      - uses: mr-smithers-excellent/docker-build-push@v5.5
+        name: build-push-docker-image-latest
+        if: ${{ github.event_name == 'push' && steps.release.outputs.tag == 'master'  }}
+        with:
+          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-lab
+          tags: master, latest
+          registry: quay.io
+          username: ${{ secrets.QUAY_REG_USERNAME }}
+          password: ${{ secrets.QUAY_REG_PASSWORD }}
+      - uses: mr-smithers-excellent/docker-build-push@v5.5
+        name: build-push-docker-image-release
+        if: ${{ github.event_name == 'release' }}
+        with:
+          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-lab
+          tags: ${{ steps.release.outputs.tag }}
+          registry: quay.io
+          username: ${{ secrets.QUAY_REG_USERNAME }}
+          password: ${{ secrets.QUAY_REG_PASSWORD }}
