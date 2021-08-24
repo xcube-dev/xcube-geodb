@@ -1,4 +1,4 @@
-name: Unittest xcube-geodb
+name: Notebooktest xcube-geodb
 
 on: [workflow_dispatch, push]
 
@@ -31,5 +31,5 @@ jobs:
         run: |
           for nb in *.ipynb
           do
-            papermill $nb
+            papermill $nb  $(basename -s .ipynb $nb)_out.ipynb
           done
