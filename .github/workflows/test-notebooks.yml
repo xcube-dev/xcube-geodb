@@ -6,6 +6,7 @@ on:
       - unittest
     types:
       - completed
+      - requested
 
 jobs:
   nb-test:
