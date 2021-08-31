@@ -134,7 +134,7 @@ class GeoDBClient(object):
                  access_token_uri: Optional[str] = None,
                  gs_server_url: Optional[str] = None,
                  gs_server_port: Optional[int] = None,
-                 raise_it: bool = False):
+                 raise_it: bool = True):
 
         self._use_auth_cache = True
         self._dotenv_file = dotenv_file
