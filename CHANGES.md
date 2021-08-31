@@ -1,3 +1,10 @@
+## v1.0.1
+
+### Fixes
+
+- Only half a fix. The default value for `raise_it` is now set to true. Better value for using the client as the original behaviour was 
+  raising the error 
+
 ## v1.0.0
 
 ### Fixes
