@@ -1,6 +1,11 @@
 name: Unittest xcube-geodb
 
-on: [workflow_dispatch, push]
+on:
+  workflow_dispatch:
+  push:
+  release:
+    types: [published]
+
 
 env:
   APP_NAME: xcube-geodb
