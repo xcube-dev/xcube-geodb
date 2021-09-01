@@ -31,7 +31,7 @@ def make_install_geodb():
 
 
 # noinspection SqlNoDataSourceInspection
-@unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '1') == '1', 'DB Tests skipped')
+@unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '0') == '1', 'DB Tests skipped')
 # noinspection SqlInjection
 class GeoDBSqlTest(unittest.TestCase):
     _postgresql = None
@@ -43,18 +43,17 @@ class GeoDBSqlTest(unittest.TestCase):
         skip = os.environ.get('SKIP_PSQL_TESTS', '1')
         print("############## ", skip, " ##############")
 
-        if skip != '1':
-            import psycopg2
-            import testing.postgresql
-            postgresql = testing.postgresql.PostgresqlFactory(cache_initialized_db=False)
+        import psycopg2
+        import testing.postgresql
+        postgresql = testing.postgresql.PostgresqlFactory(cache_initialized_db=False)
 
-            cls._postgresql = postgresql()
-            conn = psycopg2.connect(**cls._postgresql.dsn())
-            cls._cursor = conn.cursor()
-            app_path = get_app_dir()
-            fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup.sql')
-            with open(fn) as sql_file:
-                cls._cursor.execute(sql_file.read())
+        cls._postgresql = postgresql()
+        conn = psycopg2.connect(**cls._postgresql.dsn())
+        cls._cursor = conn.cursor()
+        app_path = get_app_dir()
+        fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup.sql')
+        with open(fn) as sql_file:
+            cls._cursor.execute(sql_file.read())
 
     def tearDown(self) -> None:
         self._postgresql.stop()

@@ -620,7 +620,10 @@ class GeoDBClient(object):
             if 'crs' in collections[collection]:
                 collections[collection]['crs'] = check_crs(collections[collection]['crs'])
             if clear:
-                self.drop_collection(collection=collection, database=database)
+                try:
+                    self.drop_collection(collection=collection, database=database)
+                except GeoDBError:
+                    pass
 
         self._refresh_capabilities()
 

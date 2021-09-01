@@ -4,7 +4,7 @@ on: [workflow_dispatch, push]
 
 env:
   APP_NAME: xcube-geodb
-  SKIP_PSQL_TESTS: "1" # ${{ env.ACT }}
+  SKIP_PSQL_TESTS: "0" # ${{ env.ACT }}
 
 jobs:
   unittest:
