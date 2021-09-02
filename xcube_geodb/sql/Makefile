@@ -1,4 +1,4 @@
-GEODB_VERSION := 1.0.1
+GEODB_VERSION ?= 1.0.2
 EXTENSION = geodb
 DATA = geodb--$(GEODB_VERSION).sql
 

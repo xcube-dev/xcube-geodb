@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from typing import Dict, Optional, Union, Sequence, Tuple
@@ -508,10 +509,16 @@ class GeoDBClient(object):
         except requests.HTTPError:
             raise GeoDBError(r.text)
 
-    def _maybe_raise(self, e):
+    def _maybe_raise(self, e, return_df=False):
         if self._raise_it:
             raise e
         else:
+            if return_df:
+                try:
+                    msg = json.loads(str(e))['message']
+                except:
+                    msg = str(e)
+                return DataFrame(data={"Error": [msg, ]})
             return Message(str(e))
 
     def get_my_usage(self, pretty=True) -> Union[Dict, Message]:
@@ -698,7 +705,7 @@ class GeoDBClient(object):
         database = database or self.database
         return self.drop_collections(collections=[collection], database=database, cascade=True)
 
-    def drop_collections(self, collections: Sequence[str], cascade: bool = False, database: Optional[str] = None)\
+    def drop_collections(self, collections: Sequence[str], cascade: bool = False, database: Optional[str] = None) \
             -> Message:
         """
 
@@ -801,7 +808,7 @@ class GeoDBClient(object):
 
         try:
             self._post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
-    
+
             return Message(f"Collection moved from {database} to {new_database}")
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -1047,7 +1054,7 @@ class GeoDBClient(object):
             else:
                 return DataFrame(columns=["collection", "column_name", "data_type"])
         except GeoDBError as e:
-            self._maybe_raise(e)
+            self._maybe_raise(e, return_df=True)
 
     def create_database(self, database: str) -> Message:
         """
@@ -1085,7 +1092,7 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e)
 
-    def get_my_databases(self):
+    def get_my_databases(self) -> DataFrame:
         """
         Get a list of databases the current user owns
 
@@ -1097,7 +1104,7 @@ class GeoDBClient(object):
         try:
             return self.get_collection(collection='user_databases', database='geodb', query=f'owner=eq.{self.whoami}')
         except GeoDBError as e:
-            return self._maybe_raise(e)
+            return self._maybe_raise(e, return_df=True)
 
     def database_exists(self, database: str) -> bool:
         """
@@ -1341,7 +1348,7 @@ class GeoDBClient(object):
                                op: str = 'AND',
                                database: Optional[str] = None,
                                wsg84_order="lat_lon",
-                               **kwargs) -> Union[GeoDataFrame, Message]:
+                               **kwargs) -> Union[GeoDataFrame, DataFrame]:
         """
         Query the database by a bounding box. Please be careful with the bbox crs. The easiest is
         using the same crs as the collection. However, if the bbox crs differs from the collection,
@@ -1383,7 +1390,7 @@ class GeoDBClient(object):
         coll_crs = self.get_collection_srid(collection=collection, database=database)
 
         try:
-            if coll_crs != bbox_crs:
+            if coll_crs is not None and coll_crs != bbox_crs:
                 bbox = self.transform_bbox_crs(bbox, bbox_crs, int(coll_crs), wsg84_order=wsg84_order)
                 bbox_crs = coll_crs
 
@@ -1410,10 +1417,10 @@ class GeoDBClient(object):
             else:
                 return GeoDataFrame(columns=["Empty Result"])
         except GeoDBError as e:
-            return self._maybe_raise(e)
+            return self._maybe_raise(e, return_df=True)
 
     def head_collection(self, collection: str, num_lines: int = 10, database: Optional[str] = None) -> \
-            Union[GeoDataFrame, DataFrame, Message]:
+            Union[GeoDataFrame, DataFrame]:
         """
         Get the first num_lines of a collection
 
@@ -1437,7 +1444,7 @@ class GeoDBClient(object):
         return self.get_collection(collection=collection, query=f'limit={num_lines}', database=database)
 
     def get_collection(self, collection: str, query: Optional[str] = None, database: Optional[str] = None,
-                       limit: int = None, offset: int = None) -> Union[GeoDataFrame, DataFrame, Message]:
+                       limit: int = None, offset: int = None) -> Union[GeoDataFrame, DataFrame]:
         """
         Query a collection
 
@@ -1478,7 +1485,7 @@ class GeoDBClient(object):
             else:
                 return DataFrame(columns=["Empty Result"])
         except GeoDBError as e:
-            return self._maybe_raise(e)
+            return self._maybe_raise(e, return_df=True)
 
     # noinspection SqlDialectInspection,SqlNoDataSourceInspection,SqlInjection
     def get_collection_pg(self,
@@ -1489,7 +1496,7 @@ class GeoDBClient(object):
                           order: Optional[str] = None,
                           limit: Optional[int] = None,
                           offset: Optional[int] = None,
-                          database: Optional[str] = None) -> Union[GeoDataFrame, DataFrame, Message]:
+                          database: Optional[str] = None) -> Union[GeoDataFrame, DataFrame]:
         """
 
         Args:
@@ -1542,7 +1549,7 @@ class GeoDBClient(object):
             else:
                 return DataFrame(columns=["Empty Result"])
         except GeoDBError as e:
-            return self._maybe_raise(e)
+            return self._maybe_raise(e, return_df=True)
 
     @property
     def server_url(self) -> str:
@@ -1554,7 +1561,8 @@ class GeoDBClient(object):
         """
         return self._server_url
 
-    def get_collection_srid(self, collection: str, database: Optional[str] = None) -> Optional[Union[str, Message]]:
+    def get_collection_srid(self, collection: str, database: Optional[str] = None) -> \
+            Optional[Union[str, type(None), Message]]:
         """
         Get the SRID of a collection
 
@@ -1570,6 +1578,7 @@ class GeoDBClient(object):
 
         try:
             r = self._post(path='/rpc/geodb_get_collection_srid', payload={'collection': dn}, raise_for_status=False)
+
             if r.status_code == 200:
                 js = r.json()[0]['src'][0]
 

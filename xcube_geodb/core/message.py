@@ -29,6 +29,9 @@ class Message:
     def __init__(self, message: Union[str, Dict]):
         self._message = message
 
+    def __str__(self):
+        return str(self._message)
+
     def to_dict(self):
         if isinstance(self._message, Dict):
             return self._message
