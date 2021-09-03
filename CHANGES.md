@@ -1,8 +1,15 @@
+## v1.0.2
+
+### Fixes
+
+- Fixed the behaviour of `create_collection` when `clear` is set to `True` and the collection to be cleared does not exist. 
+  In that situation, the geoDB was throwing the wrong error and would not proceed to creating the collection. 
+
 ## v1.0.1
 
 ### Fixes
 
-- Only half a fix. The default value for `raise_it` is now set to true. Better value for using the client as the original behaviour was 
+- The default value for `raise_it` is now set to true. Better value for using the client as the original behaviour was 
   raising the error 
 
 ## v1.0.0
