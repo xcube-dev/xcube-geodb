@@ -11,7 +11,7 @@ sphinx:
 
 # The path to the Conda environment file, relative to the root of the project.
 conda:
-  environment: docs/environment.yml
+  environment: docs/environment.yaml
 
 # The path to the pip requirements file.
 # Optionally set the version of Python and requirements required to build your docs
