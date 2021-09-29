@@ -1,3 +1,10 @@
+## v1.0.3 (in development)
+
+### Fixes
+
+- Added Python pip requirements to have control over installed sphinx verfsion on readthedocs
+- Improved heading in notebooks
+- removed auto cp of notebooks in Makefile. Added addituional cells!?
 ## v1.0.2
 
 ### Fixes
