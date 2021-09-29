@@ -7,6 +7,7 @@ dependencies:
   - nbsphinx==0.8.6
   - recommonmark
   - nbconvert
+  - pandoc
   - pip:
       - sphinx_rtd_theme==1.0.0
       - sphinxcontrib.redoc
