@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - sphinx
+  - sphinx==4.0.2
   - nbsphinx==0.8.6
   - recommonmark
   - nbconvert
