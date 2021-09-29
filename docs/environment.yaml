@@ -8,3 +8,4 @@ dependencies:
   - recommonmark
   - pip:
       - sphinx_rtd_theme==1.0.0
+      - sphinxcontrib.redoc
