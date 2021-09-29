@@ -9,6 +9,7 @@ dependencies:
   - nbconvert
   - pandoc
   - pip
+  - ipython
   - pip:
       - sphinx_rtd_theme
       - sphinxcontrib.redoc
