@@ -3,11 +3,12 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - sphinx==4.0.2
+  - sphinx
   - nbsphinx==0.8.6
   - recommonmark
   - nbconvert
   - pandoc
+  - pip
   - pip:
-      - sphinx_rtd_theme==1.0.0
+      - sphinx_rtd_theme
       - sphinxcontrib.redoc
