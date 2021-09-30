@@ -2,8 +2,6 @@
 .idea/
 *.iml
 
-*.ipynb
-
 docs/source/_auto_examples
 
 # Byte-compiled / optimized / DLL files
