@@ -1,11 +1,13 @@
-FROM postgis/postgis:14-3.1
+FROM postgis/postgis:14-3.2-alpine
 
 ARG GEODB_VERSION=1.0.3
 
 WORKDIR /tmp
 
-RUN apt-get update -y && apt-get upgrade -y && apt-get dist-upgrade -y && apt-get install make -y
-RUN apt-get remove -y libaom0
+# RUN apt-get update -y && apt-get upgrade -y && apt-get dist-upgrade -y && apt-get install make -y
+# RUN apt-get remove -y libaom0
+
+RUN apk update && apk upgrade && apk add make
 
 
 ADD ./ .
