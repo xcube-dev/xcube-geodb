@@ -10,15 +10,11 @@ on:
 env:
   APP_NAME: xcube-geodb
   SKIP_PSQL_TESTS: "0" # ${{ env.ACT }}
-  RUN_UNITTESTS: 1
-  RUN_NB_TESTS: 1
 
 jobs:
   unittest:
     runs-on: ubuntu-latest
-    env:
-      RUN: 1
-    if: ${{ env.RUN == '1' }}
+    if: ${{ env.APP_NAME }}
     steps:
       - run: |
           echo ${{ env.ACT }}
