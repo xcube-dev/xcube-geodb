@@ -1,33 +1,29 @@
 import os
 import unittest
 import json
-
 import psycopg2
 
-GEODB_EXT_INSTALLED = False
-
+from tests.utils import make_install_geodb
+import xcube_geodb.version as version
 
 def get_app_dir():
     import inspect
-    import xcube_geodb.version as version
+
     # noinspection PyTypeChecker
     version_path = inspect.getfile(version)
     return os.path.dirname(version_path)
 
 
-def make_install_geodb():
-    global GEODB_EXT_INSTALLED
-    if not GEODB_EXT_INSTALLED:
-        GEODB_EXT_INSTALLED = True
-        from subprocess import call
-        import os
-        cwd = os.getcwd()
-
+class TestInstallationProcedure(unittest.TestCase):
+    def tearDown(self) -> None:
         app_path = get_app_dir()
-        os.chdir(os.path.join(app_path, 'sql'))
-        call(["make", "install"])
+        control_fn = os.path.join(app_path, 'sql', 'geodb.control')
+        os.remove(control_fn)
+        control_fn = os.path.join(app_path, 'sql', f'geodb--{version.version}.sql')
+        os.remove(control_fn)
 
-        os.chdir(cwd)
+    def testInstallation(self):
+        make_install_geodb()
 
 
 # noinspection SqlNoDataSourceInspection
@@ -39,10 +35,6 @@ class GeoDBSqlTest(unittest.TestCase):
 
     @classmethod
     def setUp(cls) -> None:
-        make_install_geodb()
-        skip = os.environ.get('SKIP_PSQL_TESTS', '1')
-        print("############## ", skip, " ##############")
-
         import psycopg2
         import testing.postgresql
         postgresql = testing.postgresql.PostgresqlFactory(cache_initialized_db=False)
@@ -51,6 +43,10 @@ class GeoDBSqlTest(unittest.TestCase):
         conn = psycopg2.connect(**cls._postgresql.dsn())
         cls._cursor = conn.cursor()
         app_path = get_app_dir()
+        fn = os.path.join(app_path, 'sql', 'geodb.sql')
+        with open(fn) as sql_file:
+            cls._cursor.execute(sql_file.read())
+
         fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup.sql')
         with open(fn) as sql_file:
             cls._cursor.execute(sql_file.read())
