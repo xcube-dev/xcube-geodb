@@ -6,9 +6,6 @@
 
 -- DROP TABLE public.land_use;
 
-CREATE EXTENSION postgis;
-CREATE EXTENSION geodb;
-
 ALTER ROLE geodb_admin IN DATABASE postgres SET search_path TO public;
 GRANT geodb_admin TO authenticator;
 

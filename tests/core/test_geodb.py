@@ -42,9 +42,6 @@ class GeoDBClientTest(unittest.TestCase):
 
         self._server_test_auth_domain = "https://auth"
 
-        # os.environ['GEODB_AUTH0_CONFIG_FILE'] = 'ipyauth-auth0-demo_test.env'
-        # os.environ['GEODB_AUTH0_CONFIG_FOLDER'] = 'tests/envs/'
-
     def tearDown(self) -> None:
         del_env(dotenv_path="tests/envs/.env_test")
 
