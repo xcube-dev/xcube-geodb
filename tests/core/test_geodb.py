@@ -433,6 +433,7 @@ class GeoDBClientTest(unittest.TestCase):
         res = self._api.add_properties('test', [{'name': 'test_col', 'type': 'insssssteger'}])
         self.assertTrue(res)
 
+    @unittest.skip
     def test_filter_by_bbox(self, m):
         expected_response = {'src': [{'id': 'dd', 'geometry': "0103000020D20E000001000000110000007593188402B51B4"
                                                               "1B6F3FDD4423FF6405839B4C802B51B412B8716D9EC3EF6406"
