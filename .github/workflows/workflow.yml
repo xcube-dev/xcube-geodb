@@ -51,7 +51,6 @@ jobs:
           verbose: true # optional (default = false)
   nb-test:
     runs-on: ubuntu-latest
-    if: ${{ env.RUN_NB_TESTS == '1' }}
     needs: unittest
     env:
       GEODB_API_SERVER_URL: ${{ secrets.GEODB_API_SERVER_URL }}
@@ -62,12 +61,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
+        if: ${{ env.RUN_NB_TESTS == '1' }}
         with:
           mamba-version: "*"
           channels: conda-forge
           activate-environment: xcube-geodb
           environment-file: environment.yml
       - name: setup xcube-geodb
+        if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
         run: |
           conda info
@@ -77,6 +78,7 @@ jobs:
         shell: bash -l {0}
         run: pip install papermill[all]
       - name: test-notebooks
+        if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
         working-directory: notebooks
         run: |
