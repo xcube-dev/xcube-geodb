@@ -1943,7 +1943,7 @@ class GeoDBClient(object):
         conn = conn or psycopg2.connect(host=host, port=port, user=user, password=passwd, dbname=dbname)
         cursor = conn.cursor()
 
-        with open(f'xcube_geodb/sql/geodb--1.0.2.sql') as sql_file:
+        with open(f'xcube_geodb/sql/geodb--1.0.3.sql') as sql_file:
             sql_create = sql_file.read()
             cursor.execute(sql_create)
 
