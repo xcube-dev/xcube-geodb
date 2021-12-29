@@ -119,7 +119,6 @@ jobs:
         with:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
           directory: xcube_geodb/sql
-          buildArgs: GEODB_VERSION=${{ steps.release.outputs.tag }}
           tags: master, latest
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
@@ -130,7 +129,6 @@ jobs:
         with:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
           directory: xcube_geodb/sql
-          buildArgs: GEODB_VERSION=${{ steps.release.outputs.tag }}
           tags: master, latest
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
