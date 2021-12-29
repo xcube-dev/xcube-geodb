@@ -23,6 +23,7 @@ jobs:
           echo ${{ env.SKIP_PSQL_TESTS }}
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
+        if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
           mamba-version: "*"
           channels: conda-forge
@@ -139,7 +140,7 @@ jobs:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
           directory: xcube_geodb/sql
           dockerfile: xcube_geodb/sql/Dockerfile
-          tags: master, latest
+          tags: ${{ steps.release.outputs.tag }}
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
           password: ${{ secrets.QUAY_REG_PASSWORD }}
