@@ -16,7 +16,9 @@ env:
 jobs:
   unittest:
     runs-on: ubuntu-latest
-    if: ${{ env.RUN_UNITTESTS == '1' }}
+    env:
+      RUN: 1
+    if: ${{ env.RUN == '1' }}
     steps:
       - run: |
           echo ${{ env.ACT }}
