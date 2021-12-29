@@ -1,5 +1,6 @@
 # geodb extension
 comment = 'geoDB'
-default_version = '1.0.3'
+# version will be replaced with actual version
+default_version = '<version>'
 module_pathname = '$libdir/geodb'
 relocatable = false

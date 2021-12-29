@@ -25,6 +25,7 @@ def make_install_geodb():
 
         app_path = get_app_dir()
         os.chdir(os.path.join(app_path, 'sql'))
+        call(["make", "release_version"])
         call(["make", "install"])
 
         os.chdir(cwd)
