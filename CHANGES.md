@@ -1,10 +1,18 @@
 ## v1.0.3 (in development)
 
+### New Features
+
+- Added a new auth mode `none`. The aim of this mode is enabling users installing the geoDB infrastructure without oauth2
+  for e.g. testing purposes.
+- A new geoDB docker backend image has been added. This image can be used to set up a postgis database with a 
+  pre-installed geodb database extension 
+
 ### Fixes
 
-- Added Python pip requirements to have control over installed sphinx verfsion on readthedocs
+- Added Python pip requirements to have control over installed sphinx version on readthedocs
 - Improved heading in notebooks
-- removed auto cp of notebooks in Makefile. Added addituional cells!?
+- removed auto cp of notebooks in Makefile. Added additional cells!?
+
 ## v1.0.2
 
 ### Fixes

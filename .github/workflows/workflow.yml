@@ -113,6 +113,38 @@ jobs:
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
           password: ${{ secrets.QUAY_REG_PASSWORD }}
+      - uses: mr-smithers-excellent/docker-build-push@v5.5
+        name: build-push-docker-backend-image-latest
+        if: ${{ github.event_name == 'push' && steps.release.outputs.tag == 'master'  }}
+        with:
+          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
+          directory: xcube_geodb/sql
+          buildArgs: GEODB_VERSION=${{ steps.release.outputs.tag }}
+          tags: master, latest
+          registry: quay.io
+          username: ${{ secrets.QUAY_REG_USERNAME }}
+          password: ${{ secrets.QUAY_REG_PASSWORD }}
+      - uses: mr-smithers-excellent/docker-build-push@v5.5
+        name: build-push-docker-backend-image-latest
+        if: ${{ github.event_name == 'push' && steps.release.outputs.tag != 'master'  }}
+        with:
+          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
+          directory: xcube_geodb/sql
+          buildArgs: GEODB_VERSION=${{ steps.release.outputs.tag }}
+          tags: master, latest
+          registry: quay.io
+          username: ${{ secrets.QUAY_REG_USERNAME }}
+          password: ${{ secrets.QUAY_REG_PASSWORD }}
+      - uses: mr-smithers-excellent/docker-build-push@v5.5
+        name: build-push-docker-backend-image-release
+        if: ${{ github.event_name == 'release' }}
+        with:
+          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
+          directory: xcube_geodb/sql
+          tags: ${{ steps.release.outputs.tag }}
+          registry: quay.io
+          username: ${{ secrets.QUAY_REG_USERNAME }}
+          password: ${{ secrets.QUAY_REG_PASSWORD }}
   update-version:
     env:
       PUSH: 1
