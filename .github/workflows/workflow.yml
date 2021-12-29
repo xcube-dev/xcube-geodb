@@ -10,11 +10,13 @@ on:
 env:
   APP_NAME: xcube-geodb
   SKIP_PSQL_TESTS: "0" # ${{ env.ACT }}
+  RUN_UNITTESTS: 1
+  RUN_NB_TESTS: 1
 
 jobs:
   unittest:
     runs-on: ubuntu-latest
-    if: ${{ env.APP_NAME }}
+
     steps:
       - run: |
           echo ${{ env.ACT }}
@@ -27,6 +29,7 @@ jobs:
           activate-environment: xcube-geodb
           environment-file: environment.yml
       - name: setup xcube-geodb
+        if: ${{ env.RUN_UNITTESTS == '1' }}
         shell: bash -l {0}
         run: |
           conda info
@@ -34,6 +37,7 @@ jobs:
           mamba install -c conda-forge postgis
           python setup.py develop
       - name: unittest-xcube-geodb
+        if: ${{ env.RUN_UNITTESTS == '1' }}
         shell: bash -l {0}
         run: |
           export SKIP_PSQL_TESTS=${{ env.SKIP_PSQL_TESTS }}
@@ -41,6 +45,7 @@ jobs:
           pip install pytest-cov
           pytest --cov=./ --cov-report=xml
       - uses: codecov/codecov-action@v1
+        if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
