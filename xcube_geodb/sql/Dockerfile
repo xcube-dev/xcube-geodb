@@ -4,7 +4,7 @@ ARG GEODB_VERSION=1.0.3
 
 WORKDIR /tmp
 
-RUN apt-get update -y && apt-get upgrade -y && apt-get install build-essential -y
+RUN apt-get update -y && apt-get upgrade -y && apt-get dist-upgrade -y && apt-get install make -y
 
 ADD ./ .
 RUN make install

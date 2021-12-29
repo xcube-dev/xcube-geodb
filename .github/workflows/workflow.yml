@@ -76,6 +76,7 @@ jobs:
           conda list
           python setup.py develop
       - name: install papermill
+        if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
         run: pip install papermill[all]
       - name: test-notebooks
