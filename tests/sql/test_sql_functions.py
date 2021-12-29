@@ -4,17 +4,24 @@ import json
 import psycopg2
 
 from tests.utils import make_install_geodb
-
+import xcube_geodb.version as version
 
 def get_app_dir():
     import inspect
-    import xcube_geodb.version as version
+
     # noinspection PyTypeChecker
     version_path = inspect.getfile(version)
     return os.path.dirname(version_path)
 
 
-class TestInstallationProceduer(unittest.TestCase):
+class TestInstallationProcedure(unittest.TestCase):
+    def tearDown(self) -> None:
+        app_path = get_app_dir()
+        control_fn = os.path.join(app_path, 'sql', 'geodb.control')
+        os.remove(control_fn)
+        control_fn = os.path.join(app_path, 'sql', f'geodb--{version.version}.sql')
+        os.remove(control_fn)
+
     def testInstallation(self):
         make_install_geodb()
 
