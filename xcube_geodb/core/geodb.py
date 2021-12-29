@@ -1767,8 +1767,7 @@ class GeoDBClient(object):
 
         access_token_uri = self._auth_access_token_uri
 
-        return self._auth_access_token or self._get_geodb_client_credentials_access_token(
-            access_token_uri=access_token_uri)
+        return self._auth_access_token or self._get_geodb_client_credentials_access_token()
 
     def refresh_auth_access_token(self):
         """
@@ -1944,7 +1943,7 @@ class GeoDBClient(object):
         conn = conn or psycopg2.connect(host=host, port=port, user=user, password=passwd, dbname=dbname)
         cursor = conn.cursor()
 
-        with open(f'xcube_geodb/sql/geodb--{version}.sql') as sql_file:
+        with open(f'xcube_geodb/sql/geodb.sql') as sql_file:
             sql_create = sql_file.read()
             cursor.execute(sql_create)
 
