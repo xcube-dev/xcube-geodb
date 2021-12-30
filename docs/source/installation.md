@@ -163,7 +163,8 @@ __Step 3__: Configure the client
 
 The AUth0 application is used by the geoDB client. It connects to Auth0 and asks for a so-called bearer token. 
 IN our example the geoDB client uses a client_id/client_secret pair and sends it to the authentication provider. 
-The provider returns the `bearer token`. The token contains information about the client as given in the example below:
+The provider returns the `bearer token`. The token contains information about the client as given in the example below
+(this example might be incomplete):
 
 ```json
 {
@@ -202,19 +203,20 @@ GEODB_API_SERVER_PORT = "The postgrest API server port"
 __Side remark__: If you would like to use a username and password flow you will use the following entries:
 
 ```dotenv
+GEODB_AUTH_CLIENT_ID = "the auth0 password flow client id"
+GEODB_AUTH_CLIENT_SECRET = "the auth0 password flow client secret"
 GEODB_AUTH_USERNAME = "the auth0 username"
 GEODB_AUTH_PASSWORD = "the auth0 password"
 GEODB_AUTH_MODE = "password"
-GEODB_AUTH_AUD = "the auth0 audience"
-GEODB_AUTH_DOMAIN="The auth0 domain"
+GEODB_AUTH_AUD = "the auth0 audience (The name of your API)"
+GEODB_AUTH_DOMAIN="The auth0 domain (Look in yout auth0 application under 'Endpoints/OAuth Token URL')"
 GEODB_API_SERVER_URL = "The postgrest API server URL"
 GEODB_API_SERVER_PORT = "The postgrest API server port"
 ```
 
-Please be aware that the username/password flow is discouraged. However, Auth0 has a strict limit on the
-number of applications (100). Hence, it might be necessary to use the username/password flow in Auth0 if you
-have a large number of users. Otherwise, you can switch to Keycloak. Please refer to teh Auth0 docs how to set up
-that flow.
+Please be aware that the username/password flow is discouraged for security reasons. However, Auth0 has a strict limit 
+on the number of applications (100). Hence, it might be necessary to use the username/password flow in Auth0 if you
+have a large number of users. Please refer to the Auth0 docs how to set up that flow.
 
 __Step 4__: Configure the postgrest Service
 
