@@ -126,6 +126,7 @@ jobs:
         with:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
           directory: xcube_geodb/sql
+          dockerfile: xcube_geodb/sql/Dockerfile
           addLatest: true
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
