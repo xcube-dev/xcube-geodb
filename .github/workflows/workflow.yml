@@ -31,7 +31,7 @@ jobs:
       # Print info
       - run: |
           echo "Skipping SQL tests: ${{ env.SKIP_PSQL_TESTS }}"
-          echo "RUN_UNITTESTS: ${{ env.RUN_UNITTESTS }}
+          echo "RUN_UNITTESTS: ${{ env.RUN_UNITTESTS }}"
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
         if: ${{ env.RUN_UNITTESTS == '1' }}
