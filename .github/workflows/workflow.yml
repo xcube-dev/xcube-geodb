@@ -135,7 +135,7 @@ jobs:
       - uses: mr-smithers-excellent/docker-build-push@v5.5
         name: build-push-docker-image-latest
         # Build the image only for dev/stage/prod phases or if DOCKER_BUILD_MY_BRANCH is set to '1'
-        if: ${{ steps.deployment-phase.outputs.phase != 'ignore' or env.DOCKER_BUILD_MY_BRANCH == '1' }}
+        if: ${{ steps.deployment-phase.outputs.phase != 'ignore' || env.DOCKER_BUILD_MY_BRANCH == '1' }}
         with:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-lab
           # Adds 'latest' tag when main is built (see: https://github.com/mr-smithers-excellent/docker-build-push#tagging-the-image-using-gitops)
@@ -145,7 +145,7 @@ jobs:
           password: ${{ secrets.QUAY_REG_PASSWORD }}
       - uses: mr-smithers-excellent/docker-build-push@v5.5
         name: build-push-docker-backend-image-latest
-        if: ${{ steps.deployment-phase.outputs.phase != 'ignore'  or env.DOCKER_BUILD_MY_BRANCH == '1' }}
+        if: ${{ steps.deployment-phase.outputs.phase != 'ignore'  || env.DOCKER_BUILD_MY_BRANCH == '1' }}
         with:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
           directory: xcube_geodb/sql
