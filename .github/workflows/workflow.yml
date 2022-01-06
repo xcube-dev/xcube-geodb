@@ -26,7 +26,9 @@ env:
 jobs:
   unittest:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       # Print info
       - run: |
@@ -42,9 +44,14 @@ jobs:
           activate-environment: xcube-geodb
           environment-file: conda-linux-64.lock
 #          environment-file: environment.yml
+      - run: |
+          conda info
+          conda list
+          conda config --show-sources
+          conda config --show
+          printenv | sort
       - name: setup xcube-geodb
         if: ${{ env.RUN_UNITTESTS == '1' }}
-        shell: bash -l {0}
         run: |
           conda info
           conda list
@@ -52,7 +59,6 @@ jobs:
           python setup.py develop
       - name: unittest-xcube-geodb
         if: ${{ env.RUN_UNITTESTS == '1' }}
-        shell: bash -l {0}
         run: |
           export SKIP_PSQL_TESTS=${{ env.SKIP_PSQL_TESTS }}
           pip install pytest
