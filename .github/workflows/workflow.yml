@@ -83,7 +83,7 @@ jobs:
         with:
           mamba-version: "*"
           channels: conda-forge
-          activate-environment: xcube-geodb
+#          activate-environment: xcube-geodb
 #          environment-file: environment.yml
       - name: setup xcube-geodb
         if: ${{ env.RUN_NB_TESTS == '1' }}
