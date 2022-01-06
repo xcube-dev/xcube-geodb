@@ -39,7 +39,7 @@ jobs:
         if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
           mamba-version: "*"
-#          channels: conda-forge
+          channels: conda-forge
           auto-update-conda: false
           activate-environment: xcube-geodb
           environment-file: conda-linux-64.lock
