@@ -36,8 +36,9 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
-          mamba-version: "*"
-          channels: conda-forge
+#          mamba-version: "*"
+#          channels: conda-forge
+          auto-update-conda: false
           activate-environment: xcube-geodb
           environment-file: conda-linux-64.lock
 #          environment-file: environment.yml

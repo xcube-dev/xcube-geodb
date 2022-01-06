@@ -8,6 +8,7 @@ dependencies:
   # Required
   - pip
   - geopandas
+  - dotenv
   - matplotlib-base
   - descartes
   - psycopg2
