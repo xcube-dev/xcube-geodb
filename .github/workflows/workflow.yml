@@ -42,11 +42,7 @@ jobs:
           channels: conda-forge
           auto-update-conda: false
           activate-environment: xcube-geodb
-          environment-file: conda-linux-64.lock
-#          environment-file: environment.yml
-      - run: |
-          pip install fastjsonschema gsconfig-py3 testing.postgresql requests_mock ipyauth pgsanity python-dotenv requests_mock
-
+          environment-file: environment.yml
       - run: |
           conda info
           conda list
