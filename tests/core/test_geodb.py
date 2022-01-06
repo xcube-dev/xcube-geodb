@@ -1104,6 +1104,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual("test", str(e.warning))
 
+    @unittest.skip
     def test_setup(self, m):
         geodb = GeoDBClient()
         with self.assertRaises(OperationalError) as e:
