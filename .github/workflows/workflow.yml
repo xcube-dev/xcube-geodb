@@ -38,7 +38,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
-#          mamba-version: "*"
+          mamba-version: "*"
 #          channels: conda-forge
           auto-update-conda: false
           activate-environment: xcube-geodb
@@ -56,8 +56,6 @@ jobs:
       - name: setup xcube-geodb
         if: ${{ env.RUN_UNITTESTS == '1' }}
         run: |
-          conda info
-          conda list
           mamba install -c conda-forge postgis
           python setup.py develop
       - name: unittest-xcube-geodb
