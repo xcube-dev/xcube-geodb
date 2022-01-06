@@ -45,6 +45,9 @@ jobs:
           environment-file: conda-linux-64.lock
 #          environment-file: environment.yml
       - run: |
+          pip install fastjsonschema gsconfig-py3 testing.postgresql requests_mock ipyauth pgsanity python-dotenv requests_mock
+
+      - run: |
           conda info
           conda list
           conda config --show-sources
