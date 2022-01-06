@@ -81,10 +81,10 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         if: ${{ env.RUN_NB_TESTS == '1' }}
         with:
-          mamba-version: "*"
+#          mamba-version: "*"
           channels: conda-forge
-#          activate-environment: xcube-geodb
-#          environment-file: environment.yml
+          activate-environment: xcube-geodb
+          environment-file: environment.yml
       - name: setup xcube-geodb
         if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
