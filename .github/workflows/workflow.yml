@@ -104,6 +104,17 @@ jobs:
           do
             papermill $nb  $(basename -s .ipynb $nb)_out.ipynb
           done
+      - name: copy notebooks to doc
+        if: ${{ env.RUN_NB_TESTS == '1' }}
+        shell: bash -l {0}
+        run: |
+          cp notebooks/*.ipynb docs/source/notebooks
+          git commit -A -m "Notebooks copied to docs after testing."
+      - name: Push notebooks
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.API_TOKEN_GITHUB }}
+          branch: ${{ github.ref }}
   build-docker-image:
     runs-on: ubuntu-latest
     needs: nb-test
