@@ -139,7 +139,7 @@ You need to create a 'Machine to Machine' application in Auth0 in order for this
 call this 'client'. Select the API created above and note down the client_id and client_secret Auth0 will provide
 after the creation of the application. 
 
-__Step 3__: Configure the client for teh flow client_credentials
+__Step 3__: Configure the client for the flow client_credentials
 
 The Auth0 application is used by the geoDB client when connecting to the Auth0 token end points. In our example the 
 geoDB client uses a client_id/client_secret pair and sends it to the authentication provider. The provider 
