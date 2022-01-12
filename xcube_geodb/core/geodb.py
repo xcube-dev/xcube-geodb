@@ -194,8 +194,6 @@ class GeoDBClient(object):
 
         if self._auth_mode not in ('interactive', 'password', 'client-credentials', 'openid', 'none'):
             raise GeoDBError("auth_mode can only be 'interactive', 'password', 'client-credentials', or 'openid'!")
-        if self._auth_mode not in ('interactive', 'password', 'client-credentials', 'none'):
-            raise GeoDBError("auth_mode can only be 'interactive', 'password', or 'client-credentials'!")
 
         if self._auth_mode == "interactive":
             raise NotImplementedError("The interactive mode has not been implemented.")
