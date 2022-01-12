@@ -796,7 +796,8 @@ class GeoDBClientTest(unittest.TestCase):
         with self.assertRaises(ValueError) as e:
             GeoDBClient(auth_mode='interacti')
 
-        self.assertEqual("auth_mode can only be 'interactive', 'password', or 'client-credentials'!", str(e.exception))
+        self.assertEqual("auth_mode can only be 'interactive', 'password', 'client-credentials', or 'openid'!",
+                         str(e.exception))
 
     def test_auth_token(self, m):
         self._api.use_auth_cache = False
