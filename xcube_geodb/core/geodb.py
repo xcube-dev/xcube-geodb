@@ -103,7 +103,7 @@ class GeoDBClient(object):
         dotenv_file (str): Name of the dotenv file [.env] to set client IDs and secrets
         client_secret (str): Client secret (overrides environment variables)
         client_id (str): Client ID (overrides environment variables)
-        auth_mode (str): Authentication mode [silent]. Can be 'client-credentials', 'password' and 'interactive'
+        auth_mode (str): Authentication mode [silent]. Can be  thw oauth2 modes 'client-credentials', 'password', 'interactive' and 'none' for no authentication
         auth_aud (str): Authentication audience
         config_file (str): Filename that stores config info for the geodb client
 
@@ -192,8 +192,8 @@ class GeoDBClient(object):
 
         self._config_file = config_file
 
-        if self._auth_mode not in ('interactive', 'password', 'client-credentials'):
-            raise GeoDBError("auth_mode can only be 'interactive', 'password', or 'client-credentials'!")
+        if self._auth_mode not in ('interactive', 'password', 'client-credentials', 'openid', 'none'):
+            raise GeoDBError("auth_mode can only be 'interactive', 'password', 'client-credentials', or 'openid'!")
 
         if self._auth_mode == "interactive":
             raise NotImplementedError("The interactive mode has not been implemented.")
@@ -292,11 +292,17 @@ class GeoDBClient(object):
             self._maybe_raise(e)
 
     def _get_common_headers(self):
-        return {
-            'Prefer': 'return=representation',
-            'Content-type': 'application/json',
-            'Authorization': f"Bearer {self.auth_access_token}"
-        }
+        if self._auth_mode == "none":
+            return {
+                'Prefer': 'return=representation',
+                'Content-type': 'application/json'
+            }
+        else:
+            return {
+                'Prefer': 'return=representation',
+                'Content-type': 'application/json',
+                'Authorization': f"Bearer {self.auth_access_token}"
+            }
 
     @property
     def raise_it(self) -> bool:
@@ -502,8 +508,10 @@ class GeoDBClient(object):
 
         r = None
         try:
+            print(self._get_full_url(path=path))
             r = requests.put(self._get_full_url(path=path), json=payload, params=params,
                              headers=headers)
+            print(str(r.text))
             r.raise_for_status()
             return r
         except requests.HTTPError:
@@ -1757,9 +1765,9 @@ class GeoDBClient(object):
             GeoDBError on missing ipython shell
         """
 
-        token = self._auth_access_token or self._get_geodb_client_credentials_access_token()
+        access_token_uri = self._auth_access_token_uri
 
-        return token
+        return self._auth_access_token or self._get_geodb_client_credentials_access_token()
 
     def refresh_auth_access_token(self):
         """
@@ -1844,6 +1852,16 @@ class GeoDBClient(object):
             }
             headers = {'content-type': "application/x-www-form-urlencoded"}
             r = requests.post(self._auth_domain + token_uri, data=payload, headers=headers)
+        elif self._auth_mode == "openid":
+            #self._raise_for_invalid_password_cfg()
+            payload = {
+                "client_id": self._auth_client_id,
+                "username": self._auth_username,
+                "password": self._auth_password,
+                "grant_type": "password"
+            }
+            headers = {'content-type': "application/x-www-form-urlencoded"}
+            r = requests.post(self._auth_domain + '/openid-connect/token', data=payload, headers=headers)
         else:
             raise GeoDBError("System Error: auth mode unknown.")
 
@@ -1935,7 +1953,7 @@ class GeoDBClient(object):
         conn = conn or psycopg2.connect(host=host, port=port, user=user, password=passwd, dbname=dbname)
         cursor = conn.cursor()
 
-        with open(f'xcube_geodb/sql/geodb--{version}.sql') as sql_file:
+        with open(f'xcube_geodb/sql/geodb.sql') as sql_file:
             sql_create = sql_file.read()
             cursor.execute(sql_create)
 
