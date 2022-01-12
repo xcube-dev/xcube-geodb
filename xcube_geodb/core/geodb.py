@@ -1,5 +1,6 @@
 import json
 import os
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Dict, Optional, Union, Sequence, Tuple
 
@@ -919,6 +920,10 @@ class GeoDBClient(object):
             GeoDBError: If access to geoDB fails
         """
         r = self._post(path='/rpc/geodb_list_grants', payload={})
+        try:
+            js = r.json()
+        except JSONDecodeError as e:
+            raise GeoDBError("Body not in valid JSON format: " + str(e))
         try:
             js = r.json()
             if isinstance(js, list) and len(js) > 0 and 'src' in js[0] and js[0]['src']:
