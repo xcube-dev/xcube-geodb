@@ -704,9 +704,9 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual('No Grants', r.Grants[0])
         self.assertIsInstance(r, DataFrame)
 
-        response = 'vijdasovjidasjo'
+        no_json_response = 'vijdasovjidasjo'
 
-        m.post(self._server_full_address + path, text=response)
+        m.post(self._server_full_address + path, text=no_json_response)
         self.set_global_mocks(m)
 
         with self.assertRaises(GeoDBError) as e:
