@@ -712,8 +712,7 @@ class GeoDBClientTest(unittest.TestCase):
         with self.assertRaises(GeoDBError) as e:
             self._api.list_my_grants()
 
-        self.assertEqual("Expecting value: line 1 column 1 (char 0)",
-                         str(e.exception))
+        self.assertIn("Body not in valid JSON format:", str(e.exception))
 
     @unittest.skip("Not yet implemented")
     def test_register_user_to_geoserver(self, m):
