@@ -52,7 +52,7 @@ jobs:
       - name: setup xcube-geodb
         if: ${{ env.RUN_UNITTESTS == '1' }}
         run: |
-          mamba install -c conda-forge postgis
+#          mamba install -c conda-forge postgis
           python setup.py develop
       - name: unittest-xcube-geodb
         if: ${{ env.RUN_UNITTESTS == '1' }}
