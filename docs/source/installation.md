@@ -121,7 +121,7 @@ version 7.0.1 (we aim to upgrade to version 9 as it integrates better with PostG
 To configure a postgrest instance please refer to the [postgrest configuration docs](https://postgrest.org/en/stable/configuration.html).
 We will give an example in the next chapter where we talk about authorization and authentication.
 
-### Authorization/Authentication 
+## 4. Authorization/Authentication 
 
 The geoDB infrastructure was developed to run on the eurodatacube infrastructure. Hence, it was never meant to run
 outside a different authorization flow other than oauth2 machine to machine or password flows. In the following, 
