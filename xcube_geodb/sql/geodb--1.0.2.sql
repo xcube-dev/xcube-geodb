@@ -69,6 +69,9 @@ CREATE TABLE IF NOT EXISTS public.geodb_user_databases
     )
     TABLESPACE pg_default;
 
+grant all on public.geodb_user_info to public;
+grant all on public.geodb_user_databases to public;
+grant all on public.geodb_user_databases_seq to public;
 
 CREATE OR REPLACE FUNCTION public.notify_ddl_postgrest()
     RETURNS event_trigger
@@ -402,7 +405,7 @@ BEGIN
     THEN
         database_cond := '';
     ELSE
-        database_cond := format(' AND name = ''%s''', "database");
+        database_cond := format(' WHERE db = ''%s''', "database");
     END IF;
 
     qry := format('SELECT JSON_AGG(src) as js ' ||
@@ -457,7 +460,7 @@ BEGIN
     usr := (SELECT geodb_whoami());
 
     RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as js
-                                FROM (SELECT
+                                FROM (SELECT DISTINCT
 								regexp_replace(table_name, ''%s_'', '''') as "collection",
 								grantee
                                 FROM information_schema.role_table_grants
