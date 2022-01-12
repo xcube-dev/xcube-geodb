@@ -353,7 +353,7 @@ class GeoDBClient(object):
         Refresh the configuration from environment variables. The variables can be preset by a dotenv file.
         Args:
             dotenv_file (str): A dotenv config file
-            use_dotenv (bool): Whether to useGEODB_AUTH_CLIENT_ID a dotenv file.
+            use_dotenv (bool): Whether to use GEODB_AUTH_CLIENT_ID a dotenv file.
 
         """
         if use_dotenv:
@@ -1767,7 +1767,7 @@ class GeoDBClient(object):
 
         access_token_uri = self._auth_access_token_uri
 
-        return self._auth_access_token or self._get_geodb_client_credentials_access_token()
+        return self._auth_access_token or self._get_geodb_client_credentials_access_token(token_uri=access_token_uri)
 
     def refresh_auth_access_token(self):
         """
