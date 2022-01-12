@@ -1856,6 +1856,16 @@ class GeoDBClient(object):
             }
             headers = {'content-type': "application/x-www-form-urlencoded"}
             r = requests.post(self._auth_domain + token_uri, data=payload, headers=headers)
+        elif self._auth_mode == "openid":
+            payload = {
+                "client_id": self._auth_client_id,
+                "username": self._auth_username,
+                "password": self._auth_password,
+                "grant_type": "password"
+            }
+            headers = {'content-type': "application/x-www-form-urlencoded"}
+            r = requests.post(self._auth_domain + '/openid-connect/token', data=payload, headers=headers)
+
         else:
             raise GeoDBError("System Error: auth mode unknown.")
 
