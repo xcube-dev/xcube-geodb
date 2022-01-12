@@ -109,7 +109,7 @@ directory structure.
 Lastly, open a PostGreSQL console or a database GUI of your choice as super-user and enter the following SQL command:
 
 ```postgresql
-CREATE EXTENSION geodb;
+CREATE EXTENSION geodb
 ```
 
 ## 3. Installation of the Postgrest RestAPI
