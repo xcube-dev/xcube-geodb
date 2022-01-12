@@ -922,6 +922,7 @@ class GeoDBClient(object):
         """
         r = self._post(path='/rpc/geodb_list_grants', payload={})
         try:
+            print(r.text)
             js = r.json()
             if isinstance(js, list) and len(js) > 0 and 'src' in js[0] and js[0]['src']:
                 return self._df_from_json(js[0]['src'])

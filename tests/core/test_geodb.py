@@ -683,9 +683,9 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_list_grants(self, m):
         path = '/rpc/geodb_list_grants'
-        expected_response = [{'src': [{'collection': 'test', 'grantee': 'ernie'}]}]
+        response = [{'src': [{'collection': 'test', 'grantee': 'ernie'}]}]
 
-        m.post(self._server_full_address + path, json=expected_response)
+        m.post(self._server_full_address + path, json=response)
         self.set_global_mocks(m)
 
         r = self._api.list_my_grants()
@@ -694,9 +694,9 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual('ernie', r.grantee[0])
         self.assertIsInstance(r, DataFrame)
 
-        expected_response = []
+        response = []
 
-        m.post(self._server_full_address + path, json=expected_response)
+        m.post(self._server_full_address + path, json=response)
         self.set_global_mocks(m)
 
         r = self._api.list_my_grants()
@@ -704,9 +704,9 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual('No Grants', r.Grants[0])
         self.assertIsInstance(r, DataFrame)
 
-        expected_response = 'vijdasovjidasjo'
+        response = 'vijdasovjidasjo'
 
-        m.post(self._server_full_address + path, text=expected_response)
+        m.post(self._server_full_address + path, text=response)
         self.set_global_mocks(m)
 
         with self.assertRaises(GeoDBError) as e:
