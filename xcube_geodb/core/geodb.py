@@ -194,6 +194,8 @@ class GeoDBClient(object):
 
         if self._auth_mode not in ('interactive', 'password', 'client-credentials', 'openid', 'none'):
             raise GeoDBError("auth_mode can only be 'interactive', 'password', 'client-credentials', or 'openid'!")
+        if self._auth_mode not in ('interactive', 'password', 'client-credentials', 'none'):
+            raise GeoDBError("auth_mode can only be 'interactive', 'password', or 'client-credentials'!")
 
         if self._auth_mode == "interactive":
             raise NotImplementedError("The interactive mode has not been implemented.")
@@ -508,10 +510,8 @@ class GeoDBClient(object):
 
         r = None
         try:
-            print(self._get_full_url(path=path))
             r = requests.put(self._get_full_url(path=path), json=payload, params=params,
                              headers=headers)
-            print(str(r.text))
             r.raise_for_status()
             return r
         except requests.HTTPError:

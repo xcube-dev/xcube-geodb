@@ -2,8 +2,7 @@
 # Installation
 
 In this chapter we will describe how to install the geoDB Python client. The client accesses 
-a [postgrest](https://postgrest.org) instance as an web API to a PostGreSQL instance. We will in principle describe 
-how to setup the backend.   
+a [postgrest](https://postgrest.org) instance as an web API to a PostGreSQL instance. 
   
 ## Installing the geodb package using conda
 
@@ -53,9 +52,30 @@ $ pytest
 
 ## Installation of the backend
 
-- __Step 1__: Setup a PostGreSQL instance
-- __Step 2__: Setup tables and roles 
-- __Step 3__: Setup a PostgREST instance.
-- __Step __: Setup a PostGreSQL instance.
+__Step 1__: Set up a PostGreSQL instance
+
+It is up to you how you set up the PostGreSQL backend. We have used AWS RDS. The only prerequisites are the following:
+
+- Version: Tested with PostGreSQL 10
+- The Postgrest service needs access to the PostGreSQL service
+
+If you use docker or orchestration tools like Kubernetes it is recommended to use docker images with PostGIS 
+pre-installed.
+
+
+__Step 2__: Install POSTGIS
+
+If you need to install PostGIS yourself please use these [installations instructions](https://postgis.net/install/). 
+
+__Step 3__: Set up the GeoDB extension
+
+The geoDB can be setup like a PostGreSQL extension. To use the geoDB as extension you need to have full access to 
+the PostGreSQL database. Move into the 
+
+If you do not have access to the PostGreSQL service, you can use the content of the file ... and execute it as superuser 
+in PG. If you do not have superuser access you cannot install the geoDB backend.
+
+
+
 
 

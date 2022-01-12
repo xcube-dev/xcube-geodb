@@ -9,23 +9,29 @@ on:
 
 env:
   APP_NAME: xcube-geodb
-  SKIP_PSQL_TESTS: "0" # ${{ env.ACT }}
+  SKIP_PSQL_TESTS: "0"
+  RUN_UNITTESTS: "1"
+  RUN_NB_TESTS: "1"
+  DOCKER_BUILD_MY_BRANCH: "0"
 
 jobs:
   unittest:
     runs-on: ubuntu-latest
+
     steps:
       - run: |
           echo ${{ env.ACT }}
           echo ${{ env.SKIP_PSQL_TESTS }}
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
+        if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
           mamba-version: "*"
           channels: conda-forge
           activate-environment: xcube-geodb
           environment-file: environment.yml
       - name: setup xcube-geodb
+        if: ${{ env.RUN_UNITTESTS == '1' }}
         shell: bash -l {0}
         run: |
           conda info
@@ -33,6 +39,7 @@ jobs:
           mamba install -c conda-forge postgis
           python setup.py develop
       - name: unittest-xcube-geodb
+        if: ${{ env.RUN_UNITTESTS == '1' }}
         shell: bash -l {0}
         run: |
           export SKIP_PSQL_TESTS=${{ env.SKIP_PSQL_TESTS }}
@@ -40,6 +47,7 @@ jobs:
           pip install pytest-cov
           pytest --cov=./ --cov-report=xml
       - uses: codecov/codecov-action@v1
+        if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
@@ -55,21 +63,25 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
+        if: ${{ env.RUN_NB_TESTS == '1' }}
         with:
           mamba-version: "*"
           channels: conda-forge
           activate-environment: xcube-geodb
           environment-file: environment.yml
       - name: setup xcube-geodb
+        if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
         run: |
           conda info
           conda list
           python setup.py develop
       - name: install papermill
+        if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
         run: pip install papermill[all]
       - name: test-notebooks
+        if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
         working-directory: notebooks
         run: |
@@ -90,26 +102,32 @@ jobs:
       - name: get-release-tag
         id: release
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+      - name: get-real-version
+        id: real-version
+        run: |
+          VERSION=$(echo "`cat xcube_geodb/version.py | cut -d "'" -f2`")
+          echo ::set-output name=version::${VERSION}
       - name: info
         id: info
         run: |
           echo "TAG: ${{ steps.release.outputs.tag }}"
+          echo "REAL_VERSION: ${{ steps.real-version.outputs.version }}"
           echo "EVENT: ${{ github.event_name }}"
       - uses: mr-smithers-excellent/docker-build-push@v5.5
         name: build-push-docker-image-latest
-        if: ${{ github.event_name == 'push' && steps.release.outputs.tag == 'master'  }}
         with:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-lab
-          tags: master, latest
+          addLatest: true
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
           password: ${{ secrets.QUAY_REG_PASSWORD }}
       - uses: mr-smithers-excellent/docker-build-push@v5.5
-        name: build-push-docker-image-release
-        if: ${{ github.event_name == 'release' }}
+        name: build-push-docker-backend-image-latest
         with:
-          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-lab
-          tags: ${{ steps.release.outputs.tag }}
+          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
+          directory: xcube_geodb/sql
+          dockerfile: xcube_geodb/sql/Dockerfile
+          addLatest: true
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
           password: ${{ secrets.QUAY_REG_PASSWORD }}
