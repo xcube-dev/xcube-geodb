@@ -402,7 +402,7 @@ BEGIN
     THEN
         database_cond := '';
     ELSE
-        database_cond := format(' AND name = ''%s''', "database");
+        database_cond := format(' WHERE db = ''%s''', "database");
     END IF;
 
     qry := format('SELECT JSON_AGG(src) as js ' ||

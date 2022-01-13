@@ -1,5 +1,6 @@
 name: Unittest xcube-geodb
 
+
 on:
   workflow_dispatch:
   push:
@@ -9,38 +10,51 @@ on:
 
 env:
   APP_NAME: xcube-geodb
+  ORG_NAME: bcdev
+
+  # Skip PSQL tests in unittests. Can make sense if you have e.g. installation issues with postgis
   SKIP_PSQL_TESTS: "0"
+  # When developing jobs it could make sense to switch off the test sections as they take time
+  # Unfortunately, you cannot set an if statement on job level. Hence, these variables are used in each step
+  # of a unittest/nb-test job.
   RUN_UNITTESTS: "1"
   RUN_NB_TESTS: "1"
+
+  # Determines whether the dev branch ouy are working on shall have a docker image (default 0)
   DOCKER_BUILD_MY_BRANCH: "0"
 
 jobs:
   unittest:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
+      # Print info
       - run: |
-          echo ${{ env.ACT }}
-          echo ${{ env.SKIP_PSQL_TESTS }}
+          echo "Skipping SQL tests: ${{ env.SKIP_PSQL_TESTS }}"
+          echo "RUN_UNITTESTS: ${{ env.RUN_UNITTESTS }}"
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
         if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
           mamba-version: "*"
           channels: conda-forge
+          auto-update-conda: false
           activate-environment: xcube-geodb
           environment-file: environment.yml
-      - name: setup xcube-geodb
-        if: ${{ env.RUN_UNITTESTS == '1' }}
-        shell: bash -l {0}
-        run: |
+      - run: |
           conda info
           conda list
-          mamba install -c conda-forge postgis
+          conda config --show-sources
+          conda config --show
+          printenv | sort
+      - name: setup xcube-geodb
+        if: ${{ env.RUN_UNITTESTS == '1' }}
+        run: |
           python setup.py develop
       - name: unittest-xcube-geodb
         if: ${{ env.RUN_UNITTESTS == '1' }}
-        shell: bash -l {0}
         run: |
           export SKIP_PSQL_TESTS=${{ env.SKIP_PSQL_TESTS }}
           pip install pytest
@@ -49,8 +63,9 @@ jobs:
       - uses: codecov/codecov-action@v1
         if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
-          fail_ci_if_error: true # optional (default = false)
-          verbose: true # optional (default = false)
+          fail_ci_if_error: true
+          verbose: true
+  # Testing notebooks that come with the xcube-geodb repo
   nb-test:
     runs-on: ubuntu-latest
     needs: unittest
@@ -93,45 +108,59 @@ jobs:
     runs-on: ubuntu-latest
     needs: nb-test
     name: build-docker-image
-    env:
-      APP_NAME: xcube-geodb
-      ORG_NAME: bcdev
     steps:
       - name: git-checkout
         uses: actions/checkout@v2
+      # Get the base release tag used in docker images
       - name: get-release-tag
         id: release
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-      - name: get-real-version
+      # The docker backend image always needs the version as in version.py
+      - name: get-xcube-geodb-version
         id: real-version
         run: |
           VERSION=$(echo "`cat xcube_geodb/version.py | cut -d "'" -f2`")
           echo ::set-output name=version::${VERSION}
+      # Determine the deployment phase (dev/stage/prod) will be 'ignore' if a dev branch is processed
+      - name: deployment-phase
+        id: deployment-phase
+        uses: bc-org/gha-determine-phase@v0.1
+        with:
+          event_name: ${{ github.event_name }}
+          tag: ${{ steps.release.outputs.tag }}
       - name: info
         id: info
         run: |
           echo "TAG: ${{ steps.release.outputs.tag }}"
+          echo "DEPLOYMENT_PASE: {{ steps.deployment-phase.outputs.phase }}"
           echo "REAL_VERSION: ${{ steps.real-version.outputs.version }}"
           echo "EVENT: ${{ github.event_name }}"
+      # Build jupyter lab docker image
       - uses: mr-smithers-excellent/docker-build-push@v5.5
         name: build-push-docker-image-latest
+        # Build the image only for dev/stage/prod phases or if DOCKER_BUILD_MY_BRANCH is set to '1'
+        if: ${{ steps.deployment-phase.outputs.phase != 'ignore' || env.DOCKER_BUILD_MY_BRANCH == '1' }}
         with:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-lab
+          # Adds 'latest' tag when main is built (see: https://github.com/mr-smithers-excellent/docker-build-push#tagging-the-image-using-gitops)
           addLatest: true
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
           password: ${{ secrets.QUAY_REG_PASSWORD }}
       - uses: mr-smithers-excellent/docker-build-push@v5.5
         name: build-push-docker-backend-image-latest
+        if: ${{ steps.deployment-phase.outputs.phase != 'ignore'  || env.DOCKER_BUILD_MY_BRANCH == '1' }}
         with:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
           directory: xcube_geodb/sql
           dockerfile: xcube_geodb/sql/Dockerfile
+          # Adds 'latest' tag when main is built (see: https://github.com/mr-smithers-excellent/docker-build-push#tagging-the-image-using-gitops)
           addLatest: true
           registry: quay.io
+          buildArgs: GEODB_VERSION=${{ steps.real-version.outputs.tag }}
           username: ${{ secrets.QUAY_REG_USERNAME }}
           password: ${{ secrets.QUAY_REG_PASSWORD }}
-  update-version:
+  update-version-deployment:
     env:
       PUSH: 1
     runs-on: ubuntu-latest
@@ -140,14 +169,17 @@ jobs:
     steps:
       - name: git-checkout
         uses: actions/checkout@v2
+      # Clone k8s-config into path 'k8s'
       - uses: actions/checkout@v2
         with:
           repository: bc-org/k8s-configs
           token: ${{ secrets.API_TOKEN_GITHUB }}
           path: k8s
+      # Get the release tag (or main on push)
       - name: get-release-tag
         id: release
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+      # Determine the deployment phase
       - name: deployment-phase
         id: deployment-phase
         uses: bc-org/gha-determine-phase@v0.1
