@@ -42,7 +42,7 @@ jobs:
           channels: conda-forge
           auto-update-conda: false
           activate-environment: xcube-geodb
-          environment-file: environment.yml
+          environment-file: etc/environment-workflow.linux-64.lock
       - run: |
           conda info
           conda list
@@ -52,6 +52,7 @@ jobs:
       - name: setup xcube-geodb
         if: ${{ env.RUN_UNITTESTS == '1' }}
         run: |
+          pip install gsconfig-py3 testing.postgresql requests_mock
           python setup.py develop
       - name: unittest-xcube-geodb
         if: ${{ env.RUN_UNITTESTS == '1' }}
