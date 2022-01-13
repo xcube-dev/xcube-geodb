@@ -15,20 +15,6 @@ dependencies:
   - ipyleaflet
   - python-fastjsonschema
   - python-dotenv
-#  - pip:
-#      - gsconfig-py3
-#      - testing.postgresql
-#      - requests_mock
 
   # Exploring
   - jupyterlab
-#
-#  # Testing
-#  - pytest >=4.4
-#  - pytest-cov >=2.6
-#  - httpretty
-#  - pgsanity
-#  - postgis
-#  - nbconvert
-#
-#
