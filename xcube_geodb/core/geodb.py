@@ -1793,8 +1793,6 @@ class GeoDBClient(object):
         if self._auth_username \
                 and self._auth_password \
                 and self._auth_client_id \
-                and self._auth_client_secret \
-                and self._auth_aud \
                 and self._auth_mode == "password":
             return True
         else:
@@ -1847,25 +1845,18 @@ class GeoDBClient(object):
             self._raise_for_invalid_password_cfg()
             payload = {
                 "client_id": self._auth_client_id,
-                "client_secret": self._auth_client_secret,
                 "username": self._auth_username,
                 "password": self._auth_password,
-                "audience": self._auth_aud,
-                # "scope": "role:create",
                 "grant_type": "password"
             }
+
+            if self._auth_aud:
+                payload['audience'] = self._auth_aud
+            if self._auth_client_secret:
+                payload['client_secret'] = self._auth_client_secret
+
             headers = {'content-type': "application/x-www-form-urlencoded"}
             r = requests.post(self._auth_domain + token_uri, data=payload, headers=headers)
-        elif self._auth_mode == "openid":
-            payload = {
-                "client_id": self._auth_client_id,
-                "username": self._auth_username,
-                "password": self._auth_password,
-                "grant_type": "password"
-            }
-            headers = {'content-type': "application/x-www-form-urlencoded"}
-            r = requests.post(self._auth_domain + '/openid-connect/token', data=payload, headers=headers)
-
         else:
             raise GeoDBError("System Error: auth mode unknown.")
 
