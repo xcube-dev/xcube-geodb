@@ -1030,6 +1030,7 @@ END
 $BODY$;
 
 
+-- TODO Merge with get_by_bbox
 CREATE OR REPLACE FUNCTION public.geodb_count_by_bbox(collection text,
                                                       minx double precision,
                                                       miny double precision,
