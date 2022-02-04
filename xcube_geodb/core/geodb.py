@@ -1431,6 +1431,80 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e, return_df=True)
 
+    def count_collection_by_bbox(self, collection: str,
+                                 bbox: Tuple[float, float, float, float],
+                                 comparison_mode: str = 'contains',
+                                 bbox_crs: Union[int, str] = 4326,
+                                 where: Optional[str] = "id>-1",
+                                 op: str = 'AND',
+                                 database: Optional[str] = None,
+                                 wsg84_order="lat_lon") -> Union[GeoDataFrame, DataFrame]:
+        """
+        Query the database by a bounding box and return the count. Please be careful with the bbox crs. The easiest is
+        using the same crs as the collection. However, if the bbox crs differs from the collection,
+        the geoDB client will attempt to automatially transform the bbox crs according to the collection's crs.
+        You can also directly use the method GeoDBClient.transform_bbox_crs yourself before you pass the bbox into
+        this method.
+
+        Args:
+            collection (str): The name of the collection to be quried
+            bbox (Tuple[float, float, float, float]): minx, miny, maxx, maxy
+            comparison_mode (str): Filter mode. Can be 'contains' or 'within' ['contains']
+            bbox_crs (int, str): Projection code. [4326]
+            op (str): Operator for where (AND, OR) ['AND']
+            where (str): Additional SQL where statement to further filter the collection
+            database (str): The name of the database the collection resides in [current database]
+            wsg84_order (str): WSG84 (EPSG:4326) is expected to be in Lat Lon format ("lat_lon"). Use "lon_lat" if
+            Lon Lat is used.
+
+        Returns:
+            A GeoPandas Dataframe
+
+        Raises:
+            HttpError: When the database raises an error
+
+        Examples:
+            >>> geodb = GeoDBClient()
+            >>> geodb.count_collection_by_bbox(table="[MyCollection]", bbox=(452750.0, 88909.549, 464000.0, \
+                102486.299), comparison_mode="contains", bbox_crs=3794)
+        """
+        bbox_crs = check_crs(bbox_crs)
+        database = database or self.database
+        dn = database + '_' + collection
+
+        self._raise_for_collection_exists(collection=collection, database=database)
+        self._raise_for_stored_procedure_exists('geodb_get_by_bbox')
+
+        coll_crs = self.get_collection_srid(collection=collection, database=database)
+
+        try:
+            if coll_crs is not None and coll_crs != bbox_crs:
+                bbox = self.transform_bbox_crs(bbox, bbox_crs, int(coll_crs), wsg84_order=wsg84_order)
+                bbox_crs = coll_crs
+            print(bbox)
+            headers = {'Accept': 'application/vnd.pgrst.object+json'}
+
+            r = self._post('/rpc/geodb_count_by_bbox', headers=headers, payload={
+                "collection": dn,
+                "minx": bbox[0],
+                "miny": bbox[1],
+                "maxx": bbox[2],
+                "maxy": bbox[3],
+                "comparison_mode": comparison_mode,
+                "bbox_crs": bbox_crs,
+                "where": where,
+                "op": op
+            })
+
+            js = r.json()['src']
+            if js:
+                srid = self.get_collection_srid(collection, database)
+                return self._df_from_json(js, srid)
+            else:
+                return GeoDataFrame(columns=["Empty Result"])
+        except GeoDBError as e:
+            return self._maybe_raise(e, return_df=True)
+
     def head_collection(self, collection: str, num_lines: int = 10, database: Optional[str] = None) -> \
             Union[GeoDataFrame, DataFrame]:
         """

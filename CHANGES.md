@@ -1,4 +1,4 @@
-## v1.0.3 (in development)
+## v1.0.3
 
 ### New Features
 
@@ -6,6 +6,8 @@
   for e.g. testing purposes.
 - A new geoDB docker backend image has been added. This image can be used to set up a postgis database with a 
   pre-installed geodb database extension 
+- Added a new `count_by_bbox` filter function 
+
 
 ### Fixes
 

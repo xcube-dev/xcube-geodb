@@ -1010,12 +1010,89 @@ BEGIN
                       || ', ' || minx
                       || ' ' || miny
                       || '))'', geometry) '
-                      || 'ORDER BY id '
+                      || ' ORDER BY id '
                       || lmt_str || ') as src',
-                  collection,
-                  "where", op,
-                  bbox_func,
-                  bbox_crs
+                  "collection",
+                  "where",
+                  "op",
+                  "bbox_func",
+                  "bbox_crs"
+        );
+
+    RETURN QUERY EXECUTE qry;
+
+    GET DIAGNOSTICS row_ct = ROW_COUNT;
+
+    IF row_ct < 1 THEN
+        RAISE EXCEPTION 'Only % rows!', row_ct;
+    END IF;
+END
+$BODY$;
+
+
+-- TODO Merge with get_by_bbox
+CREATE OR REPLACE FUNCTION public.geodb_count_by_bbox(collection text,
+                                                      minx double precision,
+                                                      miny double precision,
+                                                      maxx double precision,
+                                                      maxy double precision,
+                                                      comparison_mode VARCHAR(255) DEFAULT 'within',
+                                                      bbox_crs int DEFAULT 4326,
+                                                      "where" text DEFAULT 'id > 0'::text,
+                                                      op text DEFAULT 'AND'::text)
+    RETURNS TABLE
+            (
+                src json
+            )
+    LANGUAGE 'plpgsql'
+
+AS
+$BODY$
+DECLARE
+    bbox_func VARCHAR;
+    row_ct    int;
+    qry       text;
+BEGIN
+    CASE comparison_mode
+        WHEN 'within' THEN
+            bbox_func := 'ST_Within';
+        WHEN 'contains' THEN
+            bbox_func := 'ST_Contains';
+        WHEN 'intersects' THEN
+            bbox_func := 'ST_Intersects';
+        WHEN 'touches' THEN
+            bbox_func := 'ST_Touches';
+        WHEN 'overlaps' THEN
+            bbox_func := 'ST_Overlaps';
+        WHEN 'crosses' THEN
+            bbox_func := 'ST_Crosses';
+        WHEN 'disjoint' THEN
+            bbox_func := 'ST_Disjoint';
+        WHEN 'equals' THEN
+            bbox_func := 'ST_Equals';
+        ELSE RAISE EXCEPTION 'comparison mode % does not exist. Use ''within'' | ''contains''', comparison_mode USING ERRCODE = 'data_exception';
+        END CASE;
+
+    qry := format('SELECT JSON_AGG(src) as js
+                     FROM (SELECT COUNT(*) as ct FROM %I
+                     WHERE (%s) %s %s(''SRID=%s;POLYGON((' ||
+                  minx
+                      || ' ' || miny
+                      || ', ' || maxx
+                      || ' ' || miny
+                      || ', ' || maxx
+                      || ' ' || maxy
+                      || ', ' || minx
+                      || ' ' || maxy
+                      || ', ' || minx
+                      || ' ' || miny
+                      || '))'', geometry) '
+                      || ') as src',
+                  "collection",
+                  "where",
+                  "op",
+                  "bbox_func",
+                  "bbox_crs"
         );
 
     RETURN QUERY EXECUTE qry;
