@@ -1,4 +1,4 @@
-## v1.0.3 (in development)
+## v1.0.3
 
 ### New Features
 
@@ -6,12 +6,15 @@
   for e.g. testing purposes.
 - A new geoDB docker backend image has been added. This image can be used to set up a postgis database with a 
   pre-installed geodb database extension 
+- Added a new `count_by_bbox` filter function 
+
 
 ### Fixes
 
 - Added Python pip requirements to have control over installed sphinx version on readthedocs
 - Improved heading in notebooks
-- removed auto cp of notebooks in Makefile. Added additional cells!?
+- Removed auto cp of notebooks in Makefile.
+- Ensured that the geoDB client works with Keycloak
 
 ## v1.0.2
 

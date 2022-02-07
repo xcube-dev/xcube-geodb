@@ -683,9 +683,9 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_list_grants(self, m):
         path = '/rpc/geodb_list_grants'
-        expected_response = [{'src': [{'collection': 'test', 'grantee': 'ernie'}]}]
+        response = [{'src': [{'collection': 'test', 'grantee': 'ernie'}]}]
 
-        m.post(self._server_full_address + path, json=expected_response)
+        m.post(self._server_full_address + path, json=response)
         self.set_global_mocks(m)
 
         r = self._api.list_my_grants()
@@ -694,9 +694,9 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual('ernie', r.grantee[0])
         self.assertIsInstance(r, DataFrame)
 
-        expected_response = []
+        response = []
 
-        m.post(self._server_full_address + path, json=expected_response)
+        m.post(self._server_full_address + path, json=response)
         self.set_global_mocks(m)
 
         r = self._api.list_my_grants()
@@ -704,16 +704,15 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual('No Grants', r.Grants[0])
         self.assertIsInstance(r, DataFrame)
 
-        expected_response = 'vijdasovjidasjo'
+        no_json_response = 'vijdasovjidasjo'
 
-        m.post(self._server_full_address + path, text=expected_response)
+        m.post(self._server_full_address + path, text=no_json_response)
         self.set_global_mocks(m)
 
         with self.assertRaises(GeoDBError) as e:
             self._api.list_my_grants()
 
-        self.assertEqual("Expecting value: line 1 column 1 (char 0)",
-                         str(e.exception))
+        self.assertIn("Body not in valid JSON format:", str(e.exception))
 
     @unittest.skip("Not yet implemented")
     def test_register_user_to_geoserver(self, m):
@@ -797,7 +796,8 @@ class GeoDBClientTest(unittest.TestCase):
         with self.assertRaises(ValueError) as e:
             GeoDBClient(auth_mode='interacti')
 
-        self.assertEqual("auth_mode can only be 'interactive', 'password', or 'client-credentials'!", str(e.exception))
+        self.assertEqual("auth_mode can only be 'interactive', 'password', 'client-credentials', or 'openid'!",
+                         str(e.exception))
 
     def test_auth_token(self, m):
         self._api.use_auth_cache = False
@@ -1104,6 +1104,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual("test", str(e.warning))
 
+    @unittest.skip
     def test_setup(self, m):
         geodb = GeoDBClient()
         with self.assertRaises(OperationalError) as e:

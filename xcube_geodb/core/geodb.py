@@ -1,5 +1,6 @@
 import json
 import os
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Dict, Optional, Union, Sequence, Tuple
 
@@ -192,8 +193,8 @@ class GeoDBClient(object):
 
         self._config_file = config_file
 
-        if self._auth_mode not in ('interactive', 'password', 'client-credentials', 'none'):
-            raise GeoDBError("auth_mode can only be 'interactive', 'password', or 'client-credentials'!")
+        if self._auth_mode not in ('interactive', 'password', 'client-credentials', 'openid', 'none'):
+            raise GeoDBError("auth_mode can only be 'interactive', 'password', 'client-credentials', or 'openid'!")
 
         if self._auth_mode == "interactive":
             raise NotImplementedError("The interactive mode has not been implemented.")
@@ -353,7 +354,7 @@ class GeoDBClient(object):
         Refresh the configuration from environment variables. The variables can be preset by a dotenv file.
         Args:
             dotenv_file (str): A dotenv config file
-            use_dotenv (bool): Whether to useGEODB_AUTH_CLIENT_ID a dotenv file.
+            use_dotenv (bool): Whether to use GEODB_AUTH_CLIENT_ID a dotenv file.
 
         """
         if use_dotenv:
@@ -923,6 +924,9 @@ class GeoDBClient(object):
         r = self._post(path='/rpc/geodb_list_grants', payload={})
         try:
             js = r.json()
+        except JSONDecodeError as e:
+            raise GeoDBError("Body not in valid JSON format: " + str(e))
+        try:
             if isinstance(js, list) and len(js) > 0 and 'src' in js[0] and js[0]['src']:
                 return self._df_from_json(js[0]['src'])
             else:
@@ -1841,7 +1845,7 @@ class GeoDBClient(object):
 
         access_token_uri = self._auth_access_token_uri
 
-        return self._auth_access_token or self._get_geodb_client_credentials_access_token()
+        return self._auth_access_token or self._get_geodb_client_credentials_access_token(token_uri=access_token_uri)
 
     def refresh_auth_access_token(self):
         """
@@ -1863,8 +1867,6 @@ class GeoDBClient(object):
         if self._auth_username \
                 and self._auth_password \
                 and self._auth_client_id \
-                and self._auth_client_secret \
-                and self._auth_aud \
                 and self._auth_mode == "password":
             return True
         else:
@@ -1917,13 +1919,16 @@ class GeoDBClient(object):
             self._raise_for_invalid_password_cfg()
             payload = {
                 "client_id": self._auth_client_id,
-                "client_secret": self._auth_client_secret,
                 "username": self._auth_username,
                 "password": self._auth_password,
-                "audience": self._auth_aud,
-                # "scope": "role:create",
                 "grant_type": "password"
             }
+
+            if self._auth_aud:
+                payload['audience'] = self._auth_aud
+            if self._auth_client_secret:
+                payload['client_secret'] = self._auth_client_secret
+
             headers = {'content-type': "application/x-www-form-urlencoded"}
             r = requests.post(self._auth_domain + token_uri, data=payload, headers=headers)
         else:

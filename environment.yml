@@ -13,23 +13,8 @@ dependencies:
   - psycopg2
   - requests
   - ipyleaflet
-  - pip:
-      - fastjsonschema
-      - gsconfig-py3
-      - testing.postgresql
-      - requests_mock
-      - ipyauth
-      - pgsanity
-      - python-dotenv
-      - requests_mock
+  - python-fastjsonschema
+  - python-dotenv
+
   # Exploring
   - jupyterlab
-  - nbconvert
-  # Testing
-  - pytest >=4.4
-  - pytest-cov >=2.6
-  - httpretty
-  # - postgis
-
-
-

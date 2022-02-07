@@ -1,0 +1,25 @@
+name: xcube_geodb
+channels:
+  - conda-forge
+
+dependencies:
+  # Python
+  - python >=3.6
+  # Required
+#  - pip:
+#      - gsconfig-py3
+#      - testing.postgresql
+#      - requests_mock
+
+  # Exploring
+#  - jupyterlab
+
+  # Testing
+  - pytest >=4.4
+  - pytest-cov >=2.6
+  - httpretty
+  - pgsanity
+  - postgis
+  - nbconvert
+
+
