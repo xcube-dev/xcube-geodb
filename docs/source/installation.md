@@ -226,7 +226,7 @@ Auth0.
 
 The geoDB Python client provides a wrapper around publishing geoDB collections as an e.g. WMS service to a Geoserver 
 instance. In order to access such a server, the geoDB client needs access to a Geoserver instance using the credentials 
-of a generic Geoserver user. The current geoDB setup uses the docker image of Geoserver version 2.19.1 
+of a generic Geoserver user. The current geoDB setup uses the docker image of the Geoserver version 2.19.1 
 (image: terrestris/geoserver:2.19.1).
 
 When installing this docker image we ran into CORS issues and a wrong redirect to a http not https URL 
