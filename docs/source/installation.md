@@ -222,3 +222,32 @@ jwt-secret = ""{\"alg\":\"RS256\",\"e\":\"AQAB\",\"key_ops\":[\"verify\"],\"kty\
 The entry in section "n" is provided by Auth0 as a so-called 'public key' of the application you have configured in 
 Auth0.
 
+## 5. Installation of the geoserver
+
+The geoDB Python client provides a wrapper around publishing geoDB collections as an e.g. WMS service to a Geoserver 
+instance. In order to access such a server, the geoDB client needs access to a Geoserver instance using the credentials 
+of a generic Geoserver user. The current geoDB setup uses the docker image of Geoserver version 2.19.1 
+(image: terrestris/geoserver:2.19.1).
+
+When installing this docker image we ran into CORS issues and a wrong redirect to a http not https URL 
+after login. The redirect and CORS issues have been resolved by the following settings in the Kubernetes setup:
+
+```yaml
+ geoserver:
+    geoserverCsrfWhitelist: xcube-geodb.brockmann-consult.de
+    proxyBaseUrl: https://xcube-geodb.brockmann-consult.de/geoserver
+```
+
+These values are imputed as environment variables into the Geoserver container and should also be configurable 
+in the `web.xml` in `/usr/local/tomcat/webapps/geoserver/WEB-INF`. 
+
+In addition, a vectortile plugin has been added to  the geoserver image by building a custom docker image
+hosted on quay.io (current version: `quay.io/bcdev/xcube-geoserv:1.0.3`) build using this 
+[Dockerfile](https://github.com/bc-org/k8s-configs/blob/main/xcube-geodb/docker/geoserver/Dockerfile).
+
+For any more detailed information about installation, please refer to this 
+[Dockerfile](https://github.com/terrestris/docker-geoserver/blob/master/Dockerfile) or the original 
+[Installation instructions](https://docs.geoserver.org/stable/en/user/installation/index.html).
+
+Please be aware that the admin credentials should be changed after installation. Otherwise, any user with even the most 
+mediocre intelligence will be able to log on as admin.
