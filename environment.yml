@@ -15,6 +15,7 @@ dependencies:
   - ipyleaflet
   - python-fastjsonschema
   - python-dotenv
+  - requests_mock
 
   # Exploring
   - jupyterlab
