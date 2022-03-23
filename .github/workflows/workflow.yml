@@ -156,6 +156,7 @@ jobs:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-lab
           # Adds 'latest' tag when main is built (see: https://github.com/mr-smithers-excellent/docker-build-push#tagging-the-image-using-gitops)
           addLatest: true
+          dockerfile: xcube_geodb/docker/jupyterlab/Dockerfile
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
           password: ${{ secrets.QUAY_REG_PASSWORD }}
@@ -165,7 +166,7 @@ jobs:
         with:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
           directory: xcube_geodb/sql
-          dockerfile: xcube_geodb/sql/Dockerfile
+          dockerfile: xcube_geodb/docker/postgis/Dockerfile
           # Adds 'latest' tag when main is built (see: https://github.com/mr-smithers-excellent/docker-build-push#tagging-the-image-using-gitops)
           addLatest: true
           registry: quay.io
