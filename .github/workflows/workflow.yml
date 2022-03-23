@@ -110,6 +110,8 @@ jobs:
         shell: bash -l {0}
         run: |
           cp notebooks/*.ipynb docs/source/notebooks
+          git config --global user.email "bc-dev@brockmann-consult.de"
+          git config --global user.name "Brockmann Consult"
           git commit -a -m "Notebooks copied to docs after testing."
       - name: Push notebooks
         uses: ad-m/github-push-action@master
