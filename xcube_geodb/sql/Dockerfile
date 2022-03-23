@@ -1,4 +1,5 @@
 # Using alpine for security reasons. Debian images tend to have SECURITY SCAN issues in quay.io
+# An image usoing this docker file has been pushed to quay.io/bcdev/xcube-geodb-postgis:GEODB_VERSION
 FROM postgis/postgis:14-3.2-alpine
 
 ARG GEODB_VERSION=1.0.3
