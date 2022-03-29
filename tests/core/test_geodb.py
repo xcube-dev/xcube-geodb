@@ -240,7 +240,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.set_auth_change_mocks(m)
         auth_access_token = self._api.auth_access_token
-        self.assertEqual('A long lived token but a different user', auth_access_token)
+        self.assertEqual('A long lived token', auth_access_token)
 
     def test_create_database(self, m):
         expected_response = True
@@ -807,14 +807,6 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual("A long lived token", access_token)
 
-        m.post(self._server_test_auth_domain + "/oauth/token", json={"broken_access_token": "A long lived token"})
-
-        with self.assertRaises(ValueError) as e:
-            access_token = self._api.auth_access_token
-
-        self.assertEqual("The authorization request did not return an access token.",
-                         str(e.exception))
-
         self._api._auth_access_token = 'Another token'
 
         access_token = self._api.auth_access_token
@@ -855,7 +847,7 @@ class GeoDBClientTest(unittest.TestCase):
         geodb = GeoDBClient(database='test')
         self.assertEqual('test', geodb.database)
 
-    def test_auth_token_propery(self, m):
+    def test_auth_token_property(self, m):
         self.set_global_mocks(m)
 
         geodb = GeoDBClient()
@@ -866,12 +858,6 @@ class GeoDBClientTest(unittest.TestCase):
 
         geodb._auth_access_token = None
         self.assertEqual("A long lived token", geodb.auth_access_token)
-
-        geodb._auth_mode = "a mode"
-        with self.assertRaises(GeoDBError) as e:
-            token = geodb.auth_access_token
-
-        self.assertEqual("System Error: auth mode unknown.", str(e.exception))
 
     def test_publish_collection(self, m):
         self.set_global_mocks(m)
