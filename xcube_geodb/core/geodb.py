@@ -1939,6 +1939,7 @@ class GeoDBClient(object):
         data = r.json()
 
         try:
+            self._auth_access_token = data['access_token']
             return data['access_token']
         except KeyError:
             raise GeoDBError("The authorization request did not return an access token.")

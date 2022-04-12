@@ -1,4 +1,4 @@
-## v1.0.3
+## v1.0.3 (in development)
 
 ### New Features
 
@@ -15,6 +15,7 @@
 - Improved heading in notebooks
 - Removed auto cp of notebooks in Makefile.
 - Ensured that the geoDB client works with Keycloak
+- Reduced substantially the number of times the token is received from auth service 
 
 ## v1.0.2
 
