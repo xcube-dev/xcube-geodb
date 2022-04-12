@@ -2,6 +2,8 @@
 # An image usoing this docker file has been pushed to quay.io/bcdev/xcube-geodb-backend:GEODB_VERSION
 FROM postgis/postgis:14-3.2-alpine
 
+ARG GEODB_VERSION=1.0.3
+
 WORKDIR /tmp
 
 RUN apk update && apk upgrade && apk add make
