@@ -1,5 +1,11 @@
-name: Unittest xcube-geodb
+name: xcube-geodb
 
+# Purpose:
+# - run unit-level tests
+# - run JN smoke tests
+# - build Jupyter Notebook + PostGIS docker images
+# - update version in Helm Charts config
+# - redeploy geodb.sql
 
 on:
   workflow_dispatch:
@@ -17,8 +23,8 @@ env:
   # When developing jobs it could make sense to switch off the test sections as they take time
   # Unfortunately, you cannot set an if statement on job level. Hence, these variables are used in each step
   # of a unittest/nb-test job.
-  RUN_UNITTESTS: "0"
-  RUN_NB_TESTS: "0"
+  RUN_UNITTESTS: "1"
+  RUN_NB_TESTS: "1"
 
   # Determines whether the dev branch ouy are working on shall have a docker image (default 0)
   DOCKER_BUILD_MY_BRANCH: "0"
@@ -246,7 +252,10 @@ jobs:
       # Get the base release tag used in docker images
       - name: get-release-tag
         id: release
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/} # sets env var steps.release.outputs.tag
+        run: |
+          echo ${GITHUB_REF}
+          echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+      # sets env var steps.release.outputs.tag
       # Determine the deployment phase (dev/stage/prod) will be 'ignore' if a dev branch is processed
       - name: deployment-phase
         id: deployment-phase
@@ -260,12 +269,12 @@ jobs:
           echo "TAG: ${{ steps.release.outputs.tag }}"
           echo "DEPLOYMENT_PHASE: ${{ steps.deployment-phase.outputs.phase }}"
           echo "EVENT: ${{ github.event_name }}"
-      - name: run-script-prod
-        if: ${{ steps.deployment-phase.outputs.phase == 'prod' }}
-        run: echo "psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb -f xcube_geodb/sql/geodb.sql"
+      #- name: run-script-prod
+      #  if: ${{ steps.deployment-phase.outputs.phase == 'prod' }}
+      #  run: echo "psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb -f xcube_geodb/sql/geodb.sql"
       - name: run-script-dev
-#        if: ${{ steps.deployment-phase.outputs.phase == 'dev' }}
+        if: ${{ steps.deployment-phase.outputs.phase == 'dev' }}
         run: psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb-dev -f xcube_geodb/sql/geodb.sql
       - name: run-script-stage
         if: ${{ steps.deployment-phase.outputs.phase == 'stage' }}
-        run: echo "psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb-stage -f xcube_geodb/sql/geodb.sql"
+        run: psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb-stage -f xcube_geodb/sql/geodb.sql
