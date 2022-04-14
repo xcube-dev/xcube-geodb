@@ -23,8 +23,8 @@ env:
   # When developing jobs it could make sense to switch off the test sections as they take time
   # Unfortunately, you cannot set an if statement on job level. Hence, these variables are used in each step
   # of a unittest/nb-test job.
-  RUN_UNITTESTS: "1"
-  RUN_NB_TESTS: "1"
+  RUN_UNITTESTS: "0"
+  RUN_NB_TESTS: "0"
 
   # Determines whether the dev branch ouy are working on shall have a docker image (default 0)
   DOCKER_BUILD_MY_BRANCH: "0"
