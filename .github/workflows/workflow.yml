@@ -29,6 +29,7 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
+    if: ${{ env.RUN_UNITTESTS == '1' }}
     steps:
       # Print info
       - run: |
@@ -258,13 +259,13 @@ jobs:
         id: info
         run: |
           echo "TAG: ${{ steps.release.outputs.tag }}"
-          echo "DEPLOYMENT_PASE: {{ steps.deployment-phase.outputs.phase }}"
+          echo "DEPLOYMENT_PHASE: ${{ steps.deployment-phase.outputs.phase }}"
           echo "EVENT: ${{ github.event_name }}"
       - name: run-script-prod
         if: ${{ steps.deployment-phase.outputs.phase == 'prod' }}
         run: echo "psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb -f xcube_geodb/sql/geodb.sql"
       - name: run-script-dev
-        if: ${{ steps.deployment-phase.outputs.phase == 'dev' }}
+#        if: ${{ steps.deployment-phase.outputs.phase == 'dev' }}
         run: echo "psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb-dev -f xcube_geodb/sql/geodb.sql"
       - name: run-script-stage
         if: ${{ steps.deployment-phase.outputs.phase == 'stage' }}
