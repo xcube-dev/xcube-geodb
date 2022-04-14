@@ -29,7 +29,6 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
-    if: ${{ '0' == '1' }}
     steps:
       # Print info
       - run: |
