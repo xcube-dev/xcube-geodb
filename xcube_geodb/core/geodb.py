@@ -152,8 +152,6 @@ class GeoDBClient(object):
         self._auth_client_id = GEODB_DEFAULTS["auth_client_id"]
         self._auth_client_secret = GEODB_DEFAULTS["auth_client_secret"]
         self._auth_access_token = GEODB_DEFAULTS["auth_access_token"]
-        self._auth0_config_file = GEODB_DEFAULTS["auth0_config_file"]
-        self._auth0_config_folder = GEODB_DEFAULTS["auth0_config_folder"]
         self._auth_domain = GEODB_DEFAULTS["auth_domain"]
         self._auth_aud = GEODB_DEFAULTS["auth_aud"]
         self._auth_mode = GEODB_DEFAULTS["auth_mode"]
@@ -212,8 +210,6 @@ class GeoDBClient(object):
         self._auth_client_id = os.getenv('GEODB_AUTH_CLIENT_ID') or self._auth_client_id
         self._auth_client_secret = os.getenv('GEODB_AUTH_CLIENT_SECRET') or self._auth_client_secret
         self._auth_access_token = os.getenv('GEODB_AUTH_ACCESS_TOKEN') or self._auth_access_token
-        self._auth0_config_file = os.getenv('GEODB_AUTH0_CONFIG_FILE') or self._auth0_config_file
-        self._auth0_config_folder = os.getenv('GEODB_AUTH0_CONFIG_FOLDER') or self._auth0_config_folder
         self._auth_domain = os.getenv('GEODB_AUTH_DOMAIN') or self._auth_domain
         self._auth_aud = os.getenv('GEODB_AUTH_AUD') or self._auth_aud
         self._auth_mode = os.getenv('GEODB_AUTH_MODE') or self._auth_mode
