@@ -265,7 +265,7 @@ jobs:
         run: echo "psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb -f xcube_geodb/sql/geodb.sql"
       - name: run-script-dev
 #        if: ${{ steps.deployment-phase.outputs.phase == 'dev' }}
-        run: echo "psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb-dev -f xcube_geodb/sql/geodb.sql"
+        run: psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb-dev -f xcube_geodb/sql/geodb.sql
       - name: run-script-stage
         if: ${{ steps.deployment-phase.outputs.phase == 'stage' }}
         run: echo "psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb-stage -f xcube_geodb/sql/geodb.sql"
