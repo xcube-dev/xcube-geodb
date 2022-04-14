@@ -34,9 +34,9 @@ jobs:
       - run: |
           echo "Skipping SQL tests: ${{ env.SKIP_PSQL_TESTS }}"
           echo "RUN_UNITTESTS: ${{ env.RUN_UNITTESTS }}"
-        if: ${{ env.RUN_UNITTESTS == '1' }}
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
+        if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
           mamba-version: "*"
           channels: conda-forge
