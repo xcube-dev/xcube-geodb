@@ -17,8 +17,8 @@ env:
   # When developing jobs it could make sense to switch off the test sections as they take time
   # Unfortunately, you cannot set an if statement on job level. Hence, these variables are used in each step
   # of a unittest/nb-test job.
-  RUN_UNITTESTS: "1"
-  RUN_NB_TESTS: "1"
+  RUN_UNITTESTS: "0"
+  RUN_NB_TESTS: "0"
 
   # Determines whether the dev branch ouy are working on shall have a docker image (default 0)
   DOCKER_BUILD_MY_BRANCH: "0"
@@ -34,9 +34,9 @@ jobs:
       - run: |
           echo "Skipping SQL tests: ${{ env.SKIP_PSQL_TESTS }}"
           echo "RUN_UNITTESTS: ${{ env.RUN_UNITTESTS }}"
+        if: ${{ env.RUN_UNITTESTS == '1' }}
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
-        if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
           mamba-version: "*"
           channels: conda-forge
@@ -234,3 +234,38 @@ jobs:
           user-email: bcdev@brockmann-consult.de
           target-branch: main
           commit-message: ${{ github.event.release }}. Set version to ${{ steps.release.outputs.tag }}
+  redeploy-geodb-sql:
+    runs-on: ubuntu-latest
+    needs: [nb-test, unittest]
+    name: redeploy-geodb-sql
+    env:
+      PGPASSWORD: ${{ secrets.GEODB_RDS_PW_SECRET }}
+    steps:
+      - name: git-checkout
+        uses: actions/checkout@v2
+      # Get the base release tag used in docker images
+      - name: get-release-tag
+        id: release
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/} # sets env var steps.release.outputs.tag
+      # Determine the deployment phase (dev/stage/prod) will be 'ignore' if a dev branch is processed
+      - name: deployment-phase
+        id: deployment-phase
+        uses: bc-org/gha-determine-phase@v0.1 # determines if dev/prod/stage/ignore
+        with:
+          event_name: ${{ github.event_name }}
+          tag: ${{ steps.release.outputs.tag }}
+      - name: info
+        id: info
+        run: |
+          echo "TAG: ${{ steps.release.outputs.tag }}"
+          echo "DEPLOYMENT_PASE: {{ steps.deployment-phase.outputs.phase }}"
+          echo "EVENT: ${{ github.event_name }}"
+      - name: run-script-prod
+        if: ${{ steps.deployment-phase.outputs.phase == 'prod' }}
+        run: echo "psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb -f xcube_geodb/sql/geodb.sql"
+      - name: run-script-dev
+        if: ${{ steps.deployment-phase.outputs.phase == 'dev' }}
+        run: echo "psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb-dev -f xcube_geodb/sql/geodb.sql"
+      - name: run-script-stage
+        if: ${{ steps.deployment-phase.outputs.phase == 'stage' }}
+        run: echo "psql -U postgres -h ${{ secrets.GEODB_RDS_URL }} -d geodb-stage -f xcube_geodb/sql/geodb.sql"
