@@ -3,9 +3,11 @@ import unittest
 from io import StringIO
 from unittest.mock import MagicMock
 
+import pandas
 import pandas as pd
 import requests_mock
 from geopandas import GeoDataFrame
+from pandas import DataFrame
 from psycopg2 import OperationalError
 from shapely import wkt
 
@@ -113,7 +115,7 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(url, text=json.dumps(server_response))
 
         res = self._api.get_my_collections()
-        self.assertIsInstance(res, pd.DataFrame)
+        self.assertIsInstance(res, pandas.DataFrame)
         res = res.to_dict()
         expected_response = {'collection': {0: 'geodb_admin_land_use', 1: 'geodb_admin_land_use'},
                              'grantee': {0: 'geodb_admin', 1: 'PUBLIC'}}
@@ -123,7 +125,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         res = self._api.get_my_collections()
 
-        self.assertIsInstance(res, pd.DataFrame)
+        self.assertIsInstance(res, pandas.DataFrame)
         self.assertEqual(len(res), 0)
 
     def test_get_collection(self, m):
@@ -176,7 +178,7 @@ class GeoDBClientTest(unittest.TestCase):
         url = f"{self._server_test_url}:{self._server_test_port}/helge_test"
         m.get(url, json=[])
         r = self._api.get_collection('test')
-        self.assertIsInstance(r, pd.DataFrame)
+        self.assertIsInstance(r, DataFrame)
         self.assertEqual(len(r), 0)
 
     def test_rename_collection(self, m):
@@ -476,14 +478,14 @@ class GeoDBClientTest(unittest.TestCase):
         gdf = self._api.get_collection_by_bbox(collection='collection',
                                                bbox=(452750.0, 88909.549, 464000.0, 102486.299))
 
-        self.assertIsInstance(gdf, pd.DataFrame)
+        self.assertIsInstance(gdf, DataFrame)
         self.assertEqual(0, len(gdf))
 
         gdf = self._api.get_collection_by_bbox(collection='collection',
                                                bbox=(452750.0, 88909.549, 464000.0, 102486.299),
                                                bbox_crs=3307)
 
-        self.assertIsInstance(gdf, pd.DataFrame)
+        self.assertIsInstance(gdf, DataFrame)
         self.assertEqual(0, len(gdf))
 
     def test_reproject_bbox(self, m):
@@ -605,7 +607,7 @@ class GeoDBClientTest(unittest.TestCase):
         df = pd.read_csv(file)
         df['geometry'] = df['geometry'].apply(wkt.loads)
         return df
-        # return Geopd.DataFrame(df, crs={'init': 'epsg:4326'}, geometry=df['geometry'])
+        # return GeoDataFrame(df, crs={'init': 'epsg:4326'}, geometry=df['geometry'])
 
     def test_insert_into_collection(self, m):
         path = '/helge_tt'
@@ -690,7 +692,7 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual('test', r.collection[0])
         self.assertEqual('ernie', r.grantee[0])
-        self.assertIsInstance(r, pd.DataFrame)
+        self.assertIsInstance(r, DataFrame)
 
         response = []
 
@@ -700,7 +702,7 @@ class GeoDBClientTest(unittest.TestCase):
         r = self._api.list_my_grants()
 
         self.assertEqual('No Grants', r.Grants[0])
-        self.assertIsInstance(r, pd.DataFrame)
+        self.assertIsInstance(r, DataFrame)
 
         no_json_response = 'vijdasovjidasjo'
 
@@ -739,7 +741,7 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._server_full_address + '/rpc/geodb_get_pg', json=expected_result)
 
         r = self._api.get_collection_pg('test', select='count(D_OD)', group='D_OD', limit=1, offset=2)
-        self.assertIsInstance(r, pd.DataFrame)
+        self.assertIsInstance(r, DataFrame)
         self.assertEqual((2, 2), r.shape)
 
         expected_result = {'src': [{
@@ -769,7 +771,7 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._server_full_address + '/rpc/geodb_get_pg', json={'src': []})
 
         r = self._api.get_collection_pg('test', limit=1, offset=2)
-        self.assertIsInstance(r, pd.DataFrame)
+        self.assertIsInstance(r, DataFrame)
         self.assertEqual(len(r), 0)
 
         self._api._capabilities = dict(paths=[])
@@ -944,13 +946,13 @@ class GeoDBClientTest(unittest.TestCase):
         m.get(url=url, json=server_response)
 
         res = self._api.get_published_gs('geodb_admin')
-        self.assertIsInstance(res, pd.DataFrame)
+        self.assertIsInstance(res, pandas.DataFrame)
         self.assertEqual(1, len(res))
 
         m.get(url=url, json={})
 
         res = self._api.get_published_gs('geodb_admin')
-        self.assertIsInstance(res, pd.DataFrame)
+        self.assertIsInstance(res, pandas.DataFrame)
         self.assertEqual(0, len(res))
 
     def test_get_all_published_gs(self, m):
@@ -977,13 +979,13 @@ class GeoDBClientTest(unittest.TestCase):
         m.get(url=url, json=server_response)
 
         res = self._api.get_all_published_gs()
-        self.assertIsInstance(res, pd.DataFrame)
+        self.assertIsInstance(res, pandas.DataFrame)
         self.assertEqual(1, len(res))
 
         m.get(url=url, json={})
 
         res = self._api.get_all_published_gs()
-        self.assertIsInstance(res, pd.DataFrame)
+        self.assertIsInstance(res, pandas.DataFrame)
         self.assertEqual(0, len(res))
 
     def test_unpublish_from_geoserver(self, m):
@@ -1055,13 +1057,13 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(url=url, json=[{'src': {'name': 'geometry'}}, ])
         res = self._api.get_properties('test')
 
-        self.assertIsInstance(res, pd.DataFrame)
+        self.assertIsInstance(res, DataFrame)
 
         m.post(url=url, json=[{'src': {}}, ])
 
         self._api.get_properties('test')
 
-        self.assertIsInstance(res, pd.DataFrame)
+        self.assertIsInstance(res, DataFrame)
 
     def test_get_my_databases(self, m):
         self.set_global_mocks(m)
@@ -1116,7 +1118,7 @@ class GeoDBClientTest(unittest.TestCase):
         # This test tests an impossible situation as `js` cannot be none. However, you never know.
         # noinspection PyTypeChecker
         res = self._api._df_from_json(js=None)
-        self.assertIsInstance(res, pd.DataFrame)
+        self.assertIsInstance(res, DataFrame)
         self.assertEqual(0, len(res))
 
     def test_crs(self, m):
