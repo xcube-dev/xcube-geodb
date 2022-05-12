@@ -128,10 +128,11 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIsInstance(res, pandas.DataFrame)
         self.assertEqual(len(res), 0)
 
+    # noinspection PyTypeChecker
     def test_get_collection(self, m):
         self.set_global_mocks(m)
         global TEST_GEOM
-        expected_response = [
+        test_collection = [
             {"id": 1, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
              "geometry": TEST_GEOM,
              "d_od": "2019-03-26"},
@@ -164,11 +165,22 @@ class GeoDBClientTest(unittest.TestCase):
              "d_od": "2019-03-26"},
         ]
         url = f"{self._server_test_url}:{self._server_test_port}/helge_test"
-        m.get(url, text=json.dumps(expected_response))
+        m.get(url, text=json.dumps(test_collection))
+
+        url_with_limits = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_collection"
+        m.post(url_with_limits, text=json.dumps(test_collection[3:5]))
 
         r = self._api.get_collection('test')
         self.assertIsInstance(r, GeoDataFrame)
         self.assertTrue('geometry' in r)
+
+        r = self._api.get_collection('test', limit=2, offset=3)
+        self.assertIsInstance(r, GeoDataFrame)
+        self.assertTrue('geometry' in r)
+        self.assertEqual(2, r.shape[0])
+        it = r.iterrows()
+        self.assertEqual(4, dict(next(it)[1])['id'])
+        self.assertEqual(5, dict(next(it)[1])['id'])
 
         r = self._api.head_collection('test')
         self.assertIsInstance(r, GeoDataFrame)

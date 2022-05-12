@@ -1531,9 +1531,11 @@ class GeoDBClient(object):
         Query a collection
 
         Args:
-            collection (str): The collection's name
+            collection (str): The collection's name.
             query (str): A query. Follow the http://postgrest.org/en/v6.0/api.html query convention.
-            database (str): The name of the database the collection resides in [current database]
+            database (str): The name of the database the collection resides in [current database].
+            limit (int): The maximum number of rows to be returned.
+            offset (int): Offset (start) of rows to return. Used in combination with limit.
 
         Returns:
             GeoDataFrame or DataFrame: results
@@ -1552,13 +1554,17 @@ class GeoDBClient(object):
         tab_prefix = database or self.database
         dn = f"{tab_prefix}_{collection}"
 
-        # self._raise_for_collection_exists(collection=dn)
-
         try:
-            if query:
-                r = self._get(f"/{dn}?{query}")
+            if limit:
+                if query:
+                    r = self._get(f"/{dn}?{query}")
+                else:
+                    r = self._post("/rpc/geodb_get_collection", payload={'dn': dn, 'limit': limit, 'offset': offset})
             else:
-                r = self._get(f"/{dn}")
+                if query:
+                    r = self._get(f"/{dn}?{query}")
+                else:
+                    r = self._get(f"/{dn}")
 
             js = r.json()
 
