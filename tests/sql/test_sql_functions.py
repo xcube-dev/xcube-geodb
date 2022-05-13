@@ -284,3 +284,26 @@ class GeoDBSqlTest(unittest.TestCase):
 
         self.assertIn('geodb_user has not access to that table or database. ',
                       str(e.exception))
+
+    def test_get_collection(self):
+        sql = "SELECT geodb_get_collection('postgres_land_use', 0, 1)"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchall()
+        self.assertEqual(1, len(res[0][0]))
+        self.assertEqual(2, res[0][0][0]['id'])
+
+        sql = "SELECT geodb_get_collection('postgres_land_use', 1, 0)"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchall()
+        self.assertEqual(1, len(res[0][0]))
+        self.assertEqual(1, res[0][0][0]['id'])
+
+        sql = "SELECT geodb_get_collection('postgres_land_use')"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchall()
+        self.assertEqual(2, len(res[0][0]))
+
+        sql = "SELECT geodb_get_collection('postgres_land_use', 2, 0)"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchall()
+        self.assertEqual(2, len(res[0][0]))
