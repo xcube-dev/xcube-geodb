@@ -97,8 +97,6 @@ class GeoDBSqlTest(unittest.TestCase):
         res = self._cursor.fetchone()
 
         exp_geo = {'type': 'Polygon',
-                   'crs': {'type': 'name',
-                           'properties': {'name': 'EPSG:3794'}},
                    'coordinates': [
                        [[453952.629, 91124.177], [453952.696, 91118.803],
                         [453946.938, 91116.326], [453945.208, 91114.225],
@@ -112,7 +110,8 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertEqual(len(res), 1)
 
         self.assertEqual(res[0][0]['id'], 1)
-        self.assertDictEqual(res[0][0]['geometry'], exp_geo)
+        self.assertEqual(res[0][0]['geometry']['type'], exp_geo['type'])
+        self.assertEqual(res[0][0]['geometry']['coordinates'], exp_geo['coordinates'])
 
     def column_exists(self, table: str, column: str, data_type: str) -> bool:
         sql = (f'\n'
