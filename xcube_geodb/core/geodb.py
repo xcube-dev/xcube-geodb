@@ -1525,8 +1525,9 @@ class GeoDBClient(object):
 
         return self.get_collection(collection=collection, query=f'limit={num_lines}', database=database)
 
-    def get_collection(self, collection: str, query: Optional[str] = None, database: Optional[str] = None,
-                       limit: int = None, offset: int = None) -> Union[GeoDataFrame, DataFrame]:
+    def get_collection(self, collection: str, query: Optional[str] = None,
+                       database: Optional[str] = None, limit: int = None,
+                       offset: int = None) -> Union[GeoDataFrame, DataFrame]:
         """
         Query a collection
 
@@ -1549,22 +1550,22 @@ class GeoDBClient(object):
 
         """
 
-        srid = self.get_collection_srid(collection=collection, database=database)
+        srid = self.get_collection_srid(collection=collection,
+                                        database=database)
 
         tab_prefix = database or self.database
         dn = f"{tab_prefix}_{collection}"
 
         try:
+            actual_query = query if query else ''
             if limit:
-                if query:
-                    r = self._get(f"/{dn}?{query}")
-                else:
-                    r = self._post("/rpc/geodb_get_collection", payload={'dn': dn, 'limit': limit, 'offset': offset})
+                actual_query = '&' if query else ''
+                actual_query = f'{actual_query}limit={limit}&offset={offset}'
+
+            if actual_query:
+                r = self._get(f"/{dn}?{actual_query}")
             else:
-                if query:
-                    r = self._get(f"/{dn}?{query}")
-                else:
-                    r = self._get(f"/{dn}")
+                r = self._get(f"/{dn}")
 
             js = r.json()
 

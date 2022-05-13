@@ -167,8 +167,10 @@ class GeoDBClientTest(unittest.TestCase):
         url = f"{self._server_test_url}:{self._server_test_port}/helge_test"
         m.get(url, text=json.dumps(test_collection))
 
-        url_with_limits = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_collection"
-        m.post(url_with_limits, text=json.dumps(test_collection[3:5]))
+        url_with_limits = f"{self._server_test_url}:" \
+                          f"{self._server_test_port}" \
+                          f"/helge_test?limit=2&offset=3"
+        m.get(url_with_limits, text=json.dumps(test_collection[3:5]))
 
         r = self._api.get_collection('test')
         self.assertIsInstance(r, GeoDataFrame)

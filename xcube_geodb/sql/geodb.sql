@@ -940,44 +940,6 @@ BEGIN
 END
 $BODY$;
 
--- todo - add query param
-CREATE OR REPLACE FUNCTION public.geodb_get_collection(collection text,
-                                                       "limit" int DEFAULT 0,
-                                                       "offset" int DEFAULT 0)
-    RETURNS TABLE
-            (
-                src json
-            )
-    LANGUAGE 'plpgsql'
-
-AS
-$BODY$
-DECLARE
-    lmt_str   text;
-    qry       text;
-BEGIN
-    lmt_str := '';
-
-    IF "limit" > 0 THEN
-        lmt_str := ' LIMIT ' || "limit";
-    END IF;
-
-    IF "offset" > 0 THEN
-        lmt_str := lmt_str || ' OFFSET ' || "offset";
-    END IF;
-
-    qry := format('SELECT JSON_AGG(src) as js
-                     FROM (SELECT * FROM %I'
-                      || ' ORDER BY id '
-                      || lmt_str || ') as src',
-                  "collection"
-        );
-
-    RETURN QUERY EXECUTE qry;
-END
-$BODY$;
-
-
 CREATE OR REPLACE FUNCTION public.geodb_get_by_bbox(collection text,
                                                     minx double precision,
                                                     miny double precision,
