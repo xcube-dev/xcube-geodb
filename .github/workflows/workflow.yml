@@ -148,6 +148,7 @@ jobs:
           registry: quay.io
           username: ${{ secrets.QUAY_REG_USERNAME }}
           password: ${{ secrets.QUAY_REG_PASSWORD }}
+      # Build PostGIS docker image
       - uses: mr-smithers-excellent/docker-build-push@v5.5
         name: build-push-docker-backend-image-latest
         if: ${{ steps.deployment-phase.outputs.phase != 'ignore'  || env.DOCKER_BUILD_MY_BRANCH == '1' }}

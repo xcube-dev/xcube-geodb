@@ -283,3 +283,43 @@ class GeoDBSqlTest(unittest.TestCase):
 
         self.assertIn('geodb_user has not access to that table or database. ',
                       str(e.exception))
+
+    # noinspection SpellCheckingInspection
+    def test_issue_35_unpublish(self):
+        user_name = "geodb_user"
+        self._set_role(user_name)
+
+        sql = "SELECT geodb_grant_access_to_collection('geodb_user_land_use'," \
+              "'public')"
+        self._cursor.execute(sql)
+
+        sql = "SELECT geodb_revoke_access_from_collection('geodb_user_land_use'," \
+              "'public')"
+        self._cursor.execute(sql)
+
+        self._test_publish_unpublish('alllowercase')
+        self._test_publish_unpublish('alllowercase_with_number0')
+        self._test_publish_unpublish('ALL_UPPERCASE')
+        self._test_publish_unpublish('ALL_UPPERCASE_WITH_NUMBER0')
+        self._test_publish_unpublish('partlyUppercase')
+        self._test_publish_unpublish('partlyUppercase_with_number1')
+
+    def _test_publish_unpublish(self, name):
+        sql = f'CREATE TABLE "{name}" (id SERIAL ' \
+              'PRIMARY KEY, geometry geometry(Geometry, 3794) NOT NULL);'
+        self._cursor.execute(sql)
+
+        print(sql)
+        sql = f'INSERT INTO "{name}" (id, geometry)' \
+              'VALUES (1, \'0103000020D20E000001000000110000007593188402B51B41B6F3FDD4423FF6405839B4C802B51B412B8716D9EC3EF6406F1283C0EBB41B41A8C64B37C53EF640B6F3FDD4E4B41B419A999999A33EF6400E2DB29DCFB41B41EE7C3F35B63EF6407F6ABC74C0B41B41EE7C3F35B63EF6407B14AE47BDB41B41AAF1D24D043FF6408B6CE77B64B41B413F355EBA8F3FF6402B8716D970B41B41986E1283EC3FF640A4703D0A76B41B4179E92631AE3FF6404260E5D08AB41B4123DBF97E923FF6409EEFA7C69CB41B4100000000AC3FF6405839B448B3B41B411D5A643B973FF6408195438BC6B41B41666666666C3FF640D122DBF9E3B41B4139B4C876383FF640E9263188F8B41B41333333333D3FF6407593188402B51B41B6F3FDD4423FF640\')';
+        self._cursor.execute(sql)
+
+        print(sql)
+        sql = f'SELECT geodb_grant_access_to_collection(\'{name}\',' \
+              f'\'postgres\')'
+        print(sql)
+        self._cursor.execute(sql)
+        sql = f'SELECT geodb_revoke_access_from_collection(\'{name}\', ' \
+              f'\'postgres\')'
+        self._cursor.execute(sql)
+

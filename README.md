@@ -15,7 +15,7 @@ Please refer to our [documentation](https://xcube-geodb.readthedocs.io) for furt
 
 - [xcube](https://github.com/dcs4cop/xcube)
 - [xarray](http://xarray.pydata.org/en/stable/)
-- [ProgreSQL](https://www.postgresql.org/)
+- [PostgreSQL](https://www.postgresql.org/)
 - [Postgrest](http://postgrest.org/en/v6.0/)
 - [AWS RDS](https://aws.amazon.com/de/rds/)
 - [docker](https://www.docker.com/)
@@ -26,13 +26,13 @@ Please refer to our [documentation](https://xcube-geodb.readthedocs.io) for furt
 2. Create stage/dev release (tag only. Tag name must include the expression 'dev' plus a number, e.g. 0.1.9.dev1) 
 3. The stage will be deployed using travis
   3.1 A docker image will be created and pushed to quay.io
-  3.2 The new version of the image will be deployed to teh cluser using a [helm chart](https://github.com/dcs4cop/xcube-k8s/geodb)
+  3.2 The new version of the image will be deployed to the cluster using a [helm chart](https://github.com/dcs4cop/xcube-k8s/geodb)
 4. The stage will be tested
   4.1 An automatic test is run similar to a unit test
   4.2 Users will test the new features and fixes
 5. Create release
 6. The release will be deployed using travis
   6.1 unittest
-  6.2 the new version of teh xcube geodb image will be created and pushed to quay.io
+  6.2 the new version of the xcube geodb image will be created and pushed to quay.io
   6.3 the xcube-geodb helm chart will be deployed using the new version of the docker image 
  
