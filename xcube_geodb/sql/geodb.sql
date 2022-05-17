@@ -372,7 +372,7 @@ $BODY$
 DECLARE
     seq_name TEXT;
 BEGIN
-    select replace(pg_get_serial_sequence(collection, 'id'), 'public.', '') into seq_name;
+    select replace(pg_get_serial_sequence('"' || collection || '"', 'id'), 'public.', '') into seq_name;
     EXECUTE format('REVOKE SELECT ON TABLE %I FROM %I;', collection, usr);
     EXECUTE format('REVOKE USAGE, SELECT ON SEQUENCE %s FROM %I', seq_name, usr);
 END
