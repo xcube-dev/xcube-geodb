@@ -1484,7 +1484,6 @@ class GeoDBClient(object):
             if coll_crs is not None and coll_crs != bbox_crs:
                 bbox = self.transform_bbox_crs(bbox, bbox_crs, int(coll_crs), wsg84_order=wsg84_order)
                 bbox_crs = coll_crs
-            print(bbox)
             headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
             r = self._post('/rpc/geodb_count_by_bbox', headers=headers, payload={
