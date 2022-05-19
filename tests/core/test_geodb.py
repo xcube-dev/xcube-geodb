@@ -183,24 +183,13 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_get_collection_bbox(self, m):
         self.set_global_mocks(m)
-        expected_bbox = POLYGON
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_bbox"
-        m.get(url, text=json.dumps(collection))
+        expected_bbox = 'POLYGON ((9 51, 9 53, 11 53, 11 51, 9 51))'
+        url = f"{self._server_test_url}:" \
+              f"{self._server_test_port}/rpc/geodb_get_collection_bbox"
+        m.post(url, text=expected_bbox)
 
-        r = self._api.get_collection('test')
-        self.assertIsInstance(r, GeoDataFrame)
-        self.assertTrue('geometry' in r)
-
-        r = self._api.head_collection('test')
-        self.assertIsInstance(r, GeoDataFrame)
-        self.assertTrue('geometry' in r)
-        self.assertEqual(10, r.shape[0])
-
-        url = f"{self._server_test_url}:{self._server_test_port}/helge_test"
-        m.get(url, json=[])
-        r = self._api.get_collection('test')
-        self.assertIsInstance(r, DataFrame)
-        self.assertEqual(len(r), 0)
+        r = self._api.get_collection_bbox('any')
+        self.assertEqual(expected_bbox, r)
 
     def test_rename_collection(self, m):
         self.set_global_mocks(m)
