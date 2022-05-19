@@ -387,9 +387,8 @@ DECLARE
     qry TEXT;
     bbox TEXT;
 BEGIN
-    qry := format('SELECT text(ST_Extent(geometry)) from ' ||
-           '%s AS ' ||
-           'src', collection);
+    qry := format('SELECT text(ST_Extent(geometry)) from %s AS src',
+                  collection);
     EXECUTE qry INTO bbox;
 
     RETURN bbox;
