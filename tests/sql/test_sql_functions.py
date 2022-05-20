@@ -244,7 +244,7 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertIn('geodb_user has not access to that table or database. ', str(e.exception))
 
     def test_get_collection_bbox(self):
-        user_name = "geodb_user"
+        user_name = "geodb_user-with-hyphens"
         user_table = user_name + "_test"
         self._set_role(user_name)
 
@@ -253,10 +253,10 @@ class GeoDBSqlTest(unittest.TestCase):
               f"'{json.dumps(props)}', '4326')"
         self._cursor.execute(sql)
 
-        sql = f"INSERT INTO {user_table} (id, geometry) " \
+        sql = f"INSERT INTO \"{user_table}\" (id, geometry) " \
               "VALUES (1, 'POLYGON((-5 10, -5 11, 5 11, 5 10, -5 10))');"
         self._cursor.execute(sql)
-        sql = f"INSERT INTO {user_table} (id, geometry) " \
+        sql = f"INSERT INTO \"{user_table}\" (id, geometry) " \
               "VALUES (2, 'POLYGON((-6 9, -6 10, 3 10, 3 9, -6 9))');"
         self._cursor.execute(sql)
 
