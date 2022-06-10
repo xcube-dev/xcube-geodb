@@ -1525,15 +1525,18 @@ class GeoDBClient(object):
 
         return self.get_collection(collection=collection, query=f'limit={num_lines}', database=database)
 
-    def get_collection(self, collection: str, query: Optional[str] = None, database: Optional[str] = None,
-                       limit: int = None, offset: int = None) -> Union[GeoDataFrame, DataFrame]:
+    def get_collection(self, collection: str, query: Optional[str] = None,
+                       database: Optional[str] = None, limit: int = None,
+                       offset: int = None) -> Union[GeoDataFrame, DataFrame]:
         """
         Query a collection
 
         Args:
-            collection (str): The collection's name
+            collection (str): The collection's name.
             query (str): A query. Follow the http://postgrest.org/en/v6.0/api.html query convention.
-            database (str): The name of the database the collection resides in [current database]
+            database (str): The name of the database the collection resides in [current database].
+            limit (int): The maximum number of rows to be returned.
+            offset (int): Offset (start) of rows to return. Used in combination with limit.
 
         Returns:
             GeoDataFrame or DataFrame: results
@@ -1547,16 +1550,20 @@ class GeoDBClient(object):
 
         """
 
-        srid = self.get_collection_srid(collection=collection, database=database)
+        srid = self.get_collection_srid(collection=collection,
+                                        database=database)
 
         tab_prefix = database or self.database
         dn = f"{tab_prefix}_{collection}"
 
-        # self._raise_for_collection_exists(collection=dn)
-
         try:
-            if query:
-                r = self._get(f"/{dn}?{query}")
+            actual_query = query if query else ''
+            if limit:
+                actual_query = '&' if query else ''
+                actual_query = f'{actual_query}limit={limit}&offset={offset}'
+
+            if actual_query:
+                r = self._get(f"/{dn}?{actual_query}")
             else:
                 r = self._get(f"/{dn}")
 
