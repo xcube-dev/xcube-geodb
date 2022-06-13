@@ -183,13 +183,13 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_get_collection_bbox(self, m):
         self.set_global_mocks(m)
-        expected_bbox = 'POLYGON ((9 51, 9 53, 11 53, 11 51, 9 51))'
+        expected_bbox = json.dumps([{'geodb_get_collection_bbox': 'BOX(-6 9,5 11)'}])
         url = f"{self._server_test_url}:" \
               f"{self._server_test_port}/rpc/geodb_get_collection_bbox"
         m.post(url, text=expected_bbox)
 
         r = self._api.get_collection_bbox('any')
-        self.assertEqual(expected_bbox, r)
+        self.assertEqual((9, -6, 11, 5), r)
 
     def test_rename_collection(self, m):
         self.set_global_mocks(m)

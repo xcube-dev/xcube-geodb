@@ -273,21 +273,25 @@ class GeoDBClient(object):
             current database
 
         Returns:
-            the bounding box given as [xmin, ymin, xmax, ymax]
+            the bounding box given as tuple xmin, ymin, xmax, ymax
 
         Examples:
             >>> geodb = GeoDBClient(auth_mode='client-credentials', client_id='***', client_secret='***')
             >>> geodb.get_collection_bbox('my_collection')
-            [-5, 10, 5, 11]
+            (-5, 10, 5, 11)
 
         """
         try:
+            from ast import literal_eval
             database = database or self.database
             dn = f"{database}_{collection}"
 
             r = self._post(path='/rpc/geodb_get_collection_bbox', payload={
                 'collection': dn})
-            return r.text
+            bbox = literal_eval(r.json()[0]['geodb_get_collection_bbox']
+                                .replace('BOX', '').replace(' ', ','))
+            result = (bbox[1], bbox[0], bbox[3], bbox[2])
+            return result
         except GeoDBError as e:
             self._maybe_raise(e)
 
@@ -1346,7 +1350,7 @@ class GeoDBClient(object):
         This function can be used to reproject bboxes particularly with the use of GeoDBClient.get_collection_by_bbox.
 
         Args:
-            bbox: Tuple[float, float, float, float]: bbox to be reprojected
+            bbox: Tuple[float, float, float, float]: bbox to be reprojected, given as MINX, MINY, MAXX, MAXY
             from_crs: Source crs e.g. 3974
             to_crs: Target crs e.g. 4326
             wsg84_order (str): WSG84 (EPSG:4326) is expected to be in Lat Lon format ("lat_lon"). Use "lon_lat" if
