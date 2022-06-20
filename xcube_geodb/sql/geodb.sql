@@ -956,7 +956,6 @@ BEGIN
 END
 $BODY$;
 
-
 CREATE OR REPLACE FUNCTION public.geodb_get_by_bbox(collection text,
                                                     minx double precision,
                                                     miny double precision,

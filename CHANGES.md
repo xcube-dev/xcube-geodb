@@ -6,10 +6,10 @@
   for e.g. testing purposes.
 - A new geoDB docker backend image has been added. This image can be used to set up a postgis database with a 
   pre-installed geodb database extension 
-- Added a new `count_by_bbox` filter function 
+- Added a new `count_by_bbox` filter function
+- Allowed to provide limit and offset in function `get_collection`
 - Added the new function `get_collection_bbox`, that returns the bounding box
   of all geometries within a collection.
-
 
 ### Fixes
 

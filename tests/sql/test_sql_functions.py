@@ -1,10 +1,12 @@
 import os
+import sys
 import unittest
 import json
 import psycopg2
 
 from tests.utils import make_install_geodb
 import xcube_geodb.version as version
+
 
 def get_app_dir():
     import inspect
@@ -19,7 +21,8 @@ class TestInstallationProcedure(unittest.TestCase):
         app_path = get_app_dir()
         control_fn = os.path.join(app_path, 'sql', 'geodb.control')
         os.remove(control_fn)
-        control_fn = os.path.join(app_path, 'sql', f'geodb--{version.version}.sql')
+        control_fn = os.path.join(app_path, 'sql',
+                                  f'geodb--{version.version}.sql')
         os.remove(control_fn)
 
     def testInstallation(self):
@@ -27,7 +30,8 @@ class TestInstallationProcedure(unittest.TestCase):
 
 
 # noinspection SqlNoDataSourceInspection
-@unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '0') == '1', 'DB Tests skipped')
+@unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '0') == '1',
+                 'DB Tests skipped')
 # noinspection SqlInjection
 class GeoDBSqlTest(unittest.TestCase):
     _postgresql = None
@@ -37,10 +41,15 @@ class GeoDBSqlTest(unittest.TestCase):
     def setUp(cls) -> None:
         import psycopg2
         import testing.postgresql
-        postgresql = testing.postgresql.PostgresqlFactory(cache_initialized_db=False)
+        postgresql = testing.postgresql.PostgresqlFactory(
+            cache_initialized_db=False)
 
         cls._postgresql = postgresql()
-        conn = psycopg2.connect(**cls._postgresql.dsn())
+        dsn = cls._postgresql.dsn()
+        if sys.platform == 'win32':
+            dsn['port'] = 5432
+            dsn['password'] = 'postgres'
+        conn = psycopg2.connect(**dsn)
         cls._cursor = conn.cursor()
         app_path = get_app_dir()
         fn = os.path.join(app_path, 'sql', 'geodb.sql')
@@ -52,7 +61,29 @@ class GeoDBSqlTest(unittest.TestCase):
             cls._cursor.execute(sql_file.read())
 
     def tearDown(self) -> None:
-        self._postgresql.stop()
+        if sys.platform == 'win32':
+            self.manual_cleanup()
+        else:
+            self._postgresql.stop()
+
+    def manual_cleanup(self):
+        from datetime import datetime
+        from time import sleep
+        import signal
+
+        try:
+            self._postgresql.child_process.send_signal(signal.SIGTERM)
+            killed_at = datetime.now()
+            while self._postgresql.child_process.poll() is None:
+                if (datetime.now() - killed_at).seconds > 10.0:
+                    self._postgresql.child_process.kill()
+                    raise RuntimeError(
+                        "*** failed to shutdown postgres ***\n")
+
+                sleep(0.1)
+        except OSError:
+            pass
+        self._postgresql.cleanup()
 
     def tearDownModule(self):
         # clear cached database at end of tests
@@ -65,16 +96,22 @@ class GeoDBSqlTest(unittest.TestCase):
 
         res = self._cursor.fetchone()
 
-        exp_geo = {'type': 'Polygon', 'coordinates': [
-            [[453952.629, 91124.177], [453952.696, 91118.803], [453946.938, 91116.326], [453945.208, 91114.225],
-             [453939.904, 91115.388], [453936.114, 91115.388], [453935.32, 91120.269], [453913.121, 91128.983],
-             [453916.212, 91134.782], [453917.51, 91130.887], [453922.704, 91129.156], [453927.194, 91130.75],
-             [453932.821, 91129.452], [453937.636, 91126.775], [453944.994, 91123.529], [453950.133, 91123.825],
-             [453952.629, 91124.177]]]}
+        exp_geo = {'type': 'Polygon',
+                   'coordinates': [
+                       [[453952.629, 91124.177], [453952.696, 91118.803],
+                        [453946.938, 91116.326], [453945.208, 91114.225],
+                        [453939.904, 91115.388], [453936.114, 91115.388],
+                        [453935.32, 91120.269], [453913.121, 91128.983],
+                        [453916.212, 91134.782], [453917.51, 91130.887],
+                        [453922.704, 91129.156], [453927.194, 91130.75],
+                        [453932.821, 91129.452], [453937.636, 91126.775],
+                        [453944.994, 91123.529], [453950.133, 91123.825],
+                        [453952.629, 91124.177]]]}
         self.assertEqual(len(res), 1)
 
         self.assertEqual(res[0][0]['id'], 1)
-        self.assertDictEqual(res[0][0]['geometry'], exp_geo)
+        self.assertEqual(res[0][0]['geometry']['type'], exp_geo['type'])
+        self.assertEqual(res[0][0]['geometry']['coordinates'], exp_geo['coordinates'])
 
     def column_exists(self, table: str, column: str, data_type: str) -> bool:
         sql = (f'\n'
@@ -122,10 +159,12 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertTrue(self.table_exists(user_table))
 
         self.assertTrue(self.column_exists(user_table, 'id', 'integer'))
-        self.assertTrue(self.column_exists(user_table, 'geometry', 'USER-DEFINED'))
+        self.assertTrue(
+            self.column_exists(user_table, 'geometry', 'USER-DEFINED'))
 
-        datasets = {'geodb_user_tt1': {'crs': '4326', 'properties': {'tt': 'integer'}},
-                    'geodb_user_tt2': {'crs': '4326', 'properties': {'tt': 'integer'}}}
+        datasets = {
+            'geodb_user_tt1': {'crs': '4326', 'properties': {'tt': 'integer'}},
+            'geodb_user_tt2': {'crs': '4326', 'properties': {'tt': 'integer'}}}
 
         sql = f"SELECT geodb_create_collections('{json.dumps(datasets)}')"
         self._cursor.execute(sql)
@@ -133,7 +172,8 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertTrue(self.table_exists(user_table))
 
         self.assertTrue(self.column_exists(user_table, 'id', 'integer'))
-        self.assertTrue(self.column_exists(user_table, 'geometry', 'USER-DEFINED'))
+        self.assertTrue(
+            self.column_exists(user_table, 'geometry', 'USER-DEFINED'))
 
         datasets = ['geodb_user_test', 'geodb_user_tt1', 'geodb_user_tt2']
         sql = f"SELECT geodb_drop_collections('{json.dumps(datasets)}')"
@@ -241,7 +281,8 @@ class GeoDBSqlTest(unittest.TestCase):
             sql = "SELECT geodb_rename_collection('geodb_user_land_use', 'postgres_land_use2')"
             self._cursor.execute(sql)
 
-        self.assertIn('geodb_user has not access to that table or database. ', str(e.exception))
+        self.assertIn('geodb_user has not access to that table or database. ',
+                      str(e.exception))
 
     def test_get_collection_bbox(self):
         user_name = "geodb_user-with-hyphens"
@@ -303,3 +344,4 @@ class GeoDBSqlTest(unittest.TestCase):
         sql = f'SELECT geodb_revoke_access_from_collection(\'{name}\', ' \
               f'\'postgres\')'
         self._cursor.execute(sql)
+
