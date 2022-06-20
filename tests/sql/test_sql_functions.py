@@ -284,17 +284,39 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertIn('geodb_user has not access to that table or database. ',
                       str(e.exception))
 
+    def test_get_collection_bbox(self):
+        user_name = "geodb_user-with-hyphens"
+        user_table = user_name + "_test"
+        self._set_role(user_name)
+
+        props = {}
+        sql = f"SELECT geodb_create_collection('{user_table}', " \
+              f"'{json.dumps(props)}', '4326')"
+        self._cursor.execute(sql)
+
+        sql = f"INSERT INTO \"{user_table}\" (id, geometry) " \
+              "VALUES (1, 'POLYGON((-5 10, -5 11, 5 11, 5 10, -5 10))');"
+        self._cursor.execute(sql)
+        sql = f"INSERT INTO \"{user_table}\" (id, geometry) " \
+              "VALUES (2, 'POLYGON((-6 9, -6 10, 3 10, 3 9, -6 9))');"
+        self._cursor.execute(sql)
+
+        sql = f"SELECT geodb_get_collection_bbox('{user_table}')"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+        self.assertEqual('BOX(-6 9,5 11)', res[0])
+
     # noinspection SpellCheckingInspection
     def test_issue_35_unpublish(self):
         user_name = "geodb_user"
         self._set_role(user_name)
 
-        sql = "SELECT geodb_grant_access_to_collection('geodb_user_land_use'," \
-              "'public')"
+        sql = "SELECT geodb_grant_access_to_collection(" \
+              "'geodb_user_land_use', 'public')"
         self._cursor.execute(sql)
 
-        sql = "SELECT geodb_revoke_access_from_collection('geodb_user_land_use'," \
-              "'public')"
+        sql = "SELECT geodb_revoke_access_from_collection( " \
+              "'geodb_user_land_use', 'public')"
         self._cursor.execute(sql)
 
         self._test_publish_unpublish('alllowercase')

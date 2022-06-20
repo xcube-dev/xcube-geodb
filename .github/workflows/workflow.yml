@@ -21,7 +21,7 @@ env:
   RUN_NB_TESTS: "1"
 
   # Determines whether the dev branch ouy are working on shall have a docker image (default 0)
-  DOCKER_BUILD_MY_BRANCH: "0"
+  DOCKER_BUILD_MY_BRANCH: "1"
 
 jobs:
   unittest:
@@ -132,7 +132,7 @@ jobs:
         id: info
         run: |
           echo "TAG: ${{ steps.release.outputs.tag }}"
-          echo "DEPLOYMENT_PASE: {{ steps.deployment-phase.outputs.phase }}"
+          echo "DEPLOYMENT_PHASE: ${{ steps.deployment-phase.outputs.phase }}"
           echo "REAL_VERSION: ${{ steps.real-version.outputs.version }}"
           echo "EVENT: ${{ github.event_name }}"
       # Build jupyter lab docker image

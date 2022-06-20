@@ -223,7 +223,8 @@ class GeoDBClient(object):
 
         Args:
             collection (str): The name of the collection to inspect
-            database (str): The database the database resides in [current database]
+            database (str): The database the collection resides in [current
+            database]
 
         Returns:
             A dictionary with collection information
@@ -258,6 +259,41 @@ class GeoDBClient(object):
             return capabilities['definitions'][collection]
         else:
             self._maybe_raise(GeoDBError(f"Table {collection} does not exist."))
+
+    def get_collection_bbox(self, collection: str,
+                            database: Optional[str] = None) -> Sequence:
+        """
+        Retrieves the bounding box for the collection, i.e. the union of all
+        rows' geometries.
+
+        Args:
+            collection (str): The name of the collection to return the
+            bounding box for.
+            database (str): The database the collection resides in. Default:
+            current database.
+
+        Returns:
+            the bounding box given as tuple xmin, ymin, xmax, ymax
+
+        Examples:
+            >>> geodb = GeoDBClient(auth_mode='client-credentials', client_id='***', client_secret='***')
+            >>> geodb.get_collection_bbox('my_collection')
+            (-5, 10, 5, 11)
+
+        """
+        try:
+            from ast import literal_eval
+            database = database or self.database
+            dn = f"{database}_{collection}"
+
+            r = self._post(path='/rpc/geodb_get_collection_bbox', payload={
+                'collection': dn})
+            bbox = literal_eval(r.json()[0]['geodb_get_collection_bbox']
+                                .replace('BOX', '').replace(' ', ','))
+            result = (bbox[1], bbox[0], bbox[3], bbox[2])
+            return result
+        except GeoDBError as e:
+            self._maybe_raise(e)
 
     def get_my_collections(self, database: Optional[str] = None) -> Sequence:
         """
@@ -1314,7 +1350,7 @@ class GeoDBClient(object):
         This function can be used to reproject bboxes particularly with the use of GeoDBClient.get_collection_by_bbox.
 
         Args:
-            bbox: Tuple[float, float, float, float]: bbox to be reprojected
+            bbox: Tuple[float, float, float, float]: bbox to be reprojected, given as MINX, MINY, MAXX, MAXY
             from_crs: Source crs e.g. 3974
             to_crs: Target crs e.g. 4326
             wsg84_order (str): WSG84 (EPSG:4326) is expected to be in Lat Lon format ("lat_lon"). Use "lon_lat" if

@@ -378,6 +378,22 @@ BEGIN
 END
 $BODY$;
 
+CREATE OR REPLACE FUNCTION public.geodb_get_collection_bbox(collection text)
+    RETURNS text
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+DECLARE
+    qry TEXT;
+    bbox TEXT;
+BEGIN
+    qry := format('SELECT text(ST_Extent(geometry)) from %I AS src',
+                  collection);
+    EXECUTE qry INTO bbox;
+
+    RETURN bbox;
+END
+$BODY$;
 
 CREATE OR REPLACE FUNCTION public.geodb_get_my_collections(
     database text DEFAULT NULL::text)

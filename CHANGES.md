@@ -8,7 +8,8 @@
   pre-installed geodb database extension 
 - Added a new `count_by_bbox` filter function
 - Allowed to provide limit and offset in function `get_collection`
-
+- Added the new function `get_collection_bbox`, that returns the bounding box
+  of all geometries within a collection.
 
 ### Fixes
 
