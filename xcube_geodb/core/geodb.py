@@ -270,7 +270,7 @@ class GeoDBClient(object):
             collection (str): The name of the collection to return the
             bounding box for.
             database (str): The database the collection resides in. Default:
-            current database
+            current database.
 
         Returns:
             the bounding box given as tuple xmin, ymin, xmax, ymax
