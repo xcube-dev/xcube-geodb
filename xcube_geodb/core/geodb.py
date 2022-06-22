@@ -1563,7 +1563,7 @@ class GeoDBClient(object):
 
     def get_collection(self, collection: str, query: Optional[str] = None,
                        database: Optional[str] = None, limit: int = None,
-                       offset: int = None) -> Union[GeoDataFrame, DataFrame]:
+                       offset: int = 0) -> Union[GeoDataFrame, DataFrame]:
         """
         Query a collection
 
@@ -1594,8 +1594,8 @@ class GeoDBClient(object):
 
         try:
             actual_query = query if query else ''
-            if limit:
-                actual_query = '&' if query else ''
+            if limit or offset:
+                actual_query = f'{query}&' if query else ''
                 actual_query = f'{actual_query}limit={limit}&offset={offset}'
 
             if actual_query:

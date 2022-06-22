@@ -172,6 +172,11 @@ class GeoDBClientTest(unittest.TestCase):
                           f"/helge_test?limit=2&offset=3"
         m.get(url_with_limits, text=json.dumps(test_collection[3:5]))
 
+        url_with_limit_and_query = f"{self._server_test_url}:" \
+                          f"{self._server_test_port}" \
+                          f"/helge_test?id=10&limit=2&offset=0"
+        m.get(url_with_limit_and_query, text=json.dumps([test_collection[9]]))
+
         r = self._api.get_collection('test')
         self.assertIsInstance(r, GeoDataFrame)
         self.assertTrue('geometry' in r)
@@ -188,6 +193,14 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIsInstance(r, GeoDataFrame)
         self.assertTrue('geometry' in r)
         self.assertEqual(10, r.shape[0])
+
+        r = self._api.get_collection('test', 'id=10', limit=2)
+        self.assertIsInstance(r, GeoDataFrame)
+        self.assertTrue('geometry' in r)
+        self.assertEqual(1, r.shape[0])
+        it = r.iterrows()
+        self.assertEqual(10, dict(next(it)[1])['id'])
+
 
         url = f"{self._server_test_url}:{self._server_test_port}/helge_test"
         m.get(url, json=[])
