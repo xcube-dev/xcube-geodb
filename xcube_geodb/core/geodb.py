@@ -261,7 +261,8 @@ class GeoDBClient(object):
             self._maybe_raise(GeoDBError(f"Table {collection} does not exist."))
 
     def get_collection_bbox(self, collection: str,
-                            database: Optional[str] = None) -> Sequence:
+                            database: Optional[str] = None) \
+            -> Union[None, Sequence]:
         """
         Retrieves the bounding box for the collection, i.e. the union of all
         rows' geometries.
@@ -288,10 +289,11 @@ class GeoDBClient(object):
 
             r = self._post(path='/rpc/geodb_get_collection_bbox', payload={
                 'collection': dn})
-            bbox = literal_eval(r.json()[0]['geodb_get_collection_bbox']
-                                .replace('BOX', '').replace(' ', ','))
-            result = (bbox[1], bbox[0], bbox[3], bbox[2])
-            return result
+            bbox = r.json()[0]['geodb_get_collection_bbox']
+            if bbox is None:
+                return bbox
+            bbox = literal_eval(bbox.replace('BOX', '').replace(' ', ','))
+            return bbox[1], bbox[0], bbox[3], bbox[2]
         except GeoDBError as e:
             self._maybe_raise(e)
 
