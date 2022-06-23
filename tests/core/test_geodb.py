@@ -215,8 +215,18 @@ class GeoDBClientTest(unittest.TestCase):
               f"{self._server_test_port}/rpc/geodb_get_collection_bbox"
         m.post(url, text=expected_bbox)
 
-        r = self._api.get_collection_bbox('any')
-        self.assertEqual((9, -6, 11, 5), r)
+        bbox = self._api.get_collection_bbox('any')
+        self.assertEqual((9, -6, 11, 5), bbox)
+
+    def test_get_collection_bbox_col_empty(self, m):
+        self.set_global_mocks(m)
+        sql_answer = json.dumps([{'geodb_get_collection_bbox': None}])
+        url = f"{self._server_test_url}:" \
+              f"{self._server_test_port}/rpc/geodb_get_collection_bbox"
+        m.post(url, text=sql_answer)
+
+        bbox = self._api.get_collection_bbox('any')
+        self.assertIsNone(bbox)
 
     def test_rename_collection(self, m):
         self.set_global_mocks(m)
