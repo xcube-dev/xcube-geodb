@@ -289,8 +289,6 @@ class GeoDBClient(object):
 
             r = self._post(path='/rpc/geodb_get_collection_bbox', payload={'collection': dn})
             bbox = r.json()
-            if bbox is None:
-                return bbox
             bbox = literal_eval(bbox.replace('BOX', '').replace(' ', ','))
             return bbox[1], bbox[0], bbox[3], bbox[2]
         except GeoDBError as e:
