@@ -287,8 +287,7 @@ class GeoDBClient(object):
             database = database or self.database
             dn = f"{database}_{collection}"
 
-            r = self._post(path='/rpc/geodb_get_collection_bbox', payload={
-                'collection': dn})
+            r = self._post(path='/rpc/geodb_get_collection_bbox', payload={'collection': dn})
             bbox = r.json()
             if bbox is None:
                 return bbox

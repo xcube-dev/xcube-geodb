@@ -9,6 +9,7 @@ import requests_mock
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 from psycopg2 import OperationalError
+from requests import Response
 from shapely import wkt
 
 from tests.utils import del_env
@@ -210,13 +211,12 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_get_collection_bbox(self, m):
         self.set_global_mocks(m)
-        expected_bbox = 'BOX(-6 9,5 11)'
         url = f"{self._server_test_url}:" \
               f"{self._server_test_port}/rpc/geodb_get_collection_bbox"
-        m.post(url, text=expected_bbox)
+        m.post(url, json="BOX(-6 9,5 11)")
 
-        bbox = self._api.get_collection_bbox('any')
-        self.assertEqual((9, -6, 11, 5), bbox)
+        bbox = json.dumps(self._api.get_collection_bbox('any'))
+        self.assertEqual(str([9, -6, 11, 5]), str(bbox))
 
     def test_rename_collection(self, m):
         self.set_global_mocks(m)
