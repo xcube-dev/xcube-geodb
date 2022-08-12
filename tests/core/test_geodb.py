@@ -605,7 +605,7 @@ class GeoDBClientTest(unittest.TestCase):
         df = pd.read_csv(file)
         df['geometry'] = df['geometry'].apply(wkt.loads)
         return df
-        # return Geopd.DataFrame(df, crs={'init': 'epsg:4326'}, geometry=df['geometry'])
+        # return GeoDataFrame(df, crs={'init': 'epsg:4326'}, geometry=df['geometry'])
 
     def test_insert_into_collection(self, m):
         path = '/helge_tt'
