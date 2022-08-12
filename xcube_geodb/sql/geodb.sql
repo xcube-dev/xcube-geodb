@@ -372,12 +372,28 @@ $BODY$
 DECLARE
     seq_name TEXT;
 BEGIN
-    select replace(pg_get_serial_sequence(collection, 'id'), 'public.', '') into seq_name;
+    select replace(pg_get_serial_sequence('"' || collection || '"', 'id'), 'public.', '') into seq_name;
     EXECUTE format('REVOKE SELECT ON TABLE %I FROM %I;', collection, usr);
     EXECUTE format('REVOKE USAGE, SELECT ON SEQUENCE %s FROM %I', seq_name, usr);
 END
 $BODY$;
 
+CREATE OR REPLACE FUNCTION public.geodb_get_collection_bbox(collection text)
+    RETURNS text
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+DECLARE
+    qry TEXT;
+    bbox TEXT;
+BEGIN
+    qry := format('SELECT text(ST_Extent(geometry)) from %I AS src',
+                  collection);
+    EXECUTE qry INTO bbox;
+
+    RETURN bbox;
+END
+$BODY$;
 
 CREATE OR REPLACE FUNCTION public.geodb_get_my_collections(
     database text DEFAULT NULL::text)
@@ -939,7 +955,6 @@ BEGIN
     END IF;
 END
 $BODY$;
-
 
 CREATE OR REPLACE FUNCTION public.geodb_get_by_bbox(collection text,
                                                     minx double precision,

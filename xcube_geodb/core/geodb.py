@@ -224,7 +224,8 @@ class GeoDBClient(object):
 
         Args:
             collection (str): The name of the collection to inspect
-            database (str): The database the database resides in [current database]
+            database (str): The database the collection resides in [current
+            database]
 
         Returns:
             A dictionary with collection information
@@ -259,6 +260,40 @@ class GeoDBClient(object):
             return capabilities['definitions'][collection]
         else:
             self._maybe_raise(GeoDBError(f"Table {collection} does not exist."))
+
+    def get_collection_bbox(self, collection: str,
+                            database: Optional[str] = None) \
+            -> Union[None, Sequence]:
+        """
+        Retrieves the bounding box for the collection, i.e. the union of all
+        rows' geometries.
+
+        Args:
+            collection (str): The name of the collection to return the
+            bounding box for.
+            database (str): The database the collection resides in. Default:
+            current database.
+
+        Returns:
+            the bounding box given as tuple xmin, ymin, xmax, ymax
+
+        Examples:
+            >>> geodb = GeoDBClient(auth_mode='client-credentials', client_id='***', client_secret='***')
+            >>> geodb.get_collection_bbox('my_collection')
+            (-5, 10, 5, 11)
+
+        """
+        try:
+            from ast import literal_eval
+            database = database or self.database
+            dn = f"{database}_{collection}"
+
+            r = self._post(path='/rpc/geodb_get_collection_bbox', payload={'collection': dn})
+            bbox = r.json()
+            bbox = literal_eval(bbox.replace('BOX', '').replace(' ', ','))
+            return bbox[1], bbox[0], bbox[3], bbox[2]
+        except GeoDBError as e:
+            self._maybe_raise(e)
 
     def get_my_collections(self, database: Optional[str] = None) -> Sequence:
         """
@@ -1321,7 +1356,7 @@ class GeoDBClient(object):
         This function can be used to reproject bboxes particularly with the use of GeoDBClient.get_collection_by_bbox.
 
         Args:
-            bbox: Tuple[float, float, float, float]: bbox to be reprojected
+            bbox: Tuple[float, float, float, float]: bbox to be reprojected, given as MINX, MINY, MAXX, MAXY
             from_crs: Source crs e.g. 3974
             to_crs: Target crs e.g. 4326
             wsg84_order (str): WSG84 (EPSG:4326) is expected to be in Lat Lon format ("lat_lon"). Use "lon_lat" if
@@ -1531,14 +1566,19 @@ class GeoDBClient(object):
 
         return self.get_collection(collection=collection, query=f'limit={num_lines}', database=database)
 
-    def get_collection(self, collection: str, query: Optional[str] = None, database: Optional[str] = None) -> Union[GeoDataFrame, DataFrame]:
+
+    def get_collection(self, collection: str, query: Optional[str] = None,
+                       database: Optional[str] = None, limit: int = None,
+                       offset: int = 0) -> Union[GeoDataFrame, DataFrame]:
         """
         Query a collection.
 
         Args:
-            collection (str): The collection's name
+            collection (str): The collection's name.
             query (str): A query. Follow the http://postgrest.org/en/v6.0/api.html query convention.
-            database (str): The name of the database the collection resides in [current database]
+            database (str): The name of the database the collection resides in [current database].
+            limit (int): The maximum number of rows to be returned.
+            offset (int): Offset (start) of rows to return. Used in combination with limit.
 
         Returns:
             GeoDataFrame or DataFrame: results
@@ -1552,16 +1592,20 @@ class GeoDBClient(object):
 
         """
 
-        srid = self.get_collection_srid(collection=collection, database=database)
+        srid = self.get_collection_srid(collection=collection,
+                                        database=database)
 
         tab_prefix = database or self.database
         dn = f"{tab_prefix}_{collection}"
 
-        # self._raise_for_collection_exists(collection=dn)
-
         try:
-            if query:
-                r = self._get(f"/{dn}?{query}")
+            actual_query = query if query else ''
+            if limit or offset:
+                actual_query = f'{query}&' if query else ''
+                actual_query = f'{actual_query}limit={limit}&offset={offset}'
+
+            if actual_query:
+                r = self._get(f"/{dn}?{actual_query}")
             else:
                 r = self._get(f"/{dn}")
 

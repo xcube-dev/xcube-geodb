@@ -20,12 +20,26 @@ CREATE ROLE "geodb_user" WITH
 GRANT "geodb_user" TO postgres;
 GRANT "geodb_user" TO authenticator;
 
+CREATE ROLE "geodb_user-with-hyphens" WITH
+    LOGIN
+    NOSUPERUSER
+    INHERIT
+    NOCREATEDB
+    NOCREATEROLE
+    NOREPLICATION;
+
+GRANT "geodb_user-with-hyphens" TO postgres;
+GRANT "geodb_user-with-hyphens" TO authenticator;
+
 
 
 GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE public.geodb_user_databases TO "geodb_user";
+GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE public.geodb_user_databases TO "geodb_user-with-hyphens";
 GRANT SELECT, UPDATE, USAGE ON SEQUENCE public.geodb_user_databases_seq TO "geodb_user";
+GRANT SELECT, UPDATE, USAGE ON SEQUENCE public.geodb_user_databases_seq TO "geodb_user-with-hyphens";
 
 INSERT INTO public.geodb_user_databases("name", "owner", "iss") VALUES('geodb_user', 'geodb_user', '');
+INSERT INTO public.geodb_user_databases("name", "owner", "iss") VALUES('geodb_user-with-hyphens', 'geodb_user-with-hyphens', '');
 INSERT INTO public.geodb_user_databases("name", "owner", "iss") VALUES('postgres', 'postgres', '');
 
 CREATE TABLE public.postgres_land_use

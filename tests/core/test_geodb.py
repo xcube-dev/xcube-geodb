@@ -7,6 +7,7 @@ import pandas as pd
 import requests_mock
 from geopandas import GeoDataFrame
 from psycopg2 import OperationalError
+from requests import Response
 from shapely import wkt
 
 from tests.utils import del_env
@@ -126,10 +127,11 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIsInstance(res, pd.DataFrame)
         self.assertEqual(len(res), 0)
 
+    # noinspection PyTypeChecker
     def test_get_collection(self, m):
         self.set_global_mocks(m)
         global TEST_GEOM
-        expected_response = [
+        test_collection = [
             {"id": 1, "created_at": "2020-04-08T13:08:06.733626+00:00", "modified_at": None,
              "geometry": TEST_GEOM,
              "d_od": "2019-03-26"},
@@ -162,22 +164,57 @@ class GeoDBClientTest(unittest.TestCase):
              "d_od": "2019-03-26"},
         ]
         url = f"{self._server_test_url}:{self._server_test_port}/helge_test"
-        m.get(url, text=json.dumps(expected_response))
+        m.get(url, text=json.dumps(test_collection))
+
+        url_with_limits = f"{self._server_test_url}:" \
+                          f"{self._server_test_port}" \
+                          f"/helge_test?limit=2&offset=3"
+        m.get(url_with_limits, text=json.dumps(test_collection[3:5]))
+
+        url_with_limit_and_query = f"{self._server_test_url}:" \
+                          f"{self._server_test_port}" \
+                          f"/helge_test?id=10&limit=2&offset=0"
+        m.get(url_with_limit_and_query, text=json.dumps([test_collection[9]]))
 
         r = self._api.get_collection('test')
         self.assertIsInstance(r, GeoDataFrame)
         self.assertTrue('geometry' in r)
+
+        r = self._api.get_collection('test', limit=2, offset=3)
+        self.assertIsInstance(r, GeoDataFrame)
+        self.assertTrue('geometry' in r)
+        self.assertEqual(2, r.shape[0])
+        it = r.iterrows()
+        self.assertEqual(4, dict(next(it)[1])['id'])
+        self.assertEqual(5, dict(next(it)[1])['id'])
 
         r = self._api.head_collection('test')
         self.assertIsInstance(r, GeoDataFrame)
         self.assertTrue('geometry' in r)
         self.assertEqual(10, r.shape[0])
 
+        r = self._api.get_collection('test', 'id=10', limit=2)
+        self.assertIsInstance(r, GeoDataFrame)
+        self.assertTrue('geometry' in r)
+        self.assertEqual(1, r.shape[0])
+        it = r.iterrows()
+        self.assertEqual(10, dict(next(it)[1])['id'])
+
+
         url = f"{self._server_test_url}:{self._server_test_port}/helge_test"
         m.get(url, json=[])
         r = self._api.get_collection('test')
         self.assertIsInstance(r, pd.DataFrame)
         self.assertEqual(len(r), 0)
+
+    def test_get_collection_bbox(self, m):
+        self.set_global_mocks(m)
+        url = f"{self._server_test_url}:" \
+              f"{self._server_test_port}/rpc/geodb_get_collection_bbox"
+        m.post(url, json="BOX(-6 9,5 11)")
+
+        bbox = json.dumps(self._api.get_collection_bbox('any'))
+        self.assertEqual(str([9, -6, 11, 5]), str(bbox))
 
     def test_rename_collection(self, m):
         self.set_global_mocks(m)
