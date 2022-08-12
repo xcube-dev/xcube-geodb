@@ -95,7 +95,7 @@ def check_crs(crs):
 
 class GeoDBClient(object):
     """
-    Constructing the geoDB client. Dpending on the setup it will automatically setup credentials from
+    Constructing the geoDB client. Depending on the setup it will automatically setup credentials from
     environment variables. The user can also pass credentials into the constructor.
 
     Args:
@@ -104,7 +104,8 @@ class GeoDBClient(object):
         dotenv_file (str): Name of the dotenv file [.env] to set client IDs and secrets
         client_secret (str): Client secret (overrides environment variables)
         client_id (str): Client ID (overrides environment variables)
-        auth_mode (str): Authentication mode [silent]. Can be  thw oauth2 modes 'client-credentials', 'password', 'interactive' and 'none' for no authentication
+        auth_mode (str): Authentication mode [silent]. Can be the oauth2 modes 'client-credentials', 'password',
+        'interactive' and 'none' for no authentication
         auth_aud (str): Authentication audience
         config_file (str): Filename that stores config info for the geodb client
 
@@ -402,7 +403,7 @@ class GeoDBClient(object):
         Args:
             headers [Optional[Dict]]: Request headers. Allows Overriding common header entries.
             path (str): API path
-            payload (Union[Dict, Sequence]): Post body as Dict. Will be dumped to JSON
+            payload (Union[Dict, Sequence]): Post body as Dict or Sequence. Will be dumped to JSON
             params Optional[Dict]: Request parameters
             raise_for_status (bool): raise or not if status is not 200-299 [True]
         Returns:
@@ -830,7 +831,7 @@ class GeoDBClient(object):
 
     def move_collection(self, collection: str, new_database: str, database: Optional[str] = None):
         """
-        Move a collection from one database to another
+        Move a collection from one database to another.
 
         Args:
             collection (str): The name of the collection to be renamed
@@ -880,7 +881,8 @@ class GeoDBClient(object):
 
     def publish_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
-        Publish a collection. The collection will bew accessible by all users in the geoDB.
+        Publish a collection. The collection will be accessible by all users in the geoDB.
+
         Args:
             database (str): The database the collection resides in [current database]
             collection (str): The name of the collection that will be made public
@@ -902,7 +904,8 @@ class GeoDBClient(object):
 
     def unpublish_collection(self, collection: str, database: Optional[str] = None) -> Message:
         """
-        Revoke public access to a collection. The collection will nor be accessible by all users in the geoDB.
+        Revoke public access to a collection. The collection will not be accessible by all users in the geoDB.
+
         Args:
             database (str): The database the collection resides in [current database]
             collection (str): The name of the collection that will be removed from public access
@@ -924,7 +927,8 @@ class GeoDBClient(object):
     def revoke_access_from_collection(self, collection: str, usr: str, database: Optional[str] = None,
                                       **kwargs) -> Message:
         """
-        Revoke access from a collection
+        Revoke access from a collection.
+
         Args:
             collection (str): Name of the collection
             usr (str): User to revoke access from
@@ -944,7 +948,7 @@ class GeoDBClient(object):
 
     def list_my_grants(self) -> Union[DataFrame, Message]:
         """
-        List the access grants the current user has granted
+        List the access grants the current user has granted.
 
         Returns:
             DataFrame: A list of the current user's access grants
@@ -967,7 +971,7 @@ class GeoDBClient(object):
 
     def add_property(self, collection: str, prop: str, typ: str, database: Optional[str] = None) -> Message:
         """
-        Add a property to an existing collection
+        Add a property to an existing collection.
 
         Args:
             collection (str): The name of the collection to add a property to
@@ -989,7 +993,7 @@ class GeoDBClient(object):
     @deprecated_kwarg('namespace', 'database')
     def add_properties(self, collection: str, properties: Dict, database: Optional[str] = None, **kwargs) -> Message:
         """
-        Add properties to a collection
+        Add properties to a collection.
 
         Args:
             collection (str): The name of the collection to add properties to
@@ -1018,7 +1022,8 @@ class GeoDBClient(object):
 
     def drop_property(self, collection: str, prop: str, database: Optional[str] = None, **kwargs) -> Message:
         """
-        Drop a property from a collection
+        Drop a property from a collection.
+
         Args:
             collection (str): The name of the collection to drop the property from
             prop (str): The property to delete
@@ -1038,7 +1043,8 @@ class GeoDBClient(object):
     def drop_properties(self, collection: str, properties: Sequence[str], database: Optional[str] = None,
                         **kwargs) -> Message:
         """
-        Drop poperties from a collection
+        Drop properties from a collection.
+
         Args:
             collection (str): The name of the collection to delete properties from
             properties (Dict): A dictionary containing the property definitions
@@ -1074,7 +1080,7 @@ class GeoDBClient(object):
     @deprecated_kwarg('namespace', 'database')
     def get_properties(self, collection: str, database: Optional[str] = None, **kwargs) -> DataFrame:
         """
-        Get a list of properties of a collection
+        Get a list of properties of a collection.
 
         Args:
             collection (str): The name of the collection to retrieve a list of properties from
@@ -1101,7 +1107,7 @@ class GeoDBClient(object):
 
     def create_database(self, database: str) -> Message:
         """
-        Create a database
+        Create a database.
 
         Args:
             database (str): The name of the database to be created
@@ -1119,7 +1125,7 @@ class GeoDBClient(object):
 
     def truncate_database(self, database: str) -> Message:
         """
-        Delete all tables in the given database
+        Delete all tables in the given database.
 
         Args:
             database (str): The name of the database to be created
@@ -1137,7 +1143,7 @@ class GeoDBClient(object):
 
     def get_my_databases(self) -> DataFrame:
         """
-        Get a list of databases the current user owns
+        Get a list of databases the current user owns.
 
         Returns:
             DataFrame: A list of databases the user owns
@@ -1151,7 +1157,7 @@ class GeoDBClient(object):
 
     def database_exists(self, database: str) -> bool:
         """
-        Checks whether a database exists
+        Checks whether a database exists.
 
         Args:
             database (str): The name of the database to be checked
@@ -1172,7 +1178,8 @@ class GeoDBClient(object):
 
     def delete_from_collection(self, collection: str, query: str, database: Optional[str] = None) -> Message:
         """
-        Delete
+        Delete rows from collection.
+
         Args:
             collection (str): The name of the collection to delete rows from
             database (str): The name of the database to be checked
@@ -1199,7 +1206,7 @@ class GeoDBClient(object):
     def update_collection(self, collection: str, values: Dict, query: str, database: Optional[str] = None,
                           **kwargs) -> Message:
         """
-        Update data in a collection by a query
+        Update data in a collection by a query.
 
         Args:
             collection (str): The name of the collection to be updated
@@ -1267,7 +1274,7 @@ class GeoDBClient(object):
                                max_transfer_chunk_size: int = 1000) \
             -> Message:
         """
-        Insert data into a collection
+        Insert data into a collection.
 
         Args:
             collection (str): Collection to be inserted to
@@ -1512,7 +1519,6 @@ class GeoDBClient(object):
             if coll_crs is not None and coll_crs != bbox_crs:
                 bbox = self.transform_bbox_crs(bbox, bbox_crs, int(coll_crs), wsg84_order=wsg84_order)
                 bbox_crs = coll_crs
-            print(bbox)
             headers = {'Accept': 'application/vnd.pgrst.object+json'}
 
             r = self._post('/rpc/geodb_count_by_bbox', headers=headers, payload={
@@ -1539,7 +1545,7 @@ class GeoDBClient(object):
     def head_collection(self, collection: str, num_lines: int = 10, database: Optional[str] = None) -> \
             Union[GeoDataFrame, DataFrame]:
         """
-        Get the first num_lines of a collection
+        Get the first num_lines of a collection.
 
         Args:
             collection (str): The collection's name
@@ -1560,11 +1566,12 @@ class GeoDBClient(object):
 
         return self.get_collection(collection=collection, query=f'limit={num_lines}', database=database)
 
+
     def get_collection(self, collection: str, query: Optional[str] = None,
                        database: Optional[str] = None, limit: int = None,
                        offset: int = 0) -> Union[GeoDataFrame, DataFrame]:
         """
-        Query a collection
+        Query a collection.
 
         Args:
             collection (str): The collection's name.
@@ -1678,17 +1685,17 @@ class GeoDBClient(object):
     @property
     def server_url(self) -> str:
         """
-        Get URL of the geoDb server
+        Get URL of the geoDB server.
 
         Returns:
-            str: The URL of the GeoDB REST service
+            str: The URL of the geoDB REST service
         """
         return self._server_url
 
     def get_collection_srid(self, collection: str, database: Optional[str] = None) -> \
             Optional[Union[str, type(None), Message]]:
         """
-        Get the SRID of a collection
+        Get the SRID of a collection.
 
         Args:
             collection (str): The collection's name
@@ -1715,7 +1722,7 @@ class GeoDBClient(object):
 
     def _df_from_json(self, js: Dict, srid: Optional[int] = None) -> Union[GeoDataFrame, DataFrame]:
         """
-        Converts wkb geometry string to wkt from a PostGrest json result
+        Converts wkb geometry string to wkt from a PostGREST JSON result.
         Args:
             js (Dict): The geometries to be converted
             srid (Optional[int]):.
@@ -1778,6 +1785,7 @@ class GeoDBClient(object):
     def publish_gs(self, collection: str, database: Optional[str] = None):
         """
         Publishes collection to a BC geoservice (geoserver instance). Requires access registration.
+
         Args:
             collection (str): Name of the collection
             database (Optional[str]): Name of the database. Defaults to user database
@@ -1852,7 +1860,8 @@ class GeoDBClient(object):
 
     def unpublish_gs(self, collection: str, database: str):
         """
-        'UnPublishes' collection to a BC geoservice (geoserver instance). Requires access registration.
+        'UnPublishes' collection from a BC geoservice (geoserver instance). Requires access registration.
+
         Args:
             collection (str): Name of the collection
             database (Optional[str]): Name of the database. Defaults to user database
@@ -1872,7 +1881,7 @@ class GeoDBClient(object):
     @property
     def auth_access_token(self) -> str:
         """
-        Get the user's access token from
+        Get the user's access token.
 
         Returns:
             The current authentication access_token
@@ -1887,14 +1896,14 @@ class GeoDBClient(object):
 
     def refresh_auth_access_token(self):
         """
-        Refresh the authentication token
+        Refresh the authentication token.
 
         """
         self._auth_access_token = None
 
     def _raise_for_invalid_password_cfg(self) -> bool:
         """
-        Raise when the password configuration is wrong
+        Raise when the password configuration is wrong.
 
         Returns:
              True on success
@@ -1912,7 +1921,7 @@ class GeoDBClient(object):
 
     def _raise_for_invalid_client_credentials_cfg(self) -> bool:
         """
-        Raise when the client-credentials configuration is wrong
+        Raise when the client-credentials configuration is wrong.
 
         Returns:
              True on success
