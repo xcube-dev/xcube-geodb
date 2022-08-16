@@ -20,6 +20,17 @@ CREATE TABLE IF NOT EXISTS public."geodb_user_info"
     permissions  TEXT                   NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public."geodb_version_info"
+(
+    id           SERIAL              PRIMARY KEY,
+    version      TEXT                   NOT NULL,
+    date         DATE                   NOT NULL
+);
+GRANT SELECT ON TABLE geodb_version_info TO PUBLIC;
+INSERT INTO geodb_version_info VALUES (DEFAULT, 'VERSION_PLACEHOLDER', now());
+-- if manually setting up the database, this might be necessary to clean up:
+DELETE FROM geodb_version_info WHERE version like '%ERSION_PLACEHOLDER';
+
 
 CREATE OR REPLACE FUNCTION public.geodb_register_user_trg_func()
     RETURNS trigger
@@ -641,6 +652,12 @@ BEGIN
     RETURN current_user;
 END
 $BODY$;
+
+
+CREATE OR REPLACE FUNCTION public.geodb_get_geodb_version()
+    RETURNS text
+    LANGUAGE SQL
+    AS $$ SELECT version from geodb_version_info $$;
 
 
 -- FUNCTION: public.geodb_log_sizes()

@@ -381,6 +381,10 @@ class GeoDBClient(object):
     def _refresh_capabilities(self):
         self._capabilities = None
 
+    def get_geodb_version(self) -> str:
+        result = self._get(path='/rpc/geodb_get_geodb_version').json()[0]
+        return result['geodb_get_geodb_version']
+
     def refresh_config_from_env(self, dotenv_file: str = ".env", use_dotenv: bool = False):
         """
         Refresh the configuration from environment variables. The variables can be preset by a dotenv file.
