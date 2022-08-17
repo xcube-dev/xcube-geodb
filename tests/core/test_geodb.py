@@ -7,7 +7,6 @@ import pandas as pd
 import requests_mock
 from geopandas import GeoDataFrame
 from psycopg2 import OperationalError
-from requests import Response
 from shapely import wkt
 
 from tests.utils import del_env
@@ -40,6 +39,7 @@ class GeoDBClientTest(unittest.TestCase):
             self._server_full_address += ':' + str(self._server_test_port)
 
         self._server_test_auth_domain = "https://auth"
+        self.base_url = f'{self._server_test_url}:{self._server_test_port}'
 
     def tearDown(self) -> None:
         del_env(dotenv_path="tests/envs/.env_test")
@@ -339,18 +339,32 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertDictEqual({'name': 'test'}, res)
         self.assertIsInstance(res, dict)
 
+    # noinspection DuplicatedCode
     def test_create_collection(self, m):
-        expected_response = 'Success'
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
-        m.post(url, text=json.dumps(expected_response))
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
-        m.post(url, text=json.dumps(expected_response))
-        url = f"{self._server_test_url}:{self._server_test_port}/geodb_user_databases?name=eq.helge"
-        m.get(url, text=json.dumps('helge'))
         self.set_global_mocks(m)
 
-        res = self._api.create_collection(collection='test', properties={'test_col': 'inger'})
+        response = 'Success'
+        url = f'{self.base_url}/rpc/geodb_create_database'
+        m.post(url, text=json.dumps(response))
+        url = f'{self.base_url}/rpc/geodb_create_collections'
+        m.post(url, text=json.dumps(response))
+        url = f'{self.base_url}/geodb_user_databases?name=eq.helge'
+        m.get(url, text=json.dumps('helge'))
+        url = f'{self.base_url}/rpc/geodb_whoami'
+        m.post(url, text=json.dumps('helge'))
+        url = f'{self.base_url}/rpc/geodb_log_event'
+        log_event_endpoint = m.post(url, text=json.dumps(response))
+
+        self.assertEqual(0, log_event_endpoint.call_count)
+        res = self._api.create_collection(collection='test',
+                                          properties={'test_col': 'inger'})
         self.assertTrue(res)
+
+        self.assertEqual(1, log_event_endpoint.call_count)
+        self.assertDictEqual({"event_type": "created",
+                              "message": "collection helge_test",
+                              "user": "helge"},
+                             json.loads(log_event_endpoint.last_request.text))
 
     def test_create_collections(self, m):
         expected_response = {'collections': {'helge_land_use3': {'crs': 3794,
@@ -358,12 +372,16 @@ class GeoDBClientTest(unittest.TestCase):
                                                                                 'RABA_ID': 'float',
                                                                                 'RABA_PID': 'float'}}}}
         # noinspection DuplicatedCode
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
+        url = f'{self.base_url}/rpc/geodb_create_database'
         m.post(url, text=json.dumps(expected_response))
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
+        url = f'{self.base_url}/rpc/geodb_create_collections'
         m.post(url, text=json.dumps(expected_response))
-        url = f"{self._server_test_url}:{self._server_test_port}/geodb_user_databases?name=eq.helge"
+        url = f'{self.base_url}/geodb_user_databases?name=eq.helge'
         m.get(url, text=json.dumps('helge'))
+        url = f'{self.base_url}/rpc/geodb_whoami'
+        m.post(url, text=json.dumps('helge'))
+        url = f'{self.base_url}/rpc/geodb_log_event'
+        m.post(url, text=json.dumps(''))
         self.set_global_mocks(m)
 
         collections = {
@@ -420,12 +438,16 @@ class GeoDBClientTest(unittest.TestCase):
                                                                  'properties': {'D_OD': 'date',
                                                                                 'RABA_ID': 'float',
                                                                                 'RABA_PID': 'float'}}}}
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_database"
+        url = f'{self.base_url}/rpc/geodb_create_database'
         m.post(url, text=json.dumps(expected_response))
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_create_collections"
+        url = f'{self.base_url}/rpc/geodb_create_collections'
         m.post(url, text=json.dumps(expected_response))
-        url = f"{self._server_test_url}:{self._server_test_port}/geodb_user_databases?name=eq.helge"
+        url = f'{self.base_url}/geodb_user_databases?name=eq.helge'
         m.get(url, text=json.dumps('helge'))
+        url = f'{self.base_url}/rpc/geodb_whoami'
+        m.post(url, text=json.dumps('helge'))
+        url = f'{self.base_url}/rpc/geodb_log_event'
+        m.post(url, text=json.dumps(''))
         self.set_global_mocks(m)
 
         collections = {

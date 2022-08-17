@@ -78,6 +78,18 @@ class GeoDBError(ValueError):
     pass
 
 
+class EventType:
+    CREATED = 'created'
+    DROPPED = 'dropped'
+    PUBLISHED = 'published'
+    UNPUBLISHED = 'unpublished'
+    ROWS_ADDED = 'added rows'
+    ROWS_DROPPED = 'dropped rows'
+    PROPERTY_ADDED = 'added property'
+    PROPERTY_DROPPED = 'dropped property'
+    UPDATED_VERSION = 'updated_version'
+
+
 # noinspection PyShadowingNames,PyUnusedLocal
 def check_crs(crs):
     """This function is needed in order to ensure xcube_geodb to understand EPSG crs as well as ensure backward
@@ -691,6 +703,8 @@ class GeoDBClient(object):
         collections = {"collections": buffer}
         try:
             self._post(path='/rpc/geodb_create_collections', payload=collections)
+            for collection in collections['collections']:
+                self._log_event(EventType.CREATED, f'collection {collection}')
             return Message(collections)
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -2049,6 +2063,16 @@ class GeoDBClient(object):
             return True
         else:
             raise GeoDBError(f"Stored procedure {stored_procedure} does not exist")
+
+    def _log_event(self, event_type: EventType, message: str)\
+            -> requests.models.Response:
+        event = {
+            "event_type": event_type,
+            "message": message,
+            "user": self.whoami
+        }
+        return self._post(path='/rpc/geodb_log_event', payload=event,
+                          headers={"Prefer": "params=single-object"})
 
     @staticmethod
     def setup(host: Optional[str] = None,

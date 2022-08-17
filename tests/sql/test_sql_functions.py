@@ -1,3 +1,4 @@
+import datetime
 import os
 import sys
 import unittest
@@ -6,6 +7,7 @@ import psycopg2
 
 from tests.utils import make_install_geodb
 import xcube_geodb.version as version
+from xcube_geodb.core.geodb import EventType
 
 
 def get_app_dir():
@@ -357,3 +359,18 @@ class GeoDBSqlTest(unittest.TestCase):
               f'\'postgres\')'
         self._cursor.execute(sql)
 
+    def test_log_event(self):
+        event = {
+            'event_type': EventType.CREATED,
+            'message': 'something something something dark side',
+            'user': 'thomas'
+        }
+        sql = f'SELECT geodb_log_event(\'{json.dumps(event)}\'::json)'
+        self._cursor.execute(sql)
+        sql = f'SELECT * from "geodb_eventlog"'
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+        self.assertEqual('created', res[0])
+        self.assertEqual('something something something dark side', res[1])
+        self.assertEqual('thomas', res[2])
+        self.assertEqual(datetime.datetime, type(res[3]))

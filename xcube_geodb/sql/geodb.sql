@@ -31,6 +31,29 @@ INSERT INTO geodb_version_info VALUES (DEFAULT, 'VERSION_PLACEHOLDER', now());
 -- if manually setting up the database, this might be necessary to clean up:
 DELETE FROM geodb_version_info WHERE version like '%ERSION_PLACEHOLDER';
 
+CREATE TABLE IF NOT EXISTS public."geodb_eventlog"
+(
+    event_type   TEXT                NOT NULL,
+    message      TEXT                NOT NULL,
+    username     TEXT                NOT NULL,
+    date         TIMESTAMP           NOT NULL
+);
+GRANT ALL ON TABLE geodb_eventlog TO PUBLIC;
+
+CREATE OR REPLACE FUNCTION public.geodb_log_event(event json)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    AS
+    $BODY$
+    BEGIN
+        INSERT INTO public."geodb_eventlog"
+        VALUES (event ->> 'event_type',
+                event ->> 'message',
+                event ->> 'user',
+                now());
+    END
+    $BODY$;
+
 
 CREATE OR REPLACE FUNCTION public.geodb_register_user_trg_func()
     RETURNS trigger
