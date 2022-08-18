@@ -393,7 +393,7 @@ class GeoDBClient(object):
     def _refresh_capabilities(self):
         self._capabilities = None
 
-    def get_geodb_version(self) -> str:
+    def get_geodb_sql_version(self) -> str:
         result = self._get(path='/rpc/geodb_get_geodb_version').json()[0]
         return result['geodb_get_geodb_version']
 
