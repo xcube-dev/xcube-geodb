@@ -1219,4 +1219,4 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
         url = f'{self._server_full_address}/rpc/geodb_get_geodb_version'
         m.get(url, json=[{'geodb_get_geodb_version': '1.1.5-dev'}])
-        self.assertEqual('1.1.5', self._api.get_geodb_sql_version())
+        self.assertEqual('1.1.5-dev', self._api.get_geodb_sql_version())
