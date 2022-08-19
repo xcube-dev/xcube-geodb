@@ -83,11 +83,12 @@ class EventType:
     DROPPED = 'dropped'
     PUBLISHED = 'published'
     UNPUBLISHED = 'unpublished'
+    PUBLISHED_GS = 'published to geoserver'
+    UNPUBLISHED_GS = 'unpublished from geoserver'
     ROWS_ADDED = 'added rows'
     ROWS_DROPPED = 'dropped rows'
     PROPERTY_ADDED = 'added property'
     PROPERTY_DROPPED = 'dropped property'
-    UPDATED_VERSION = 'updated_version'
 
 
 # noinspection PyShadowingNames,PyUnusedLocal
@@ -682,10 +683,12 @@ class GeoDBClient(object):
 
         for collection in collections:
             if 'crs' in collections[collection]:
-                collections[collection]['crs'] = check_crs(collections[collection]['crs'])
+                collections[collection]['crs'] = \
+                    check_crs(collections[collection]['crs'])
             if clear:
                 try:
-                    self.drop_collection(collection=collection, database=database)
+                    self.drop_collection(collection=collection,
+                                         database=database)
                 except GeoDBError:
                     pass
 
@@ -702,7 +705,8 @@ class GeoDBClient(object):
 
         collections = {"collections": buffer}
         try:
-            self._post(path='/rpc/geodb_create_collections', payload=collections)
+            self._post(path='/rpc/geodb_create_collections',
+                       payload=collections)
             for collection in collections['collections']:
                 self._log_event(EventType.CREATED, f'collection {collection}')
             return Message(collections)
@@ -790,6 +794,8 @@ class GeoDBClient(object):
 
         try:
             self._post(path='/rpc/geodb_drop_collections', payload=payload)
+            for collection in collections:
+                self._log_event(EventType.DROPPED, f'collection {collection}')
             return Message(f"Collection {str(collections)} deleted")
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -897,13 +903,17 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e)
 
-    def publish_collection(self, collection: str, database: Optional[str] = None) -> Message:
+    def publish_collection(self, collection: str,
+                           database: Optional[str] = None) -> Message:
         """
-        Publish a collection. The collection will be accessible by all users in the geoDB.
+        Publish a collection. The collection will be accessible by all users
+        in the geoDB.
 
         Args:
-            database (str): The database the collection resides in [current database]
-            collection (str): The name of the collection that will be made public
+            database (str): The database the collection resides in
+                            [current database]
+            collection (str): The name of the collection that will be made
+                              public
 
         Returns:
             Message: Message whether operation succeeded
@@ -915,8 +925,12 @@ class GeoDBClient(object):
         try:
             database = database or self.database
 
-            self.grant_access_to_collection(collection=collection, usr='public', database=database)
-            return Message(f"Access granted on {collection} to public.")
+            self.grant_access_to_collection(collection=collection,
+                                            usr='public', database=database)
+            self._log_event(EventType.PUBLISHED, f'collection '
+                                                 f'{database}_{collection}')
+            return Message(f'Access granted on {database}_{collection} to '
+                           f'public.')
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -942,25 +956,31 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e)
 
-    def revoke_access_from_collection(self, collection: str, usr: str, database: Optional[str] = None,
+    def revoke_access_from_collection(self, collection: str, usr: str,
+                                      database: Optional[str] = None,
                                       **kwargs) -> Message:
+        #  todo - deprecate **kwargs argument
         """
         Revoke access from a collection.
 
         Args:
             collection (str): Name of the collection
             usr (str): User to revoke access from
-            database (str): The database the collection resides in [current database]
+            database (str): The database the collection resides in
+                            [current database]
 
         Returns:
             Message: Whether operation has succeeded
         """
+
         database = database or self.database
-        dn = f"{database}_{collection}"
+        dn = f'{database}_{collection}'
 
         try:
-            self._post(path='/rpc/geodb_revoke_access_from_collection', payload={'collection': dn, 'usr': usr})
-            return Message(f"Access revoked from {self.whoami} on {collection}")
+            self._post(path='/rpc/geodb_revoke_access_from_collection',
+                       payload={'collection': dn, 'usr': usr})
+            self._log_event(EventType.UNPUBLISHED, f'collection {dn}')
+            return Message(f'Access revoked from {self.whoami} on {dn}')
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -987,7 +1007,8 @@ class GeoDBClient(object):
         except Exception as e:
             return self._maybe_raise(GeoDBError(str(e)))
 
-    def add_property(self, collection: str, prop: str, typ: str, database: Optional[str] = None) -> Message:
+    def add_property(self, collection: str, prop: str, typ: str,
+                     database: Optional[str] = None) -> Message:
         """
         Add a property to an existing collection.
 
@@ -995,50 +1016,64 @@ class GeoDBClient(object):
             collection (str): The name of the collection to add a property to
             prop (str): Property name
             typ (str): The data type of the property (Postgres type)
-            database (str): The database the collection resides in [current database]
+            database (str): The database the collection resides in [current
+                            database]
 
         Returns:
-            Message: Success Message
+            Message: Success message
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.add_property(collection='[MyCollection]', name='[MyProperty]', type='[PostgresType]')
+            >>> geodb.add_property(collection='[MyCollection]', \
+                name='[MyProperty]', type='[PostgresType]')
         """
         prop = {prop: typ}
 
-        return self.add_properties(collection=collection, properties=prop, database=database)
+        return self.add_properties(collection=collection,
+                                   properties=prop, database=database)
 
-    @deprecated_kwarg('namespace', 'database')
-    def add_properties(self, collection: str, properties: Dict, database: Optional[str] = None, **kwargs) -> Message:
+    def add_properties(self, collection: str, properties: Dict,
+                       database: Optional[str] = None) -> Message:
         """
         Add properties to a collection.
 
         Args:
             collection (str): The name of the collection to add properties to
             properties (Dict): Property definitions as dictionary
-            database (str): The database the collection resides in [current database]
+            database (str): The database the collection resides in [current
+                            database]
         Returns:
             Message: Whether the operation succeeded
 
         Examples:
-            >>> properties = {'[MyName1]': '[PostgresType1]', '[MyName2]': '[PostgresType2]'}
+            >>> properties = {'[MyName1]': '[PostgresType1]', \
+                              '[MyName2]': '[PostgresType2]'}
             >>> geodb = GeoDBClient()
-            >>> geodb.add_property(collection='[MyCollection]', properties=properties)
+            >>> geodb.add_property(collection='[MyCollection]', \
+                                   properties=properties)
         """
 
         self._refresh_capabilities()
 
         database = database or self.database
-        collection = database + '_' + collection
+        dn = database + '_' + collection
 
         try:
-            self._post(path='/rpc/geodb_add_properties', payload={'collection': collection, 'properties': properties})
-
-            return Message(f"Properties added")
+            self._post(
+                path='/rpc/geodb_add_properties',
+                payload={'collection': dn, 'properties': properties})
+            for prop_name in properties:
+                prop_type = properties[prop_name]
+                self._log_event(
+                    EventType.PROPERTY_ADDED,
+                    f'{{name: {prop_name}, '
+                    f'type: {prop_type}}} to collection {dn}')
+            return Message(f'Properties added')
         except GeoDBError as e:
             return self._maybe_raise(e)
 
-    def drop_property(self, collection: str, prop: str, database: Optional[str] = None, **kwargs) -> Message:
+    def drop_property(self, collection: str, prop: str,
+                      database: Optional[str] = None, **kwargs) -> Message:
         """
         Drop a property from a collection.
 
@@ -1052,27 +1087,32 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.drop_property(collection='[MyCollection]', prop='[MyProperty]')
+            >>> geodb.drop_property(collection='[MyCollection]', \
+                                    prop='[MyProperty]')
         """
 
-        return self.drop_properties(collection=collection, properties=[prop], database=database)
+        return self.drop_properties(collection=collection, properties=[prop],
+                                    database=database)
 
-    @deprecated_kwarg('namespace', 'database')
-    def drop_properties(self, collection: str, properties: Sequence[str], database: Optional[str] = None,
-                        **kwargs) -> Message:
+    def drop_properties(self, collection: str, properties: Sequence[str],
+                        database: Optional[str] = None) -> Message:
         """
         Drop properties from a collection.
 
         Args:
-            collection (str): The name of the collection to delete properties from
-            properties (Dict): A dictionary containing the property definitions
-            database (str): The database the collection resides in [current database]
+            collection (str):  The name of the collection to delete properties
+                               from
+            properties (List): A list containing the property names
+            database (str):    The database the collection resides in [current
+                               database]
         Returns:
             Message: Whether the operation succeeded
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.drop_properties(collection='[MyCollection]', properties=['[MyProperty1]', '[MyProperty2]'])
+            >>> geodb.drop_properties(collection='MyCollection', \
+                                      properties=['MyProperty1', \
+                                                  'MyProperty2'])
         """
 
         self._refresh_capabilities()
@@ -1084,9 +1124,15 @@ class GeoDBClient(object):
         self._raise_for_stored_procedure_exists('geodb_drop_properties')
 
         try:
-            self._post(path='/rpc/geodb_drop_properties', payload={'collection': collection, 'properties': properties})
+            self._post(
+                path='/rpc/geodb_drop_properties',
+                payload={'collection': collection, 'properties': properties})
+            for prop in properties:
+                self._log_event(EventType.PROPERTY_DROPPED,
+                                f'{prop} from collection {collection}')
 
-            return Message(f"Properties {str(properties)} dropped from {collection}")
+            return Message(f'Properties {str(properties)} dropped from '
+                           f'{collection}')
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -1194,15 +1240,16 @@ class GeoDBClient(object):
         except GeoDBError as e:
             self._maybe_raise(e)
 
-    def delete_from_collection(self, collection: str, query: str, database: Optional[str] = None) -> Message:
+    def delete_from_collection(self, collection: str, query: str,
+                               database: Optional[str] = None) -> Message:
         """
         Delete rows from collection.
 
         Args:
             collection (str): The name of the collection to delete rows from
             database (str): The name of the database to be checked
-            query (str): Filter which records to delete. Follow the http://postgrest.org/en/v6.0/api.html query
-            convention.
+            query (str): Filter which records to delete. Follow the
+            http://postgrest.org/en/v6.0/api.html query convention.
         Returns:
             Message: Whether the operation has succeeded
 
@@ -1216,6 +1263,8 @@ class GeoDBClient(object):
 
         try:
             self._delete(f'/{dn}?{query}')
+            self._log_event(EventType.ROWS_DROPPED,
+                            f'from collection {dn} where {query}')
             return Message(f"Data from {collection} deleted")
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -1296,15 +1345,21 @@ class GeoDBClient(object):
 
         Args:
             collection (str): Collection to be inserted to
-            database (str): The name of the database the collection resides in [current database]
+            database (str): The name of the database the collection resides in
+                            [current database]
             values (GeoDataFrame): Values to be inserted
-            upsert (bool): Whether the insert shall replace existing rows (by PK)
-            crs (int, str): crs (in the form of an SRID) of the geometries. If not present, the method will attempt
-            guessing it from the GeoDataFrame input. Must be in sync with the target collection in the GeoDatabase
-            max_transfer_chunk_size (int): Maximum number of rows per chunk to be sent to the geodb.
+            upsert (bool): Whether the insert shall replace existing rows
+                           (by PK)
+            crs (int, str): crs (in the form of an SRID) of the geometries. If
+                            not present, the method will attempt guessing it
+                            from the GeoDataFrame input. Must be in sync with
+                            the target collection in the GeoDatabase
+            max_transfer_chunk_size (int): Maximum number of rows per chunk to
+                                           be sent to the geodb.
 
         Raises:
-            ValueError: When crs is not given and cannot be guessed from the GeoDataFrame
+            ValueError: When crs is not given and cannot be guessed from the
+                        GeoDataFrame
             GeoDBError: If the values are not in format Dict
 
         Returns:
@@ -1313,11 +1368,11 @@ class GeoDBClient(object):
         Example:
 
         """
-        # self._collection_exists(collection=collection)
         srid = self.get_collection_srid(collection, database)
         crs = check_crs(crs)
         if crs and srid and srid != crs:
-            raise GeoDBError(f"crs {crs} is not compatible with collection's crs {srid}")
+            raise GeoDBError(f'crs {crs} is not compatible with collection\'s ' 
+                             f'crs {srid}')
 
         crs = crs or srid
         total_rows = 0
@@ -1363,9 +1418,12 @@ class GeoDBClient(object):
                 except GeoDBError as e:
                     return self._maybe_raise(e)
         else:
-            self._maybe_raise(GeoDBError(f'Error: Format {type(values)} not supported.'))
+            self._maybe_raise(GeoDBError(f'Error: Format {type(values)} not '
+                                         f'supported.'))
 
-        return Message(f"{total_rows} rows inserted into {collection}")
+        msg = f"{total_rows} rows inserted into "
+        self._log_event(EventType.ROWS_ADDED, f'{msg}{dn}')
+        return Message(f'{msg}{collection}')
 
     @staticmethod
     def transform_bbox_crs(bbox: Tuple[float, float, float, float], from_crs: Union[int, str], to_crs: Union[int, str],
@@ -1802,11 +1860,13 @@ class GeoDBClient(object):
 
     def publish_gs(self, collection: str, database: Optional[str] = None):
         """
-        Publishes collection to a BC geoservice (geoserver instance). Requires access registration.
+        Publishes collection to a BC geoservice (geoserver instance). Requires
+        access registration.
 
         Args:
             collection (str): Name of the collection
-            database (Optional[str]): Name of the database. Defaults to user database
+            database (Optional[str]): Name of the database. Defaults to user
+                                    database
 
         Returns:
             Dict
@@ -1815,9 +1875,11 @@ class GeoDBClient(object):
         database = database or self.database
 
         try:
-            r = self._put(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections',
+            r = self._put(path=f'/api/v2/services/xcube_geoserv/databases/'
+                               f'{database}/collections',
                           payload={'collection_id': collection})
-
+            self._log_event(EventType.PUBLISHED_GS,
+                            f'collection {database}_{collection}')
             return r.json()
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -1878,11 +1940,13 @@ class GeoDBClient(object):
 
     def unpublish_gs(self, collection: str, database: str):
         """
-        'UnPublishes' collection from a BC geoservice (geoserver instance). Requires access registration.
+        'Unpublishes' collection from a BC geoservice (geoserver instance).
+        Requires access registration.
 
         Args:
             collection (str): Name of the collection
-            database (Optional[str]): Name of the database. Defaults to user database
+            database (Optional[str]): Name of the database. Defaults to user
+                                      database
 
         Returns:
             Dict
@@ -1890,9 +1954,12 @@ class GeoDBClient(object):
         """
 
         try:
-            self._delete(path=f'/api/v2/services/xcube_geoserv/databases/{database}/collections/{collection}')
-
-            return Message(f"Collection {collection} in database {database} deleted from Geoservice")
+            self._delete(path=f'/api/v2/services/xcube_geoserv/databases/'
+                              f'{database}/collections/{collection}')
+            self._log_event(EventType.UNPUBLISHED_GS,
+                            f'collection {database}_{collection}')
+            return Message(f'Collection {collection} in database {database} '
+                           f'deleted from Geoservice')
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -2064,7 +2131,11 @@ class GeoDBClient(object):
         else:
             raise GeoDBError(f"Stored procedure {stored_procedure} does not exist")
 
-    def _log_event(self, event_type: EventType, message: str)\
+    def get_event_log(self, collection: str, database: str, limit: int = 0,
+                      offset: int = 0) -> DataFrame:
+        pass
+
+    def _log_event(self, event_type: str, message: str) \
             -> requests.models.Response:
         event = {
             "event_type": event_type,

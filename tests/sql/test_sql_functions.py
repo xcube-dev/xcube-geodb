@@ -18,7 +18,8 @@ def get_app_dir():
     return os.path.dirname(version_path)
 
 
-@unittest.skipIf(os.environ.get('SKIP_INSTALLATION_TESTS', '0') == '1', 'Installation tests skipped')
+@unittest.skipIf(os.environ.get('SKIP_INSTALLATION_TESTS', '0') == '1',
+                 'Installation tests skipped')
 class TestInstallationProcedure(unittest.TestCase):
     def tearDown(self) -> None:
         app_path = get_app_dir()
@@ -117,7 +118,8 @@ class GeoDBSqlTest(unittest.TestCase):
 
         self.assertEqual(res[0][0]['id'], 1)
         self.assertEqual(res[0][0]['geometry']['type'], exp_geo['type'])
-        self.assertEqual(res[0][0]['geometry']['coordinates'], exp_geo['coordinates'])
+        self.assertEqual(res[0][0]['geometry']['coordinates'],
+                         exp_geo['coordinates'])
 
     def column_exists(self, table: str, column: str, data_type: str) -> bool:
         sql = (f'\n'
