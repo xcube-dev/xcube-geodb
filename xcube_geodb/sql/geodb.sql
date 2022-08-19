@@ -54,6 +54,24 @@ CREATE OR REPLACE FUNCTION public.geodb_log_event(event json)
     END
     $BODY$;
 
+CREATE OR REPLACE FUNCTION public.get_geodb_eventlog(
+    "event_type" text DEFAULT '%',
+    "collection" text DEFAULT '%')
+    RETURNS TABLE
+            (
+                events json
+            )
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    RETURN QUERY EXECUTE format('SELECT JSON_AGG(temp) from ' ||
+                                '(SELECT * from geodb_eventlog ' ||
+                                'WHERE event_type like ''%s''' ||
+                                'AND message like ''%%%s%%'') AS temp',
+                                event_type, collection);
+END
+$BODY$;
 
 CREATE OR REPLACE FUNCTION public.geodb_register_user_trg_func()
     RETURNS trigger
@@ -677,7 +695,7 @@ END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_get_geodb_version()
+CREATE OR REPLACE FUNCTION public.geodb_get_geodb_sql_version()
     RETURNS text
     LANGUAGE SQL
     AS $$ SELECT version from geodb_version_info $$;

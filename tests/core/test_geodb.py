@@ -10,7 +10,8 @@ from psycopg2 import OperationalError
 from shapely import wkt
 
 from tests.utils import del_env
-from xcube_geodb.core.geodb import GeoDBClient, GeoDBError, warn, check_crs
+from xcube_geodb.core.geodb import GeoDBClient, GeoDBError, warn, check_crs, \
+    EventType
 from xcube_geodb.core.message import Message
 
 TEST_GEOM = "0103000020D20E000001000000110000007593188402B51B4" \
@@ -1350,8 +1351,31 @@ class GeoDBClientTest(unittest.TestCase):
 
         r = self._api.auth_access_token
 
-    def test_get_geodb_version(self, m):
+    def test_get_geodb_sql_version(self, m):
         self.set_global_mocks(m)
-        url = f'{self._base_url}/rpc/geodb_get_geodb_version'
-        m.get(url, json=[{'geodb_get_geodb_version': '1.1.5-dev'}])
+        url = f'{self._base_url}/rpc/geodb_get_geodb_sql_version'
+        m.get(url, json=[{'geodb_get_geodb_sql_version': '1.1.5-dev'}])
         self.assertEqual('1.1.5-dev', self._api.get_geodb_sql_version())
+
+    def test_get_event_log(self, m):
+        self.set_global_mocks(m)
+        url = f'{self._base_url}/rpc/get_geodb_eventlog'
+        get_event_log = m.get(
+            url, json=[
+                {'events':
+                    [{
+                        'event_type': 'created',
+                        'message': 'collection my_test_collection',
+                        'username': 'heisterkamp',
+                        'date': '2022-08-19T00:19:03.968185'}]
+                }
+            ]
+        )
+        self.assertEqual(0, get_event_log.call_count)
+        result = self._api.get_event_log(EventType.CREATED)
+        self.assertEqual(1, get_event_log.call_count)
+        self.assertEqual('collection my_test_collection',
+                         result['events'][0]['message'])
+        self.assertEqual('heisterkamp',
+                         result['events'][0]['username'])
+

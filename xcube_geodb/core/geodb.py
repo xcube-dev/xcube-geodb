@@ -395,8 +395,8 @@ class GeoDBClient(object):
         self._capabilities = None
 
     def get_geodb_sql_version(self) -> str:
-        result = self._get(path='/rpc/geodb_get_geodb_version').json()[0]
-        return result['geodb_get_geodb_version']
+        result = self._get(path='/rpc/geodb_get_geodb_sql_version').json()[0]
+        return result['geodb_get_geodb_sql_version']
 
     def refresh_config_from_env(self, dotenv_file: str = ".env", use_dotenv: bool = False):
         """
@@ -2131,9 +2131,30 @@ class GeoDBClient(object):
         else:
             raise GeoDBError(f"Stored procedure {stored_procedure} does not exist")
 
-    def get_event_log(self, collection: str, database: str, limit: int = 0,
-                      offset: int = 0) -> DataFrame:
-        pass
+    def get_event_log(self, event_type: Optional[EventType] = None,
+                      collection: Optional[str] = None,
+                      database: Optional[str] = None) -> DataFrame:
+        path = '/rpc/get_geodb_eventlog'
+        if event_type or collection or database:
+            path = f'{path}?'
+        if event_type:
+            path = f'{path}event_type={event_type}'
+
+        if collection or database:
+            database = database or self.database
+            collection = collection or '%'
+            dn = f'{database}_{collection}'
+            path = f'{path}&collection={dn}'
+
+        try:
+            result = self._get(path=path).json()[0]
+            if result['events']:
+                return DataFrame.from_dict(result)
+            else:
+                return DataFrame(
+                    columns=['event_type', 'message', 'username', 'date'])
+        except GeoDBError as e:
+            return self._maybe_raise(e)
 
     def _log_event(self, event_type: str, message: str) \
             -> requests.models.Response:
