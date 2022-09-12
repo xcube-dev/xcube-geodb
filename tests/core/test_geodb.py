@@ -219,19 +219,31 @@ class GeoDBClientTest(unittest.TestCase):
     def test_rename_collection(self, m):
         self.set_global_mocks(m)
 
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_rename_collection"
+        url = f"{self._base_url}/rpc/geodb_rename_collection"
         m.post(url, text="success")
+
+        url = f'{self._base_url}/rpc/geodb_log_event'
+        log_event_endpoint = m.post(url, text=json.dumps('something'))
+
+        self.assertEqual(0, log_event_endpoint.call_count)
 
         res = self._api.rename_collection('test', 'test_new')
         expected = {'Message': "Collection renamed from test to test_new"}
         self.check_message(res, expected)
 
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_rename_collection"
+        url = f"{self._base_url}/rpc/geodb_rename_collection"
         m.post(url, text="error", status_code=400)
 
         with self.assertRaises(GeoDBError) as e:
             self._api.rename_collection('test', 'test_new')
         self.assertEqual("error", str(e.exception))
+
+        self.assertEqual(1, log_event_endpoint.call_count)
+        self.assertDictEqual({"event_type": "renamed",
+                              "message": "collection test to test_new",
+                              "user": "helge"},
+                             json.loads(log_event_endpoint.last_request.text))
+
 
     def test_move_collection(self, m):
         self.set_global_mocks(m)

@@ -81,6 +81,7 @@ class GeoDBError(ValueError):
 class EventType:
     CREATED = 'created'
     DROPPED = 'dropped'
+    RENAMED = 'renamed'
     PUBLISHED = 'published'
     UNPUBLISHED = 'unpublished'
     PUBLISHED_GS = 'published to geoserver'
@@ -829,7 +830,8 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e)
 
-    def rename_collection(self, collection: str, new_name: str, database: Optional[str] = None):
+    def rename_collection(self, collection: str, new_name: str,
+                          database: Optional[str] = None):
         """
 
         Args:
@@ -847,9 +849,12 @@ class GeoDBClient(object):
         new_dn = f"{database}_{new_name}"
 
         try:
-            self._post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
-
-            return Message(f"Collection renamed from {collection} to {new_name}")
+            self._post(path='/rpc/geodb_rename_collection',
+                       payload={'collection': old_dn, 'new_name': new_dn})
+            self._log_event(EventType.RENAMED,
+                            f'collection {collection} to {new_name}')
+            return Message(
+                f"Collection renamed from {collection} to {new_name}")
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -2134,6 +2139,22 @@ class GeoDBClient(object):
     def get_event_log(self, event_type: Optional[EventType] = None,
                       collection: Optional[str] = None,
                       database: Optional[str] = None) -> DataFrame:
+        """
+        Args:
+            event_type (EventType): The type of the events for which to get
+                                    the event log; if None, all events are
+                                    returned
+            collection (str):       The name of the collection for which to get
+                                    the event log; if None, all collections are
+                                    returned
+            database (str):         The database of the collection
+
+        Returns:
+            Whether the stored procedure exists
+
+        Raises:
+            GeoDBError if the stored procedure does not exist
+        """
         path = '/rpc/get_geodb_eventlog'
         if event_type or collection or database:
             path = f'{path}?'
