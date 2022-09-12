@@ -852,7 +852,7 @@ class GeoDBClient(object):
             self._post(path='/rpc/geodb_rename_collection',
                        payload={'collection': old_dn, 'new_name': new_dn})
             self._log_event(EventType.RENAMED,
-                            f'collection {collection} to {new_name}')
+                            f'collection {old_dn} to {new_dn}')
             return Message(
                 f"Collection renamed from {collection} to {new_name}")
         except GeoDBError as e:
