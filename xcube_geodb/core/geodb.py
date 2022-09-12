@@ -2136,18 +2136,18 @@ class GeoDBClient(object):
         else:
             raise GeoDBError(f"Stored procedure {stored_procedure} does not exist")
 
-    def get_event_log(self, event_type: Optional[EventType] = None,
-                      collection: Optional[str] = None,
-                      database: Optional[str] = None) -> DataFrame:
+    def get_event_log(self, collection: Optional[str] = None,
+                      database: Optional[str] = None,
+                      event_type: Optional[EventType] = None,) -> DataFrame:
         """
         Args:
-            event_type (EventType): The type of the events for which to get
-                                    the event log; if None, all events are
-                                    returned
             collection (str):       The name of the collection for which to get
                                     the event log; if None, all collections are
                                     returned
             database (str):         The database of the collection
+            event_type (EventType): The type of the events for which to get
+                                    the event log; if None, all events are
+                                    returned
 
         Returns:
             Whether the stored procedure exists
@@ -2170,7 +2170,7 @@ class GeoDBClient(object):
         try:
             result = self._get(path=path).json()[0]
             if result['events']:
-                return DataFrame.from_dict(result)
+                return DataFrame.from_dict(result['events'])
             else:
                 return DataFrame(
                     columns=['event_type', 'message', 'username', 'date'])

@@ -1387,7 +1387,7 @@ class GeoDBClientTest(unittest.TestCase):
         result = self._api.get_event_log(EventType.CREATED)
         self.assertEqual(1, get_event_log.call_count)
         self.assertEqual('collection my_test_collection',
-                         result['events'][0]['message'])
+                         result.iloc[0]['message'])
         self.assertEqual('heisterkamp',
-                         result['events'][0]['username'])
+                         result.iloc[0]['username'])
 
