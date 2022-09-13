@@ -264,7 +264,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual(1, log_event_endpoint.call_count)
         self.assertDictEqual(
             {"event_type": "moved",
-             "message": "collection test from db_old to db_new",
+             "message": "collection db_old_test to db_new_test",
              "user": "helge"},
             json.loads(log_event_endpoint.last_request.text))
 

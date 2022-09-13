@@ -872,7 +872,7 @@ class GeoDBClient(object):
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.move_collection('[Collection]', '[New Database]')
+            >>> geodb.move_collection('collection', 'new_database')
         """
 
         database = database or self._database
@@ -883,8 +883,8 @@ class GeoDBClient(object):
             self._post(path='/rpc/geodb_rename_collection',
                        payload={'collection': old_dn, 'new_name': new_dn})
 
-            self._log_event(EventType.MOVED, f'collection {collection} from '
-                                             f'{database} to {new_database}')
+            self._log_event(EventType.MOVED,
+                            f'collection {old_dn} to {new_dn}')
             return Message(f"Collection moved from {database} to "
                            f"{new_database}")
         except GeoDBError as e:
