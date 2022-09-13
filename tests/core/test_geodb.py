@@ -28,6 +28,7 @@ TEST_GEOM = "0103000020D20E000001000000110000007593188402B51B4" \
             "93188402B51B41B6F3FDD4423FF640"
 
 
+# noinspection DuplicatedCode
 @requests_mock.mock(real_http=False)
 class GeoDBClientTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -231,6 +232,13 @@ class GeoDBClientTest(unittest.TestCase):
         expected = {'Message': "Collection renamed from test to test_new"}
         self.check_message(res, expected)
 
+        self.assertEqual(1, log_event_endpoint.call_count)
+        self.assertDictEqual(
+            {"event_type": "renamed",
+             "message": "collection None_test to None_test_new",
+             "user": "helge"},
+            json.loads(log_event_endpoint.last_request.text))
+
         url = f"{self._base_url}/rpc/geodb_rename_collection"
         m.post(url, text="error", status_code=400)
 
@@ -238,22 +246,27 @@ class GeoDBClientTest(unittest.TestCase):
             self._api.rename_collection('test', 'test_new')
         self.assertEqual("error", str(e.exception))
 
-        self.assertEqual(1, log_event_endpoint.call_count)
-        self.assertDictEqual({"event_type": "renamed",
-                              "message": "collection test to test_new",
-                              "user": "helge"},
-                             json.loads(log_event_endpoint.last_request.text))
-
-
     def test_move_collection(self, m):
         self.set_global_mocks(m)
 
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_rename_collection"
+        url = f'{self._base_url}/rpc/geodb_rename_collection'
         m.post(url, text="success")
 
-        res = self._api.move_collection('test', 'db_old', 'db_new')
-        expected = {'Message': "Collection moved from db_new to db_old"}
+        url = f'{self._base_url}/rpc/geodb_log_event'
+        log_event_endpoint = m.post(url, text=json.dumps('something'))
+
+        self.assertEqual(0, log_event_endpoint.call_count)
+
+        res = self._api.move_collection('test', 'db_new', 'db_old')
+        expected = {'Message': "Collection moved from db_old to db_new"}
         self.check_message(res, expected)
+
+        self.assertEqual(1, log_event_endpoint.call_count)
+        self.assertDictEqual(
+            {"event_type": "moved",
+             "message": "collection test from db_old to db_new",
+             "user": "helge"},
+            json.loads(log_event_endpoint.last_request.text))
 
         m.post(url, text="error", status_code=400)
 
@@ -264,18 +277,30 @@ class GeoDBClientTest(unittest.TestCase):
     def test_copy_collection(self, m):
         self.set_global_mocks(m)
 
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_copy_collection"
+        url = f'{self._base_url}/rpc/geodb_copy_collection'
         m.post(url, text="success")
+        url = f'{self._base_url}/rpc/geodb_log_event'
+        log_event_endpoint = m.post(url, text=json.dumps('something'))
 
-        res = self._api.copy_collection('test', 'db_new', 'db_new')
+        self.assertEqual(0, log_event_endpoint.call_count)
 
-        expected = {'Message': "Collection copied from None/test to db_new/db_new"}
+        res = self._api.copy_collection('col', 'col_new', 'db_new')
+
+        expected = {
+            'Message': 'Collection copied from None_col to db_new_col_new'
+        }
         self.check_message(res, expected)
+        self.assertEqual(1, log_event_endpoint.call_count)
+        self.assertDictEqual(
+            {"event_type": "copied",
+             "message": "collection None_col to db_new_col_new",
+             "user": "helge"},
+            json.loads(log_event_endpoint.last_request.text))
 
         m.post(url, text="error", status_code=400)
 
         with self.assertRaises(GeoDBError) as e:
-            self._api.copy_collection('test', 'db_new', 'db_new')
+            self._api.copy_collection('col', 'col_new', 'db_new')
         self.assertEqual("error", str(e.exception))
 
     def test_auth(self, m):

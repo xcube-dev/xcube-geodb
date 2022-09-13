@@ -82,6 +82,8 @@ class EventType:
     CREATED = 'created'
     DROPPED = 'dropped'
     RENAMED = 'renamed'
+    COPIED = 'copied'
+    MOVED = 'moved'
     PUBLISHED = 'published'
     UNPUBLISHED = 'unpublished'
     PUBLISHED_GS = 'published to geoserver'
@@ -858,12 +860,13 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e)
 
-    def move_collection(self, collection: str, new_database: str, database: Optional[str] = None):
+    def move_collection(self, collection: str, new_database: str,
+                        database: Optional[str] = None):
         """
         Move a collection from one database to another.
 
         Args:
-            collection (str): The name of the collection to be renamed
+            collection (str): The name of the collection to be moved
             new_database (str): The database the collection will be moved to
             database (str): The database the collection resides in
 
@@ -877,24 +880,31 @@ class GeoDBClient(object):
         new_dn = f"{new_database}_{collection}"
 
         try:
-            self._post(path='/rpc/geodb_rename_collection', payload={'collection': old_dn, 'new_name': new_dn})
+            self._post(path='/rpc/geodb_rename_collection',
+                       payload={'collection': old_dn, 'new_name': new_dn})
 
-            return Message(f"Collection moved from {database} to {new_database}")
+            self._log_event(EventType.MOVED, f'collection {collection} from '
+                                             f'{database} to {new_database}')
+            return Message(f"Collection moved from {database} to "
+                           f"{new_database}")
         except GeoDBError as e:
             return self._maybe_raise(e)
 
-    def copy_collection(self, collection: str, new_collection: str, new_database: str, database: Optional[str] = None):
+    def copy_collection(self, collection: str, new_collection: str,
+                        new_database: str, database: Optional[str] = None):
         """
 
         Args:
             collection (str): The name of the collection to be copied
             new_collection (str): The new name of the collection
-            database (str): The database the collection resides in [current database]
+            database (str): The database the collection resides in
+                            [current database]
             new_database (str): The database the collection will be copied to
 
         Examples:
             >>> geodb = GeoDBClient()
-            >>> geodb.copy_collection('[Collection]', '[New Collection]')
+            >>> geodb.copy_collection('col', 'col_new', 'target_db',
+                                      'source_db')
         """
 
         database = database or self._database
@@ -902,9 +912,13 @@ class GeoDBClient(object):
         to_dn = f"{new_database}_{new_collection}"
 
         try:
-            self._post(path='/rpc/geodb_copy_collection', payload={'old_collection': from_dn, 'new_collection': to_dn})
+            self._post(
+                path='/rpc/geodb_copy_collection',
+                payload={'old_collection': from_dn, 'new_collection': to_dn})
 
-            return Message(f"Collection copied from {database}/{collection} to {new_database}/{new_collection}")
+            self._log_event(EventType.COPIED,
+                            f'collection {from_dn} to {to_dn}')
+            return Message(f'Collection copied from {from_dn} to {to_dn}')
         except GeoDBError as e:
             return self._maybe_raise(e)
 
