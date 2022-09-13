@@ -1,3 +1,4 @@
+import datetime
 import os
 import sys
 import unittest
@@ -6,6 +7,7 @@ import psycopg2
 
 from tests.utils import make_install_geodb
 import xcube_geodb.version as version
+from xcube_geodb.core.geodb import EventType
 
 
 def get_app_dir():
@@ -16,7 +18,8 @@ def get_app_dir():
     return os.path.dirname(version_path)
 
 
-@unittest.skipIf(os.environ.get('SKIP_INSTALLATION_TESTS', '0') == '1', 'Installation tests skipped')
+@unittest.skipIf(os.environ.get('SKIP_INSTALLATION_TESTS', '0') == '1',
+                 'Installation tests skipped')
 class TestInstallationProcedure(unittest.TestCase):
     def tearDown(self) -> None:
         app_path = get_app_dir()
@@ -55,7 +58,10 @@ class GeoDBSqlTest(unittest.TestCase):
         app_path = get_app_dir()
         fn = os.path.join(app_path, 'sql', 'geodb.sql')
         with open(fn) as sql_file:
-            cls._cursor.execute(sql_file.read())
+            sql_content = sql_file.read()
+            sql_content = sql_content.replace('VERSION_PLACEHOLDER',
+                                              version.version)
+            cls._cursor.execute(sql_content)
 
         fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup.sql')
         with open(fn) as sql_file:
@@ -112,7 +118,8 @@ class GeoDBSqlTest(unittest.TestCase):
 
         self.assertEqual(res[0][0]['id'], 1)
         self.assertEqual(res[0][0]['geometry']['type'], exp_geo['type'])
-        self.assertEqual(res[0][0]['geometry']['coordinates'], exp_geo['coordinates'])
+        self.assertEqual(res[0][0]['geometry']['coordinates'],
+                         exp_geo['coordinates'])
 
     def column_exists(self, table: str, column: str, data_type: str) -> bool:
         sql = (f'\n'
@@ -243,6 +250,17 @@ class GeoDBSqlTest(unittest.TestCase):
 
         self.assertIn('Database test exists already.', str(e.exception))
 
+    def test_get_geodb_sql_version(self):
+        user_name = "geodb_user"
+        self._set_role(user_name)
+
+        sql = f"SELECT geodb_get_geodb_sql_version()"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+
+        self.assertEqual(1, len(res))
+        self.assertEqual(version.version, res[0])
+
     def test_truncate_database(self):
         user_name = "geodb_user"
         self._set_role(user_name)
@@ -332,17 +350,86 @@ class GeoDBSqlTest(unittest.TestCase):
               'PRIMARY KEY, geometry geometry(Geometry, 3794) NOT NULL);'
         self._cursor.execute(sql)
 
-        print(sql)
         sql = f'INSERT INTO "{name}" (id, geometry)' \
               'VALUES (1, \'0103000020D20E000001000000110000007593188402B51B41B6F3FDD4423FF6405839B4C802B51B412B8716D9EC3EF6406F1283C0EBB41B41A8C64B37C53EF640B6F3FDD4E4B41B419A999999A33EF6400E2DB29DCFB41B41EE7C3F35B63EF6407F6ABC74C0B41B41EE7C3F35B63EF6407B14AE47BDB41B41AAF1D24D043FF6408B6CE77B64B41B413F355EBA8F3FF6402B8716D970B41B41986E1283EC3FF640A4703D0A76B41B4179E92631AE3FF6404260E5D08AB41B4123DBF97E923FF6409EEFA7C69CB41B4100000000AC3FF6405839B448B3B41B411D5A643B973FF6408195438BC6B41B41666666666C3FF640D122DBF9E3B41B4139B4C876383FF640E9263188F8B41B41333333333D3FF6407593188402B51B41B6F3FDD4423FF640\')';
         self._cursor.execute(sql)
 
-        print(sql)
         sql = f'SELECT geodb_grant_access_to_collection(\'{name}\',' \
               f'\'postgres\')'
-        print(sql)
         self._cursor.execute(sql)
         sql = f'SELECT geodb_revoke_access_from_collection(\'{name}\', ' \
               f'\'postgres\')'
         self._cursor.execute(sql)
 
+    def test_log_event(self):
+        event = {
+            'event_type': EventType.CREATED,
+            'message': 'something something something dark side',
+            'user': 'thomas'
+        }
+        sql = f'SELECT geodb_log_event(\'{json.dumps(event)}\'::json)'
+        self._cursor.execute(sql)
+        sql = f'SELECT * from "geodb_eventlog"'
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+        self.assertEqual('created', res[0])
+        self.assertEqual('something something something dark side', res[1])
+        self.assertEqual('thomas', res[2])
+        self.assertEqual(datetime.datetime, type(res[3]))
+
+    def test_get_event_log(self):
+        event_type_list = [event for event in EventType.__dict__.keys() if
+                  not event.startswith('__')]
+        for t in event_type_list:
+            event = {
+                'event_type': t,
+                'message': f'{t} happened on database_collection',
+                'user': 'thomas'
+            }
+            sql = f'SELECT geodb_log_event(\'{json.dumps(event)}\'::json)'
+            self._cursor.execute(sql)
+
+        event = {
+            'event_type': 'ROWS_ADDED',
+            'message': 'added rows happened on db_col',
+            'user': 'wahnfried'
+        }
+        sql = f'SELECT geodb_log_event(\'{json.dumps(event)}\'::json)'
+        self._cursor.execute(sql)
+
+        sql = f'SELECT get_geodb_eventlog()'
+        self._cursor.execute(sql)
+        events = self._cursor.fetchall()[0][0]
+        self.assertEqual(len(event_type_list) + 1, len(events))
+
+        first_event = events[0]
+        self.assertEqual('CREATED', first_event['event_type'])
+        self.assertEqual('CREATED happened on database_collection',
+                         first_event['message'])
+        self.assertEqual('thomas', first_event['username'])
+
+        last_event = events[-1]
+        self.assertEqual('ROWS_ADDED', last_event['event_type'])
+        self.assertEqual('added rows happened on db_col',
+                         last_event['message'])
+        self.assertEqual('wahnfried', last_event['username'])
+
+        sql = f'SELECT get_geodb_eventlog(\'PUBLISHED\')'
+        self._cursor.execute(sql)
+        events = self._cursor.fetchall()[0][0]
+        self.assertEqual(1, len(events))
+
+        self.assertEqual('PUBLISHED', events[0]['event_type'])
+        self.assertEqual('PUBLISHED happened on database_collection',
+                         events[0]['message'])
+        self.assertEqual('thomas', events[0]['username'])
+
+        sql = f'SELECT get_geodb_eventlog(\'%\', \'db_col\')'
+        self._cursor.execute(sql)
+        events = self._cursor.fetchall()[0][0]
+        self.assertEqual(1, len(events))
+
+        self.assertEqual('ROWS_ADDED', events[0]['event_type'])
+        self.assertEqual('added rows happened on db_col',
+                         events[0]['message'])
+        self.assertEqual('wahnfried', events[0]['username'])

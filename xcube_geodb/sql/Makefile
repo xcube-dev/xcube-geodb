@@ -8,7 +8,7 @@ ifeq ($(GEODB_VERSION), "unkown")
 	exit 1
 else
 	echo "GEODB_VERSION=$(GEODB_VERSION)"
-	cp $(EXTENSION).sql $(EXTENSION)--$(GEODB_VERSION).sql
+	cat $(EXTENSION).sql | sed "s:VERSION_PLACEHOLDER:$(GEODB_VERSION):" > $(EXTENSION)--$(GEODB_VERSION).sql
 	sed "s/<version>/$(GEODB_VERSION)/g" geodb.control.template > geodb.control
 endif
 

@@ -2,6 +2,11 @@
 
 ### New Features
 
+- Added function`get_geodb_sql_version` that shows the version of the deployed 
+  SQL, which can differ from the Python client version.
+- Added logging: the database now maintains a table that reflects
+  changes to the collections. The logs can be read using the new function
+  `get_event_log`.
 
 ### Fixes
 
@@ -10,8 +15,8 @@
 
 ### New Features
 
-- Added a new auth mode `none`. The aim of this mode is enabling users installing the geoDB infrastructure without oauth2
-  for e.g. testing purposes.
+- Added a new auth mode `none`. The aim of this mode is enabling users
+  installing the geoDB infrastructure without oauth2 for e.g. testing purposes.
 - A new geoDB docker backend image has been added. This image can be used to set up a postgis database with a 
   pre-installed geodb database extension 
 - Added a new `count_by_bbox` filter function
