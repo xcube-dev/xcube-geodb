@@ -1,3 +1,10 @@
+## v1.0.5 (in development)
+
+### New Features
+
+
+### Fixes
+
 ## v1.0.4
 
 ### New Features
