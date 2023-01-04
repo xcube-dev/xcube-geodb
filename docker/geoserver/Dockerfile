@@ -1,6 +1,5 @@
 # An image on basis of this docker file should be pushed to quay.io/bcdev/xcube-geoserv:<version>
 # The version may diverge from geodb version as geoserver is expected to seldom change.
-# After pushing a new version of this docker image to quay.io, adapt tag in k8s-configs/xcube-geodb/helm/charts/values-*.yaml
 #
 # Example how to push a new docker image to quay.io for version 1.0.3:
 #   sudo docker build -t xcube-geoserv:1.0.3 .
