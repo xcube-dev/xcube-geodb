@@ -100,7 +100,7 @@ jobs:
         shell: bash -l {0}
         working-directory: notebooks
         run: |
-          for nb in *.ipynb
+          for nb in $(ls *.ipynb | grep -v publish_collection)
           do
             papermill $nb  $(basename -s .ipynb $nb)_out.ipynb
           done
