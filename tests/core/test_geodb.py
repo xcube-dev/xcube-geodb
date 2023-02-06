@@ -217,6 +217,13 @@ class GeoDBClientTest(unittest.TestCase):
         bbox = json.dumps(self._api.get_collection_bbox('any'))
         self.assertEqual(str([9, -6, 11, 5]), str(bbox))
 
+        m.post(url, text='[{"geodb_get_collection_bbox":'
+                         '"BOX(112561.21 278713.135,685425.116 570140.955)"}]')
+        bbox = json.dumps(self._api.get_collection_bbox('any'))
+        self.assertEqual(str([278713.135, 112561.21, 570140.955, 685425.116]),
+                         str(bbox))
+
+
     def test_rename_collection(self, m):
         self.set_global_mocks(m)
 
