@@ -2,8 +2,9 @@
 
 ### New Features
 
-
 ### Fixes
+
+- removed `jupyterlab` from dependencies, as it is not being used.
 
 ## v1.0.4
 

@@ -15,6 +15,3 @@ dependencies:
   - ipyleaflet
   - python-fastjsonschema
   - python-dotenv
-
-  # Exploring
-  - jupyterlab
