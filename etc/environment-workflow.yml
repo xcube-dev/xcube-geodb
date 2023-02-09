@@ -23,4 +23,5 @@ dependencies:
   - nbconvert
   - requests
   - ipyleaflet
-
+  - python-fastjsonschema
+  - python-dotenv
