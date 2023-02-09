@@ -21,7 +21,7 @@ env:
   RUN_NB_TESTS: "1"
 
   # Determines whether the dev branch ouy are working on shall have a docker image (default 0)
-  DOCKER_BUILD_MY_BRANCH: "1"
+  DOCKER_BUILD_MY_BRANCH: "0"
 
 jobs:
   unittest:
