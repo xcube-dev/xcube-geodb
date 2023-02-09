@@ -19,11 +19,8 @@ dependencies:
   - pytest-cov >=2.6
   - postgis
   - geopandas
-  - matplotlib-base
   - psycopg2
   - nbconvert
   - requests
   - ipyleaflet
-  - python-fastjsonschema
-  - python-dotenv
 
