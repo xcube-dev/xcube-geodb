@@ -17,9 +17,12 @@ dependencies:
   # Testing
   - pytest >=4.4
   - pytest-cov >=2.6
-  - httpretty
-  - pgsanity
-  - postgis
+  - geopandas
+  - matplotlib-base
+  - psycopg2
   - nbconvert
-
+  - requests
+  - ipyleaflet
+  - python-fastjsonschema
+  - python-dotenv
 
