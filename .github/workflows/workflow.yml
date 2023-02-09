@@ -42,7 +42,7 @@ jobs:
           channels: conda-forge
           auto-update-conda: false
           activate-environment: xcube-geodb
-          environment-file: etc/environment-workflow.linux-64.lock
+          environment-file: etc/environment-workflow.yml
       - run: |
           conda info
           conda list
