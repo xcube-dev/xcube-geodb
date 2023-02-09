@@ -5,6 +5,7 @@
 ### Fixes
 
 - removed `jupyterlab` from dependencies, as it is not being used.
+- updated tests to run on with psycopg2 versions
 
 ## v1.0.4
 
