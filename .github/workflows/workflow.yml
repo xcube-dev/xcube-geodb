@@ -38,14 +38,13 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
-#          mamba-version: "*"
           channels: conda-forge
           auto-update-conda: true
           activate-environment: xcube-geodb
           environment-file: etc/environment-workflow.yml
       - run: |
           conda info
-          conda list
+          conda list --explicit
           conda config --show-sources
           conda config --show
           printenv | sort
