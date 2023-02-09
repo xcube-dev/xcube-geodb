@@ -1,4 +1,4 @@
-name: xcube_geodb
+name: xcube-geodb
 channels:
   - conda-forge
 
