@@ -21,7 +21,7 @@ env:
   RUN_NB_TESTS: "1"
 
   # Determines whether the dev branch ouy are working on shall have a docker image (default 0)
-  DOCKER_BUILD_MY_BRANCH: "1"
+  DOCKER_BUILD_MY_BRANCH: "0"
 
 jobs:
   unittest:
@@ -38,9 +38,8 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         if: ${{ env.RUN_UNITTESTS == '1' }}
         with:
-          mamba-version: "*"
           channels: conda-forge
-          auto-update-conda: false
+          auto-update-conda: true
           activate-environment: xcube-geodb
           environment-file: etc/environment-workflow.linux-64.lock
       - run: |
@@ -80,10 +79,9 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         if: ${{ env.RUN_NB_TESTS == '1' }}
         with:
-          mamba-version: "*"
           channels: conda-forge
           activate-environment: xcube-geodb
-          environment-file: environment.yml
+          environment-file: etc/environment-workflow.linux-64.lock
       - name: setup xcube-geodb
         if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}

@@ -31,7 +31,8 @@ CREATE ROLE "geodb_user-with-hyphens" WITH
 GRANT "geodb_user-with-hyphens" TO postgres;
 GRANT "geodb_user-with-hyphens" TO authenticator;
 
-
+GRANT ALL ON SCHEMA public TO "geodb_user";
+GRANT ALL ON SCHEMA public TO "geodb_user-with-hyphens";
 
 GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE public.geodb_user_databases TO "geodb_user";
 GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE public.geodb_user_databases TO "geodb_user-with-hyphens";

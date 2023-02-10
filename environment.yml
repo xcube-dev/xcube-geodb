@@ -9,8 +9,8 @@ dependencies:
   - pip
   - geopandas
   - matplotlib-base
-  - descartes
   - psycopg2
+  - postgis
   - requests
   - ipyleaflet
   - python-fastjsonschema
