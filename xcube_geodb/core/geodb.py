@@ -304,9 +304,17 @@ class GeoDBClient(object):
             database = database or self.database
             dn = f"{database}_{collection}"
 
-            r = self._post(path='/rpc/geodb_get_collection_bbox', payload={'collection': dn})
-            bbox = r.json()
-            bbox = literal_eval(bbox.replace('BOX', '').replace(' ', ','))
+            r = self._post(path='/rpc/geodb_get_collection_bbox',
+                           payload={'collection': dn})
+            bbox = r.text \
+                .replace('BOX', '') \
+                .replace(' ', ',') \
+                .replace('[', '').replace(']', '') \
+                .replace('{', '').replace('}', '') \
+                .replace('(', '').replace(')', '') \
+                .replace('"geodb_get_collection_bbox":', '') \
+                .replace('"', '')
+            bbox = literal_eval(bbox)
             return bbox[1], bbox[0], bbox[3], bbox[2]
         except GeoDBError as e:
             self._maybe_raise(e)
