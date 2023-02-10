@@ -2,7 +2,7 @@
 FROM jupyter/datascience-notebook:latest
 
 # Person responsible
-LABEL maintainer="helge.dzierzon@brockmann-consult.de"
+LABEL maintainer="thomas.storm@brockmann-consult.de"
 LABEL name=xcube_geodb
 
 USER $NB_UID
@@ -13,7 +13,7 @@ WORKDIR /tmp
 ADD environment.yml /tmp/environment.yml
 RUN mamba env update -n base
 RUN mamba install -n base -y  -c conda-forge jupyterlab-git jupyterlab-drawio jupyterlab_code_formatter jupyterlab-spellchecker
-RUN source activate base && pip install nb_black jupyterlab-geojson
+RUN source activate base && pip install jupyterlab-geojson
 
 ADD --chown=1000:100 . ./xcube-geodb
 WORKDIR /tmp/xcube-geodb
