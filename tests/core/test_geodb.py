@@ -224,6 +224,10 @@ class GeoDBClientTest(unittest.TestCase):
                          str(bbox))
 
 
+        m.post(url, text='[{"geodb_estimate_collection_bbox":null}]')
+        bbox = self._api.get_collection_bbox('any')
+        self.assertIsNone(bbox)
+
     def test_rename_collection(self, m):
         self.set_global_mocks(m)
 
