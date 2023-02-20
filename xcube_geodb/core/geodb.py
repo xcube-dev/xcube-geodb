@@ -278,7 +278,8 @@ class GeoDBClient(object):
             self._maybe_raise(GeoDBError(f"Table {collection} does not exist."))
 
     def get_collection_bbox(self, collection: str,
-                            database: Optional[str] = None) \
+                            database: Optional[str] = None,
+                            exact: Optional[bool] = False) \
             -> Union[None, Sequence]:
         """
         Retrieves the bounding box for the collection, i.e. the union of all
@@ -286,15 +287,19 @@ class GeoDBClient(object):
 
         Args:
             collection (str): The name of the collection to return the
-            bounding box for.
+             bounding box for.
             database (str): The database the collection resides in. Default:
-            current database.
+             current database.
+            exact (bool): If the exact bbox shall be computed. Warning: This
+             may take much longer. Default: False.
 
         Returns:
             the bounding box given as tuple xmin, ymin, xmax, ymax
 
         Examples:
-            >>> geodb = GeoDBClient(auth_mode='client-credentials', client_id='***', client_secret='***')
+            >>> geodb = GeoDBClient(auth_mode='client-credentials', \
+                                    client_id='***',
+                                    client_secret='***')
             >>> geodb.get_collection_bbox('my_collection')
             (-5, 10, 5, 11)
 
@@ -304,8 +309,13 @@ class GeoDBClient(object):
             database = database or self.database
             dn = f"{database}_{collection}"
 
-            r = self._post(path='/rpc/geodb_get_collection_bbox',
-                           payload={'collection': dn})
+            if exact:
+                r = self._post(path='/rpc/geodb_get_collection_bbox',
+                               payload={'collection': dn})
+            else:
+                r = self._post(path='/rpc/geodb_estimate_collection_bbox',
+                               payload={'collection': dn})
+
             bbox = r.text \
                 .replace('BOX', '') \
                 .replace(' ', ',') \
@@ -313,6 +323,7 @@ class GeoDBClient(object):
                 .replace('{', '').replace('}', '') \
                 .replace('(', '').replace(')', '') \
                 .replace('"geodb_get_collection_bbox":', '') \
+                .replace('"geodb_estimate_collection_bbox":', '') \
                 .replace('"', '')
             bbox = literal_eval(bbox)
             return bbox[1], bbox[0], bbox[3], bbox[2]

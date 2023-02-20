@@ -325,6 +325,32 @@ class GeoDBSqlTest(unittest.TestCase):
         res = self._cursor.fetchone()
         self.assertEqual('BOX(-6 9,5 11)', res[0])
 
+    def test_estimate_collection_bbox(self):
+        user_name = "geodb_user-with-hyphens"
+        user_table = user_name + "_test"
+        self._set_role(user_name)
+
+        props = {}
+        sql = f"SELECT geodb_create_collection('{user_table}', " \
+              f"'{json.dumps(props)}', '4326')"
+        self._cursor.execute(sql)
+
+        sql = f"INSERT INTO \"{user_table}\" (id, geometry) " \
+              "VALUES (1, 'POLYGON((-5 10, -5 11, 5 11, 5 10, -5 10))');"
+        self._cursor.execute(sql)
+        sql = f"INSERT INTO \"{user_table}\" (id, geometry) " \
+              "VALUES (2, 'POLYGON((-6 9, -6 10, 3 10, 3 9, -6 9))');"
+        self._cursor.execute(sql)
+
+        sql = f"ANALYZE \"{user_table}\";"
+        self._cursor.execute(sql)
+
+        sql = f"SELECT geodb_estimate_collection_bbox('{user_table}')"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+        self.assertEqual('BOX(-6.054999828338623 8.989999771118164,'
+                         '5.054999828338623 11.010000228881836)', res[0])
+
     # noinspection SpellCheckingInspection
     def test_issue_35_unpublish(self):
         user_name = "geodb_user"

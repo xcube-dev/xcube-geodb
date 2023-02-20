@@ -447,6 +447,23 @@ BEGIN
 END
 $BODY$;
 
+CREATE OR REPLACE FUNCTION public.geodb_estimate_collection_bbox(collection text)
+    RETURNS text
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+DECLARE
+    qry TEXT;
+    bbox TEXT;
+BEGIN
+    qry := format('SELECT ST_EstimatedExtent(%L, ''geometry'') AS src',
+                  collection);
+    EXECUTE qry INTO bbox;
+
+    RETURN bbox;
+END
+$BODY$;
+
 CREATE OR REPLACE FUNCTION public.geodb_get_my_collections(
     database text DEFAULT NULL::text)
     RETURNS TABLE
