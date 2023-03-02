@@ -1458,6 +1458,15 @@ class GeoDBClient(object):
                     self._post(f'/{dn}', payload=js, headers=headers)
                 except GeoDBError as e:
                     return self._maybe_raise(e)
+                except requests.exceptions.ConnectionError as e:
+                    if 'Connection aborted' in str(e) \
+                            and 'LineTooLong(\'got more than 65536 bytes ' \
+                                'when reading header line\')' in str(e):
+                        # ignore this error - the ingestion has worked.
+                        # see https://github.com/dcs4cop/xcube-geodb/issues/60
+                        pass
+                    else:
+                        raise e
         else:
             self._maybe_raise(GeoDBError(f'Error: Format {type(values)} not '
                                          f'supported.'))

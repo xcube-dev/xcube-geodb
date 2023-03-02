@@ -4,6 +4,7 @@ from io import StringIO
 from unittest.mock import MagicMock
 
 import pandas as pd
+import requests
 import requests_mock
 from geopandas import GeoDataFrame
 from psycopg2 import OperationalError
@@ -784,23 +785,45 @@ class GeoDBClientTest(unittest.TestCase):
             # noinspection PyTypeChecker
             self._api.insert_into_collection('tt', [1, 2, 3])
 
-        self.assertEqual("Error: Format <class 'list'> not supported.", str(e.exception))
+        self.assertEqual('Error: Format <class \'list\'> not supported.',
+                         str(e.exception))
 
         with self.assertRaises(GeoDBError) as e:
             self._api.insert_into_collection('tt', values, crs=3307)
 
-        self.assertEqual("crs 3307 is not compatible with collection's crs 4326", str(e.exception))
+        self.assertEqual(
+            'crs 3307 is not compatible with collection\'s crs 4326',
+            str(e.exception))
 
         values = GeoDataFrame(df, crs='epsg:4326', geometry=df['geometry'])
 
         values.crs.to_epsg = MagicMock('to_epsg', return_value=None)
-        self._api.get_collection_srid = MagicMock('get_collection_srid', return_value=None)
+        self._api.get_collection_srid = MagicMock('get_collection_srid',
+                                                  return_value=None)
 
         with self.assertRaises(GeoDBError) as e:
             self._api.insert_into_collection('tt', values)
 
-        self.assertEqual("Invalid crs in geopandas data frame. You can pass the crs as parameter (crs=[your crs])",
+        self.assertEqual('Invalid crs in geopandas data frame. You can pass '
+                         'the crs as parameter (crs=[your crs])',
                          str(e.exception))
+
+        exception_msg = '(\'Connection aborted.\', LineTooLong(\'got more ' \
+                        'than 65536 bytes when reading header line\'))'
+        m.register_uri('POST', self._base_url + path,
+                       exc=requests.exceptions.ConnectionError(exception_msg))
+        values = GeoDataFrame(df, crs='epsg:4326', geometry=df['geometry'])
+        message = self._api.insert_into_collection('tt', values)
+        expected = {'Message': '11002 rows inserted into tt'}
+        self.check_message(message, expected)
+
+        with self.assertRaises(requests.exceptions.ConnectionError) as e:
+            exception_msg = '(\'Connection aborted for some reason\')'
+            m.register_uri('POST', self._base_url + path,
+                           exc=requests.exceptions.ConnectionError(exception_msg))
+            values = GeoDataFrame(df, crs='epsg:4326', geometry=df['geometry'])
+            self._api.insert_into_collection('tt', values)
+
 
     def test_grant_access_to_collection(self, m):
         self.set_global_mocks(m)
