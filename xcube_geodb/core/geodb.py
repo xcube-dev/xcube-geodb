@@ -294,7 +294,8 @@ class GeoDBClient(object):
              may take much longer. Default: False.
 
         Returns:
-            the bounding box given as tuple xmin, ymin, xmax, ymax
+            the bounding box given as tuple xmin, ymin, xmax, ymax or None if
+            collection is empty
 
         Examples:
             >>> geodb = GeoDBClient(auth_mode='client-credentials', \
@@ -325,6 +326,8 @@ class GeoDBClient(object):
                 .replace('"geodb_get_collection_bbox":', '') \
                 .replace('"geodb_estimate_collection_bbox":', '') \
                 .replace('"', '')
+            if bbox == 'null':
+                return None
             bbox = literal_eval(bbox)
             return bbox[1], bbox[0], bbox[3], bbox[2]
         except GeoDBError as e:

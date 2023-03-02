@@ -223,6 +223,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual(str([278713.135, 112561.21, 570140.955, 685425.116]),
                          str(bbox))
 
+
         url = f"{self._server_test_url}:" \
               f"{self._server_test_port}/rpc/geodb_estimate_collection_bbox"
         m.post(url, json="BOX(-5 8,2 10)")
@@ -234,6 +235,10 @@ class GeoDBClientTest(unittest.TestCase):
                          '"BOX(-5 8,2 10)"}]')
         bbox = json.dumps(self._api.get_collection_bbox('any'))
         self.assertEqual(str([8, -5, 10, 2]), str(bbox))
+
+        m.post(url, text='[{"geodb_get_collection_bbox":null}]')
+        bbox = self._api.get_collection_bbox('any')
+        self.assertIsNone(bbox)
 
     def test_rename_collection(self, m):
         self.set_global_mocks(m)
