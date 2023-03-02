@@ -4,6 +4,7 @@ from io import StringIO
 from unittest.mock import MagicMock
 
 import pandas as pd
+import requests
 import requests_mock
 from geopandas import GeoDataFrame
 from psycopg2 import OperationalError
@@ -794,16 +795,16 @@ class GeoDBClientTest(unittest.TestCase):
         exception_msg = '(\'Connection aborted.\', LineTooLong(\'got more ' \
                         'than 65536 bytes when reading header line\'))'
         m.register_uri('POST', self._base_url + path,
-                       exc=ConnectionError(exception_msg))
+                       exc=requests.exceptions.ConnectionError(exception_msg))
         values = GeoDataFrame(df, crs='epsg:4326', geometry=df['geometry'])
         message = self._api.insert_into_collection('tt', values)
         expected = {'Message': '11002 rows inserted into tt'}
         self.check_message(message, expected)
 
-        with self.assertRaises(ConnectionError) as e:
+        with self.assertRaises(requests.exceptions.ConnectionError) as e:
             exception_msg = '(\'Connection aborted for some reason\')'
             m.register_uri('POST', self._base_url + path,
-                           exc=ConnectionError(exception_msg))
+                           exc=requests.exceptions.ConnectionError(exception_msg))
             values = GeoDataFrame(df, crs='epsg:4326', geometry=df['geometry'])
             self._api.insert_into_collection('tt', values)
 
