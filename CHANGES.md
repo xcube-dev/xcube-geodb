@@ -7,6 +7,7 @@
 - removed `jupyterlab` from dependencies, as it is not being used.
 - updated tests to run on with psycopg2 versions
 - fixed rare exception in `insert_into_collection`
+- fixed: function `get_collection_bbox` raises exception for empty collections
 
 ## v1.0.4
 
