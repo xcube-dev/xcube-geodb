@@ -1119,6 +1119,43 @@ BEGIN
 END
 $BODY$;
 
+CREATE OR REPLACE FUNCTION public.geodb_count_collection(collection text)
+    RETURNS BIGINT
+    LANGUAGE 'plpgsql' STRICT
+AS
+$$
+DECLARE
+    row_ct    int;
+    qry       text;
+BEGIN
+    qry := format('SELECT COUNT(*) from "%s"', collection);
+    EXECUTE qry INTO row_ct;
+    RETURN row_ct;
+END
+$$;
+
+CREATE OR REPLACE FUNCTION public.geodb_estimate_collection_count(collection text)
+    RETURNS BIGINT
+    LANGUAGE 'plpgsql' STRICT
+AS
+$$
+DECLARE
+    pages_ct  int;
+    row_ct    int;
+    qry       text;
+BEGIN
+    SELECT relpages FROM pg_class INTO pages_ct;
+    IF pages_ct > 0 then
+      qry := format('SELECT (reltuples / relpages * (pg_relation_size(oid) / 8192))::bigint
+                     FROM pg_class
+                     WHERE oid = ''"%s"''::regclass;', collection);
+      EXECUTE qry INTO row_ct;
+      RETURN row_ct;
+    ELSE
+      RETURN public.geodb_count_collection(collection);
+    END IF;
+END
+$$;
 
 -- TODO Merge with get_by_bbox
 CREATE OR REPLACE FUNCTION public.geodb_count_by_bbox(collection text,

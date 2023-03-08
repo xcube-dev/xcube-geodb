@@ -3,6 +3,8 @@
 ### New Features
 
 - allowed to use `get_collection_bbox` in an alternative, faster way
+- added function `count_collection` that allows to count or estimate the 
+  count of collection rows
 
 ### Fixes
 

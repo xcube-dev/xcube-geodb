@@ -619,6 +619,19 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIsInstance(gdf, pd.DataFrame)
         self.assertEqual(0, len(gdf))
 
+    def test_get_collection_count(self, m):
+        self.set_global_mocks(m)
+
+        m.post(self._base_url + '/rpc/geodb_estimate_collection_count',
+               text='12')
+        m.post(self._base_url + '/rpc/geodb_count_collection', text='10')
+
+        res = self._api.count_collection('test')
+        self.assertEqual(12, res)
+
+        res = self._api.count_collection('test', exact=True)
+        self.assertEqual(10, res)
+
     def test_reproject_bbox(self, m):
         bbox_4326 = (9.8, 53.51, 10.0, 53.57)
         crs_4326 = 4326
