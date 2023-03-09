@@ -323,17 +323,17 @@ class GeoDBSqlTest(unittest.TestCase):
 
         self.assertEqual(-1, res[0])
 
-        self.vacuum()
+        self._analyze()
 
         sql = "SELECT geodb_estimate_collection_count('geodb_user_land_use')"
         self._cursor.execute(sql)
         res = self._cursor.fetchone()
         self.assertEqual(2, res[0])
 
-    def vacuum(self):
+    def _analyze(self):
         old_isolation_level = self.conn.isolation_level
         self.conn.set_isolation_level(0)
-        query = 'VACUUM'
+        query = 'ANALYZE'
         self._cursor.execute(query)
         self.conn.set_isolation_level(old_isolation_level)
 
