@@ -1154,7 +1154,7 @@ BEGIN
         EXECUTE qry INTO row_ct;
         RETURN row_ct;
     ELSE
-        RAISE NOTICE 'Unable to estimate, performing an exact count';
+        RAISE NOTICE 'Preferred way of estimation unsupported on table (run VACUUM on table to support); performing alternative estimation.';
         qry := format('SELECT reltuples::bigint AS estimate FROM pg_class WHERE relname = ''%s'';', collection);
         EXECUTE qry into row_ct;
         RETURN row_ct;
