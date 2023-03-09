@@ -333,7 +333,7 @@ class GeoDBSqlTest(unittest.TestCase):
     def vacuum(self):
         old_isolation_level = self.conn.isolation_level
         self.conn.set_isolation_level(0)
-        query = "VACUUM FULL"
+        query = "VACUUM geodb_user_land_use"
         self._cursor.execute(query)
         self.conn.set_isolation_level(old_isolation_level)
 
