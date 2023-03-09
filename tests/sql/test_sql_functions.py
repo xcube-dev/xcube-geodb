@@ -53,8 +53,8 @@ class GeoDBSqlTest(unittest.TestCase):
         if sys.platform == 'win32':
             dsn['port'] = 5432
             dsn['password'] = 'postgres'
-        cls.conn = psycopg2.connect(**dsn)
-        cls._cursor = cls.conn.cursor()
+        conn = psycopg2.connect(**dsn)
+        cls._cursor = conn.cursor()
         app_path = get_app_dir()
         fn = os.path.join(app_path, 'sql', 'geodb.sql')
         with open(fn) as sql_file:
