@@ -53,8 +53,8 @@ class GeoDBSqlTest(unittest.TestCase):
         if sys.platform == 'win32':
             dsn['port'] = 5432
             dsn['password'] = 'postgres'
-        conn = psycopg2.connect(**dsn)
-        cls._cursor = conn.cursor()
+        cls.conn = psycopg2.connect(**dsn)
+        cls._cursor = cls.conn.cursor()
         app_path = get_app_dir()
         fn = os.path.join(app_path, 'sql', 'geodb.sql')
         with open(fn) as sql_file:
@@ -321,7 +321,21 @@ class GeoDBSqlTest(unittest.TestCase):
         self._cursor.execute(sql)
         res = self._cursor.fetchone()
 
+        self.assertEqual(-1, res[0])
+
+        self.vacuum()
+
+        sql = "SELECT geodb_estimate_collection_count('geodb_user_land_use')"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
         self.assertEqual(2, res[0])
+
+    def vacuum(self):
+        old_isolation_level = self.conn.isolation_level
+        self.conn.set_isolation_level(0)
+        query = "VACUUM FULL"
+        self._cursor.execute(query)
+        self.conn.set_isolation_level(old_isolation_level)
 
     def test_get_collection_bbox(self):
         user_name = "geodb_user-with-hyphens"

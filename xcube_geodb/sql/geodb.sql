@@ -1141,20 +1141,20 @@ CREATE OR REPLACE FUNCTION public.geodb_estimate_collection_count(collection tex
 AS
 $$
 DECLARE
-    pages_ct  int;
-    row_ct    int;
-    qry       text;
+    pages_size int;
+    row_ct     int;
+    qry        text;
 BEGIN
     qry := format('SELECT relpages FROM pg_class WHERE oid = (SELECT oid FROM pg_class WHERE relname = ''%s'');', collection);
-    EXECUTE qry into pages_ct;
-    IF pages_ct > 0 then
+    EXECUTE qry into pages_size;
+    IF pages_size > 0 then
         qry := format('SELECT (reltuples / relpages * (pg_relation_size(oid) / 8192))::bigint
                      FROM pg_class
                      WHERE oid = (SELECT oid FROM pg_class WHERE relname = ''%s'')', collection);
         EXECUTE qry INTO row_ct;
         RETURN row_ct;
     ELSE
-        RAISE NOTICE 'Preferred way of estimation unsupported on table (run VACUUM on table to support); performing alternative estimation.';
+        RAISE NOTICE 'Preferred way of estimation unsupported on table (run VACUUM on table %s to support); performing alternative estimation.', collection;
         qry := format('SELECT reltuples::bigint AS estimate FROM pg_class WHERE relname = ''%s'';', collection);
         EXECUTE qry into row_ct;
         RETURN row_ct;

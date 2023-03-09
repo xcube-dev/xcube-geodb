@@ -627,10 +627,10 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._base_url + '/rpc/geodb_count_collection',
                json=[{'geodb_count_collection': 10}])
 
-        res = self._api.count_collection('test')
+        res = self._api.count_collection_rows('test')
         self.assertEqual(12, res)
 
-        res = self._api.count_collection('test', exact=True)
+        res = self._api.count_collection_rows('test', exact_count=True)
         self.assertEqual(10, res)
 
     def test_reproject_bbox(self, m):
