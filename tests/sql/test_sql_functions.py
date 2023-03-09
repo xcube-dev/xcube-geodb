@@ -331,11 +331,8 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertEqual(2, res[0])
 
     def _analyze(self):
-        old_isolation_level = self.conn.isolation_level
-        self.conn.set_isolation_level(0)
         query = 'ANALYZE'
         self._cursor.execute(query)
-        self.conn.set_isolation_level(old_isolation_level)
 
     def test_get_collection_bbox(self):
         user_name = "geodb_user-with-hyphens"
