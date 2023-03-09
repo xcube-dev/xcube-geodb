@@ -1128,12 +1128,13 @@ DECLARE
     row_ct    int;
     qry       text;
 BEGIN
-    qry := format('SELECT COUNT(*) from "%s"', collection);
+    qry := format('SELECT COUNT(*) from %I', collection);
     EXECUTE qry INTO row_ct;
     RETURN row_ct;
 END
 $$;
 
+-- see https://stackoverflow.com/a/7945274/2043113
 CREATE OR REPLACE FUNCTION public.geodb_estimate_collection_count(collection text)
     RETURNS BIGINT
     LANGUAGE 'plpgsql' STRICT
@@ -1144,15 +1145,19 @@ DECLARE
     row_ct    int;
     qry       text;
 BEGIN
-    SELECT relpages FROM pg_class INTO pages_ct;
+    qry := format('SELECT relpages FROM pg_class WHERE oid = (SELECT oid FROM pg_class WHERE relname = ''%s'');', collection);
+    EXECUTE qry into pages_ct;
     IF pages_ct > 0 then
-      qry := format('SELECT (reltuples / relpages * (pg_relation_size(oid) / 8192))::bigint
+        qry := format('SELECT (reltuples / relpages * (pg_relation_size(oid) / 8192))::bigint
                      FROM pg_class
-                     WHERE oid = ''"%s"''::regclass;', collection);
-      EXECUTE qry INTO row_ct;
-      RETURN row_ct;
+                     WHERE oid = (SELECT oid FROM pg_class WHERE relname = ''%s'')', collection);
+        EXECUTE qry INTO row_ct;
+        RETURN row_ct;
     ELSE
-      RETURN public.geodb_count_collection(collection);
+        RAISE NOTICE 'Unable to estimate, performing an exact count';
+        qry := format('SELECT reltuples::bigint AS estimate FROM pg_class WHERE relname = ''%s'';', collection);
+        EXECUTE qry into row_ct;
+        RETURN row_ct;
     END IF;
 END
 $$;

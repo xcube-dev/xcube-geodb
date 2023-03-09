@@ -623,8 +623,9 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         m.post(self._base_url + '/rpc/geodb_estimate_collection_count',
-               text='12')
-        m.post(self._base_url + '/rpc/geodb_count_collection', text='10')
+               json=[{'geodb_estimate_collection_count': 12}])
+        m.post(self._base_url + '/rpc/geodb_count_collection',
+               json=[{'geodb_count_collection': 10}])
 
         res = self._api.count_collection('test')
         self.assertEqual(12, res)

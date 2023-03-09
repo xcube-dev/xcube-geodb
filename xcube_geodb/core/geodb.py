@@ -1609,10 +1609,11 @@ class GeoDBClient(object):
             else:
                 r = self._post('/rpc/geodb_estimate_collection_count',
                                payload={'collection': dn})
-        except GeoDBError:
-            self._maybe_raise(GeoDBError(f"Table {dn} does not exist."))
+        except GeoDBError as e:
+            if e:
+                self._maybe_raise(GeoDBError(f"Table {dn} does not exist."))
 
-        return int(r.text)
+        return list(r.json()[0].values())[0]
 
     def count_collection_by_bbox(self, collection: str,
                                  bbox: Tuple[float, float, float, float],
