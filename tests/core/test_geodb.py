@@ -1437,7 +1437,7 @@ class GeoDBClientTest(unittest.TestCase):
     def test_get_geodb_sql_version(self, m):
         self.set_global_mocks(m)
         url = f'{self._base_url}/rpc/geodb_get_geodb_sql_version'
-        m.get(url, json=[{'geodb_get_geodb_sql_version': '1.1.5-dev'}])
+        m.get(url, text='"1.1.5-dev"')
         self.assertEqual('1.1.5-dev', self._api.get_geodb_sql_version())
 
     def test_get_event_log(self, m):

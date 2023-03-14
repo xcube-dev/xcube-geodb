@@ -420,8 +420,9 @@ class GeoDBClient(object):
         self._capabilities = None
 
     def get_geodb_sql_version(self) -> str:
-        result = self._get(path='/rpc/geodb_get_geodb_sql_version').json()[0]
-        return result['geodb_get_geodb_sql_version']
+        return self._get(path='/rpc/geodb_get_geodb_sql_version') \
+            .text \
+            .replace('\"', '')
 
     def refresh_config_from_env(self, dotenv_file: str = ".env", use_dotenv: bool = False):
         """
