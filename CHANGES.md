@@ -10,12 +10,13 @@
 - fixed rare exception in `insert_into_collection`
 - updated tests to run on with latest psycopg2 versions
 - fixed: function `get_collection_bbox` raises exception for empty collections
+- fixed broken function `get_geodb_sql_version`
 
 ## v1.0.4
 
 ### New Features
 
-- Added function`get_geodb_sql_version` that shows the version of the deployed 
+- Added function `get_geodb_sql_version` that shows the version of the deployed 
   SQL, which can differ from the Python client version.
 - Added logging: the database now maintains a table that reflects
   changes to the collections. The logs can be read using the new function
