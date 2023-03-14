@@ -1605,7 +1605,7 @@ class GeoDBClient(object):
         actual number; the exact count can also be retrieved, but this may take
         much longer.
         Note: in some cases, no estimate can be provided. In such cases,
-        -1 is returned.
+        -1 is returned if exact_count == False.
 
         Args:
             collection (str):   The name of the collection
