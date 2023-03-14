@@ -1410,3 +1410,13 @@ BEGIN
                       ) as vals;
 END
 $BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_group_publish_collection(collection text, mygroup text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    EXECUTE format('GRANT ALL ON TABLE %I TO %I', collection, mygroup);
+END
+$BODY$;

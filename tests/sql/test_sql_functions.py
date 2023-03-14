@@ -40,6 +40,7 @@ class TestInstallationProcedure(unittest.TestCase):
 class GeoDBSqlTest(unittest.TestCase):
     _postgresql = None
     _cursor = None
+    _conn = None
 
     @classmethod
     def setUp(cls) -> None:
@@ -53,8 +54,8 @@ class GeoDBSqlTest(unittest.TestCase):
         if sys.platform == 'win32':
             dsn['port'] = 5432
             dsn['password'] = 'postgres'
-        conn = psycopg2.connect(**dsn)
-        cls._cursor = conn.cursor()
+        cls._conn = psycopg2.connect(**dsn)
+        cls._cursor = cls._conn.cursor()
         app_path = get_app_dir()
         fn = os.path.join(app_path, 'sql', 'geodb.sql')
         with open(fn) as sql_file:
@@ -459,3 +460,76 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertEqual('added rows happened on db_col',
                          events[0]['message'])
         self.assertEqual('wahnfried', events[0]['username'])
+
+    def setup_groups(self):
+        # after this method is run, there are new roles in the databases:
+        #   test_group
+        #   test_admin
+        #   test_member
+        #   test_member_2
+        #   test_nomember
+        # test_admin is admin of test_group
+        # test_member and test_member_2 are members or test_group
+        # test_nomember is not.
+        app_path = get_app_dir()
+        fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup-groups.sql')
+        with open(fn) as sql_file:
+            self._cursor.execute(sql_file.read())
+
+    def test_basic_group_actions(self):
+        self.setup_groups()
+
+        admin_user_name = "test_admin"
+        member_user_name = "test_member"
+        member_2_user_name = "test_member_2"
+        nomember_user_name = "test_nomember"
+
+        self._set_role(member_user_name)
+
+        table = "test_member_table_for_group"
+        props = {}
+        sql = f"SELECT geodb_create_database('test_member')"
+        self._cursor.execute(sql)
+        sql = f"SELECT geodb_create_collection('{table}', " \
+              f"'{json.dumps(props)}', '4326')"
+        self._cursor.execute(sql)
+
+        self._set_role(member_2_user_name)
+        sql = f"SELECT geodb_get_collection_bbox('{table}')"
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege) as e:
+            self._cursor.execute(sql)
+        self._cursor.close()
+        self._cursor = self._conn.cursor()
+
+        self._set_role(member_user_name)
+        sql = f"SELECT geodb_group_publish_collection('{table}'," \
+              f"'test_group')"
+        self._cursor.execute(sql)
+
+        self._set_role(member_2_user_name)
+        sql = f"SELECT geodb_get_collection_bbox('{table}')"
+        self._cursor.execute(sql)
+
+        self._set_role(nomember_user_name)
+        sql = f"SELECT geodb_get_collection_bbox('{table}')"
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege) as e:
+            self._cursor.execute(sql)
+
+
+        # self.assertFalse(self.read_from(nomember_user_name, table))
+        #
+        #
+        # self.assertTrue(self.table_exists(table))
+        #
+        # self.assertTrue(self.column_exists(table, 'id', 'integer'))
+        # self.assertTrue(
+        #     self.column_exists(table, 'geometry', 'USER-DEFINED'))
+        #
+        # datasets = {
+        #     'geodb_user_tt1': {'crs': '4326', 'properties': {'tt': 'integer'}},
+        #     'geodb_user_tt2': {'crs': '4326', 'properties': {'tt': 'integer'}}}
+        #
+        # sql = f"SELECT geodb_create_collections('{json.dumps(datasets)}')"
+        # self._cursor.execute(sql)
+        #
+        # self.assertTrue(self.table_exists(table))
