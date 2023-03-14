@@ -469,8 +469,6 @@ class GeoDBSqlTest(unittest.TestCase):
         #   test_member_2
         #   test_nomember
         # test_admin is admin of test_group
-        # test_member and test_member_2 are members or test_group
-        # test_nomember is not.
         app_path = get_app_dir()
         fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup-groups.sql')
         with open(fn) as sql_file:
@@ -479,51 +477,39 @@ class GeoDBSqlTest(unittest.TestCase):
     def test_basic_group_actions(self):
         self.setup_groups()
 
-        admin_user_name = "test_admin"
-        member_user_name = "test_member"
-        member_2_user_name = "test_member_2"
-        nomember_user_name = "test_nomember"
+        admin = "test_admin"
+        member = "test_member"
+        member_2 = "test_member_2"
+        nomember = "test_nomember"
+        table_name = "test_member_table_for_group"
 
-        self._set_role(member_user_name)
+        self._set_role(admin)
 
-        table = "test_member_table_for_group"
-        props = {}
-        sql = f"SELECT geodb_create_database('test_member')"
-        self._cursor.execute(sql)
-        sql = f"SELECT geodb_create_collection('{table}', " \
-              f"'{json.dumps(props)}', '4326')"
+        sql = f"GRANT \"test_group\" TO \"{member}\"; " \
+              f"GRANT \"test_group\" TO \"{member_2}\";"
         self._cursor.execute(sql)
 
-        self._set_role(member_2_user_name)
-        sql = f"SELECT geodb_get_collection_bbox('{table}')"
-        with self.assertRaises(psycopg2.errors.InsufficientPrivilege) as e:
-            self._cursor.execute(sql)
-        self._cursor.close()
-        self._cursor = self._conn.cursor()
+        self.create_table_as_user(member, table_name)
+        self.access_table_with_user_fail(member_2, table_name)
 
-        self._set_role(member_user_name)
-        sql = f"SELECT geodb_group_publish_collection('{table}'," \
-              f"'test_group')"
-        self._cursor.execute(sql)
+        self.publish_to_group(member, table_name)
 
-        self._set_role(member_2_user_name)
-        sql = f"SELECT geodb_get_collection_bbox('{table}')"
-        self._cursor.execute(sql)
+        self.access_table_with_user_success(member_2, table_name)
 
-        self._set_role(nomember_user_name)
-        sql = f"SELECT geodb_get_collection_bbox('{table}')"
+        self._set_role(nomember)
+        sql = f"SELECT geodb_get_collection_bbox('{table_name}')"
         with self.assertRaises(psycopg2.errors.InsufficientPrivilege) as e:
             self._cursor.execute(sql)
 
 
-        # self.assertFalse(self.read_from(nomember_user_name, table))
+        # self.assertFalse(self.read_from(nomember, table_name))
         #
         #
-        # self.assertTrue(self.table_exists(table))
+        # self.assertTrue(self.table_exists(table_name))
         #
-        # self.assertTrue(self.column_exists(table, 'id', 'integer'))
+        # self.assertTrue(self.column_exists(table_name, 'id', 'integer'))
         # self.assertTrue(
-        #     self.column_exists(table, 'geometry', 'USER-DEFINED'))
+        #     self.column_exists(table_name, 'geometry', 'USER-DEFINED'))
         #
         # datasets = {
         #     'geodb_user_tt1': {'crs': '4326', 'properties': {'tt': 'integer'}},
@@ -532,4 +518,33 @@ class GeoDBSqlTest(unittest.TestCase):
         # sql = f"SELECT geodb_create_collections('{json.dumps(datasets)}')"
         # self._cursor.execute(sql)
         #
-        # self.assertTrue(self.table_exists(table))
+        # self.assertTrue(self.table_exists(table_name))
+
+    def publish_to_group(self, member_user_name, table_name):
+        self._set_role(member_user_name)
+        sql = f"SELECT geodb_group_publish_collection('{table_name}'," \
+              f"'test_group')"
+        self._cursor.execute(sql)
+
+    def access_table_with_user_fail(self, user_name, table_name):
+        self._set_role(user_name)
+        sql = f"SELECT geodb_get_collection_bbox('{table_name}')"
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
+            self._cursor.execute(sql)
+        # necessary so we can keep using the connection after the failed query
+        self._conn.rollback()
+
+    def access_table_with_user_success(self, user_name, table_name):
+        self._set_role(user_name)
+        sql = f"SELECT geodb_get_collection_bbox('{table_name}')"
+        self._cursor.execute(sql)
+
+    def create_table_as_user(self, member_user_name, table):
+        self._set_role(member_user_name)
+        props = {}
+        sql = f"SELECT geodb_create_database('test_member')"
+        self._cursor.execute(sql)
+        sql = f"SELECT geodb_create_collection('{table}', " \
+              f"'{json.dumps(props)}', '4326')"
+        self._cursor.execute(sql)
+        self._conn.commit()

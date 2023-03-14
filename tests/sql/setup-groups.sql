@@ -58,5 +58,3 @@ GRANT SELECT, UPDATE, USAGE ON SEQUENCE public.geodb_user_databases_seq TO "test
 GRANT SELECT, UPDATE, USAGE ON SEQUENCE public.geodb_user_databases_seq TO "test_nomember";
 
 GRANT "test_group" TO "test_admin" WITH ADMIN OPTION;
-GRANT "test_group" TO "test_member";
-GRANT "test_group" TO "test_member_2";
