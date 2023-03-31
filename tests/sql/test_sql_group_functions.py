@@ -4,8 +4,8 @@ import unittest
 
 import psycopg2
 
-from test_sql_functions import GeoDBSqlTest
-from test_sql_functions import get_app_dir
+from .test_sql_functions import GeoDBSqlTest
+from .test_sql_functions import get_app_dir
 
 
 class GeoDBSQLGroupTest(unittest.TestCase):
