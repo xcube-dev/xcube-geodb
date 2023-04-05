@@ -1411,6 +1411,8 @@ BEGIN
 END
 $BODY$;
 
+-- group functions
+
 CREATE OR REPLACE FUNCTION public.geodb_group_publish_collection(collection text, mygroup text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -1418,5 +1420,15 @@ AS
 $BODY$
 BEGIN
     EXECUTE format('GRANT ALL ON TABLE %I TO %I', collection, mygroup);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_group_unpublish_collection(collection text, mygroup text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    EXECUTE format('REVOKE ALL ON TABLE %I FROM %I', collection, mygroup);
 END
 $BODY$;
