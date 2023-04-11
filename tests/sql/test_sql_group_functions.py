@@ -24,8 +24,8 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         with open(fn) as sql_file:
             cls.base_test._cursor.execute(sql_file.read())
 
-        if sys.platform == 'win32':
-            cls._conn.commit()
+        # if sys.platform == 'win32':
+        cls._conn.commit()
         cls.admin = "test_admin"
         cls.member = "test_member"
         cls.member_2 = "test_member_2"
@@ -61,8 +61,8 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
     def execute(self, sql):
         self._cursor.execute(sql)
-        if sys.platform == 'win32':
-            self._conn.commit()
+        # if sys.platform == 'win32':
+        self._conn.commit()
 
     def revoke_group_from(self, user):
         self._set_role(self.admin)
