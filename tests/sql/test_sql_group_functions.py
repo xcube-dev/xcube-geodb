@@ -1,11 +1,12 @@
 import json
 import os
 import unittest
+import sys
 
 import psycopg2
 
-from .test_sql_functions import GeoDBSqlTest
-from .test_sql_functions import get_app_dir
+from test_sql_functions import GeoDBSqlTest
+from test_sql_functions import get_app_dir
 
 
 class GeoDBSQLGroupTest(unittest.TestCase):
@@ -23,16 +24,18 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         with open(fn) as sql_file:
             cls.base_test._cursor.execute(sql_file.read())
 
+        if sys.platform == 'win32':
+            cls._conn.commit()
+        cls.admin = "test_admin"
+        cls.member = "test_member"
+        cls.member_2 = "test_member_2"
+        cls.nomember = "test_nomember"
+        cls.table_name = "test_member_table_for_group"
+
     def tearDown(self) -> None:
         self.base_test.tearDown()
 
     def test_basic_group_actions(self):
-        self.admin = "test_admin"
-        self.member = "test_member"
-        self.member_2 = "test_member_2"
-        self.nomember = "test_nomember"
-        self.table_name = "test_member_table_for_group"
-
         self.grant_group_to(self.member)
         self.grant_group_to(self.member_2)
 
@@ -52,9 +55,14 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         self.unpublish_from_group(self.member)
         self.access_table_with_user_fail(self.member_2)
 
+    def test_get_user_roles(self):
+        self.grant_group_to(self.member)
+        self.grant_group_to(self.member_2)
+
     def execute(self, sql):
         self._cursor.execute(sql)
-        self._conn.commit()
+        if sys.platform == 'win32':
+            self._conn.commit()
 
     def revoke_group_from(self, user):
         self._set_role(self.admin)

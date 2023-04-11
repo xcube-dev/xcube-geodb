@@ -67,6 +67,8 @@ class GeoDBSqlTest(unittest.TestCase):
         fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup.sql')
         with open(fn) as sql_file:
             cls._cursor.execute(sql_file.read())
+        if sys.platform == 'win32':
+           cls._conn.commit()
 
     def tearDown(self) -> None:
         if sys.platform == 'win32':
@@ -75,23 +77,39 @@ class GeoDBSqlTest(unittest.TestCase):
             self._postgresql.stop()
 
     def manual_cleanup(self):
-        from datetime import datetime
-        from time import sleep
-        import signal
+        import subprocess
+        import shutil
 
         try:
-            self._postgresql.child_process.send_signal(signal.SIGTERM)
-            killed_at = datetime.now()
-            while self._postgresql.child_process.poll() is None:
-                if (datetime.now() - killed_at).seconds > 10.0:
-                    self._postgresql.child_process.kill()
-                    raise RuntimeError(
-                        "*** failed to shutdown postgres ***\n")
-
-                sleep(0.1)
+            subprocess.call([
+                    'taskkill', '/F', '/T', '/PID',
+                    str(self._postgresql.child_process.pid)
+                ])
+            self._conn.close()
+            dsn = self._postgresql.dsn()
+            dsn['port'] = 5432
+            dsn['password'] = 'postgres'
+            dsn['database'] = 'postgres'
+            self._conn = psycopg2.connect(**dsn)
+            self._conn.autocommit = True
+            self._cursor = self._conn.cursor()
+            self._cursor.execute('drop database test;')
+            self._cursor.execute('create database test;')
+            self._set_role('postgres')
+            self._cursor.execute(
+                'DROP ROLE IF EXISTS geodb_user ; '
+                'DROP ROLE IF EXISTS "geodb_user-with-hyphens" ; '
+                'DROP ROLE IF EXISTS test_group ; '
+                'DROP ROLE IF EXISTS test_admin ; '
+                'DROP ROLE IF EXISTS test_member ; '
+                'DROP ROLE IF EXISTS test_member_2 ; '
+                'DROP ROLE IF EXISTS test_nomember ;'
+            )
+            self._conn.commit()
+            self._conn.close()
         except OSError as e:
             raise e
-        self._postgresql.cleanup()
+        shutil.rmtree(self._postgresql.base_dir, ignore_errors=True)
 
     def tearDownModule(self):
         # clear cached database at end of tests
