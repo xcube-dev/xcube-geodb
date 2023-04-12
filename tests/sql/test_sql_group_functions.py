@@ -1,8 +1,8 @@
 import json
 import os
 import unittest
-import sys
 
+import pandas as pd
 import psycopg2
 
 from tests.sql.test_sql_functions import GeoDBSqlTest
@@ -24,7 +24,6 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         with open(fn) as sql_file:
             cls.base_test._cursor.execute(sql_file.read())
 
-        # if sys.platform == 'win32':
         cls._conn.commit()
         cls.admin = "test_admin"
         cls.member = "test_member"
@@ -57,11 +56,37 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
     def test_get_user_roles(self):
         self.grant_group_to(self.member)
+        self.execute(f"SELECT geodb_get_user_roles('{self.member}')")
+        role_names = self.retrieve_role_names()
+        self.assertEqual(2, len(role_names))
+        self.assertEqual(role_names[0], 'test_group')
+        self.assertEqual(role_names[1], 'test_member')
+
+        self.execute(f"SELECT geodb_get_user_roles('{self.member_2}')")
+        role_names = self.retrieve_role_names()
+        self.assertEqual(1, len(role_names))
+        self.assertEqual(role_names[0], 'test_member_2')
+
         self.grant_group_to(self.member_2)
+        self.execute(f"SELECT geodb_get_user_roles('{self.member_2}')")
+        role_names = self.retrieve_role_names()
+        self.assertEqual(2, len(role_names))
+        self.assertEqual(role_names[0], 'test_group')
+        self.assertEqual(role_names[1], 'test_member_2')
+
+        self.execute(f"SELECT geodb_get_user_roles('{self.nomember}')")
+        role_names = self.retrieve_role_names()
+        self.assertEqual(1, len(role_names))
+        self.assertEqual(role_names[0], 'test_nomember')
+
+    def retrieve_role_names(self):
+        result = self._cursor.fetchone()
+        df = pd.DataFrame(result[0])
+        role_names = sorted(list(df['rolname']))
+        return role_names
 
     def execute(self, sql):
         self._cursor.execute(sql)
-        # if sys.platform == 'win32':
         self._conn.commit()
 
     def revoke_group_from(self, user):

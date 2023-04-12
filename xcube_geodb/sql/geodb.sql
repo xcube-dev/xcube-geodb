@@ -1432,3 +1432,20 @@ BEGIN
     EXECUTE format('REVOKE ALL ON TABLE %I FROM %I', collection, mygroup);
 END
 $BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_get_user_roles(username text)
+    RETURNS TABLE
+        (
+            src json
+        )
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    RETURN QUERY EXECUTE format(
+        'SELECT JSON_AGG(src) FROM
+            (SELECT rolname FROM pg_roles
+                WHERE pg_has_role(''%s'', oid, ''MEMBER'')
+            ) as src', username);
+END
+$BODY$;

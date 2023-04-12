@@ -67,7 +67,6 @@ class GeoDBSqlTest(unittest.TestCase):
         fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup.sql')
         with open(fn) as sql_file:
             cls._cursor.execute(sql_file.read())
-        # if sys.platform == 'win32':
         cls._conn.commit()
 
     def tearDown(self) -> None:
