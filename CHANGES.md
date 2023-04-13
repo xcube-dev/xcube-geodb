@@ -5,6 +5,7 @@
 
 ### Fixes
 
+- removed not working parameter from internal function `_get`
 
 ## v1.0.5
 
