@@ -39,8 +39,10 @@
 ### New Features
 
 - Added a new auth mode `none`. The aim of this mode is enabling users
-  installing the geoDB infrastructure without oauth2 for e.g. testing purposes.
-- A new geoDB docker backend image has been added. This image can be used to set
+  installing xcube geoDB infrastructure without oauth2 for e.g. testing 
+  purposes.
+- A new xcube geoDB docker backend image has been added. This image can be used 
+  to set
   up a postgis database with a pre-installed xcube geoDB database extension
 - Added a new `count_by_bbox` filter function
 - Allowed to provide limit and offset in function `get_collection`
@@ -53,7 +55,7 @@
   readthedocs
 - Improved heading in notebooks
 - Removed auto cp of notebooks in Makefile.
-- Ensured that the geoDB client works with Keycloak
+- Ensured that xcube geoDB client works with Keycloak
 - Reduced substantially the number of times the token is received from auth
   service
 - Fixed bug that caused unpublishing of collections with upper case letters
@@ -65,7 +67,7 @@
 
 - Fixed the behaviour of `create_collection` when `clear` is set to `True` and
   the collection to be cleared does not exist.
-  In that situation, the geoDB was throwing the wrong error and would not
+  In that situation, xcube geoDB was throwing the wrong error and would not
   proceed to creating the collection.
 
 ## v1.0.1
@@ -153,8 +155,8 @@
 - Added a method list_users, register_users
 - Added a deprecation warning if '3.120.53.215.nip.io' is used as
   server address.
-- version is now a static property of the geoDB client
-- `get_collection_from_bbox` will now attempt to transform the bbix crs if teh
+- version is now a static property of xcube geoDB client
+- `get_collection_from_bbox` will now attempt to transform the bbox crs if teh
   crses differ between the
   bbox and the collection
 - Added the method `transform_bbox_crs` to manage the crs of bboxes
