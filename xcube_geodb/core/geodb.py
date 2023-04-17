@@ -420,8 +420,9 @@ class GeoDBClient(object):
         self._capabilities = None
 
     def get_geodb_sql_version(self) -> str:
-        result = self._get(path='/rpc/geodb_get_geodb_sql_version').json()[0]
-        return result['geodb_get_geodb_sql_version']
+        return self._get(path='/rpc/geodb_get_geodb_sql_version') \
+            .text \
+            .replace('\"', '')
 
     def refresh_config_from_env(self, dotenv_file: str = ".env", use_dotenv: bool = False):
         """
@@ -1594,6 +1595,52 @@ class GeoDBClient(object):
                 return GeoDataFrame(columns=["Empty Result"])
         except GeoDBError as e:
             return self._maybe_raise(e, return_df=True)
+
+    def count_collection_rows(self, collection: str,
+                              database: Optional[str] = None,
+                              exact_count: Optional[bool] = False) \
+            -> Union[int, Message]:
+        """
+        Return the number of rows in the given collection. By default, this
+        function returns a rough estimate within the order of magnitude of the
+        actual number; the exact count can also be retrieved, but this may take
+        much longer.
+        Note: in some cases, no estimate can be provided. In such cases,
+        -1 is returned if exact_count == False.
+
+        Args:
+            collection (str):   The name of the collection
+            database (str):     The name of the database the collection resides
+                                in [current database]
+            exact_count (bool): If True, the actual number of rows will be
+                                counted. Default value: false.
+
+        Returns:
+            the number of rows in the given collection, or -1 if exact_count
+            is False and no estimate could be provided.
+
+        Raises:
+            GeoDBError: When the database raises an error
+
+        Examples:
+            >>> geodb = GeoDBClient()
+            >>> geodb.count_collection_rows('my_collection'], exact_count=True)
+        """
+
+        database = database or self.database
+        dn = database + '_' + collection
+
+        try:
+            if exact_count:
+                r = self._post('/rpc/geodb_count_collection',
+                               payload={'collection': dn})
+            else:
+                r = self._post('/rpc/geodb_estimate_collection_count',
+                               payload={'collection': dn})
+        except GeoDBError as e:
+            return self._maybe_raise(e, return_df=False)
+
+        return list(r.json()[0].values())[0]
 
     def count_collection_by_bbox(self, collection: str,
                                  bbox: Tuple[float, float, float, float],

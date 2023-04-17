@@ -619,6 +619,20 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertIsInstance(gdf, pd.DataFrame)
         self.assertEqual(0, len(gdf))
 
+    def test_get_collection_count(self, m):
+        self.set_global_mocks(m)
+
+        m.post(self._base_url + '/rpc/geodb_estimate_collection_count',
+               json=[{'geodb_estimate_collection_count': 12}])
+        m.post(self._base_url + '/rpc/geodb_count_collection',
+               json=[{'geodb_count_collection': 10}])
+
+        res = self._api.count_collection_rows('test')
+        self.assertEqual(12, res)
+
+        res = self._api.count_collection_rows('test', exact_count=True)
+        self.assertEqual(10, res)
+
     def test_reproject_bbox(self, m):
         bbox_4326 = (9.8, 53.51, 10.0, 53.57)
         crs_4326 = 4326
@@ -1437,7 +1451,7 @@ class GeoDBClientTest(unittest.TestCase):
     def test_get_geodb_sql_version(self, m):
         self.set_global_mocks(m)
         url = f'{self._base_url}/rpc/geodb_get_geodb_sql_version'
-        m.get(url, json=[{'geodb_get_geodb_sql_version': '1.1.5-dev'}])
+        m.get(url, text='"1.1.5-dev"')
         self.assertEqual('1.1.5-dev', self._api.get_geodb_sql_version())
 
     def test_get_event_log(self, m):

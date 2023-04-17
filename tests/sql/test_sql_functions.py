@@ -303,6 +303,37 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertIn('geodb_user has not access to that table or database. ',
                       str(e.exception))
 
+    def test_geodb_count_collection(self):
+        user_name = "geodb_user"
+        self._set_role(user_name)
+
+        sql = "SELECT geodb_count_collection('geodb_user_land_use')"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+
+        self.assertEqual(2, res[0])
+
+    def test_geodb_estimate_collection_count(self):
+        user_name = "geodb_user"
+        self._set_role(user_name)
+
+        sql = "SELECT geodb_estimate_collection_count('geodb_user_land_use')"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+
+        self.assertEqual(-1, res[0])
+
+        self._analyze()
+
+        sql = "SELECT geodb_estimate_collection_count('geodb_user_land_use')"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+        self.assertEqual(2, res[0])
+
+    def _analyze(self):
+        query = 'ANALYZE'
+        self._cursor.execute(query)
+
     def test_get_collection_bbox(self):
         user_name = "geodb_user-with-hyphens"
         user_table = user_name + "_test"
