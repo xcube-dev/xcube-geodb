@@ -471,31 +471,29 @@ class GeoDBClient(object):
 
         return r
 
-    def _get(self, path: str, params: Optional[Dict] = None,
-             headers: Optional[Dict] = None) -> requests.models.Response:
+    def _get(self, path: str, params: Optional[Dict] = None) -> \
+            requests.models.Response:
         """
 
         Args:
-            headers (Optional[Dict]): Request headers. Allows Overriding common header entries.
             path (str): API path
             params (Optional[Dict]): Request parameters
 
         Returns:
-            requests.models.Response: A Request object
+            requests.models.Response: A Response object
 
         Raises:
             GeoDBError: If the database raises an error
             HttpError: If the request fails
         """
 
-        common_headers = self._get_common_headers()
-        headers = common_headers.update(headers) if headers else self._get_common_headers()
-
         r = None
         try:
-            r = requests.get(self._get_full_url(path=path), params=params, headers=headers)
+            r = requests.get(self._get_full_url(path=path),
+                             params=params,
+                             headers=(self._get_common_headers()))
             r.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             raise GeoDBError(r.content)
 
         return r
