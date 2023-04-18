@@ -5,6 +5,7 @@
 
 ### Fixes
 
+- fixed function `count_collection_rows`
 
 ## v1.0.5
 

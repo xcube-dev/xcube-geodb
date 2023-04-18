@@ -218,13 +218,6 @@ class GeoDBClientTest(unittest.TestCase):
         bbox = json.dumps(self._api.get_collection_bbox('any', exact=True))
         self.assertEqual(str([9, -6, 11, 5]), str(bbox))
 
-        m.post(url, text='[{"geodb_get_collection_bbox":'
-                         '"BOX(112561.21 278713.135,685425.116 570140.955)"}]')
-        bbox = json.dumps(self._api.get_collection_bbox('any', exact=True))
-        self.assertEqual(str([278713.135, 112561.21, 570140.955, 685425.116]),
-                         str(bbox))
-
-
         url = f"{self._server_test_url}:" \
               f"{self._server_test_port}/rpc/geodb_estimate_collection_bbox"
         m.post(url, json="BOX(-5 8,2 10)")
@@ -232,12 +225,7 @@ class GeoDBClientTest(unittest.TestCase):
         bbox = json.dumps(self._api.get_collection_bbox('any'))
         self.assertEqual(str([8, -5, 10, 2]), str(bbox))
 
-        m.post(url, text='[{"geodb_get_collection_bbox":'
-                         '"BOX(-5 8,2 10)"}]')
-        bbox = json.dumps(self._api.get_collection_bbox('any'))
-        self.assertEqual(str([8, -5, 10, 2]), str(bbox))
-
-        m.post(url, text='[{"geodb_get_collection_bbox":null}]')
+        m.post(url, text='null')
         bbox = self._api.get_collection_bbox('any')
         self.assertIsNone(bbox)
 
@@ -623,9 +611,8 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         m.post(self._base_url + '/rpc/geodb_estimate_collection_count',
-               json=[{'geodb_estimate_collection_count': 12}])
-        m.post(self._base_url + '/rpc/geodb_count_collection',
-               json=[{'geodb_count_collection': 10}])
+               text='12')
+        m.post(self._base_url + '/rpc/geodb_count_collection', text='10')
 
         res = self._api.count_collection_rows('test')
         self.assertEqual(12, res)
