@@ -320,11 +320,7 @@ class GeoDBClient(object):
             bbox = r.text \
                 .replace('BOX', '') \
                 .replace(' ', ',') \
-                .replace('[', '').replace(']', '') \
-                .replace('{', '').replace('}', '') \
                 .replace('(', '').replace(')', '') \
-                .replace('"geodb_get_collection_bbox":', '') \
-                .replace('"geodb_estimate_collection_bbox":', '') \
                 .replace('"', '')
             if bbox == 'null':
                 return None
@@ -1638,7 +1634,7 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e, return_df=False)
 
-        return list(r.json()[0].values())[0]
+        return int(r.text)
 
     def count_collection_by_bbox(self, collection: str,
                                  bbox: Tuple[float, float, float, float],
