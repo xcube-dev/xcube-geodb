@@ -1,10 +1,13 @@
 .. xcube documentation master file
 
 ===================================================================
-xcube geodb - A Feature database for the xcube EO data cube toolkit
+xcube geoDB - A feature database for the xcube EO data cube toolkit
 ===================================================================
 
-geodb has been developed to generate, manipulate, analyse, and publish data cubes from EO data.
+xcube geoDB has been developed to store and access feature data in the form of a [GeoDataFrame](http://geopandas.org/).
+The feature data is stored in a custom PostgreSQL database provided by
+[Brockmann Consult](https://www.brockmann-consult.de)
+
 
 .. toctree::
    :caption: Getting Started
