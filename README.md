@@ -31,7 +31,7 @@ further information.
    1. A docker image will be created and pushed to quay.io
    2. The new version of the image will be deployed to the cluster using a 
       [helm chart](https://github.com/dcs4cop/xcube-k8s/geodb)
-4. The stage will be tested
+4. The stage release will be tested:
    1. An automatic test is run similar to a unit test
    2. Users will test the new features and fixes
 5. Create release
