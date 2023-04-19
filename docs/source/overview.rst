@@ -12,8 +12,6 @@ The processed data can be accessed and queried via a REST API with full querying
 Technologies used:
 ================
 
-- [xcube](https://github.com/dcs4cop/xcube)
-- [xarray](http://xarray.pydata.org/en/stable/)
 - [PostgreSQL](https://www.postgresql.org/)
 - [Postgrest](http://postgrest.org/en/v6.0/)
 - [AWS RDS](https://aws.amazon.com/de/rds/)
