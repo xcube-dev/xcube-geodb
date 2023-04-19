@@ -35,7 +35,7 @@ further information.
    1. An automatic test is run similar to a unit test
    2. Users will test the new features and fixes
 5. Create release
-6. The release will be deployed using travis 
+6. The release will be deployed using GitHub Actions:
    1. unittest
    2. the new version of the xcube geodb image will be created and pushed to 
       quay.io
