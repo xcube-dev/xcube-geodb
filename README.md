@@ -27,7 +27,7 @@ further information.
 1. Local Unittest
 2. Create stage/dev release (tag only. Tag name must include the expression '
    dev' plus a number, e.g. 0.1.9.dev1)
-3. The stage will be deployed using travis
+3. The stage release will be deployed using GitHub Actions:
    1. A docker image will be created and pushed to quay.io
    2. The new version of the image will be deployed to the cluster using a 
       [helm chart](https://github.com/dcs4cop/xcube-k8s/geodb)
