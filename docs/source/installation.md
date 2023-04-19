@@ -39,7 +39,7 @@ $ conda activate xcube_geodb
 $ jupyter lab
 ```
 
-We have described the installation using the standard package manager`conda`.
+We have described the installation using the standard package manager `conda`.
 However, we strongly encourage you to consider using
 [`mamba`](https://github.com/mamba-org/mamba) instead, particularly if you
 combine the xcube geoDB with [xcube](https://github.com/dcs4cop/xcube).
