@@ -7,7 +7,7 @@ components:
 1. A [Python client/API](https://github.com/dcs4cop/xcube-geodb) accessing
    the database through the PostGrest RestAPI (this version)
 2. A [PostGIS database](https://postgis.net/) (Version 14)
-3. A xcube geoDB extension to be installed into the PostGIS database (this
+3. An xcube geoDB extension to be installed into the PostGIS database (this
    version)
 4. A [PostGrest RestAPI](https://postgrest.org/en/stable/) (Version 7)
 
