@@ -75,8 +75,8 @@ This section describes how to set up the xcube geoDB PostGIS database. The
 xcube geoDB PostGIS database consists of three
 software components:
 
-- A PostGreSQl database (version 14)
-- A PostGIS extension (version 14)
+- A PostgreSQL database (version 10)
+- A PostGIS extension (version 3+)
 - The xcube geoDB extension (this version)
 
 The easiest way is to use docker. We maintain a docker image that includes
