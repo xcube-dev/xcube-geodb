@@ -1414,6 +1414,24 @@ $BODY$;
 
 -- group functions
 
+CREATE OR REPLACE FUNCTION public.geodb_create_role(user_name text, user_group text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    SECURITY DEFINER
+    -- see https://www.cybertec-postgresql.com/en/abusing-security-definer-functions/
+    SET search_path = public,pg_temp
+AS
+$BODY$
+BEGIN
+    EXECUTE format('CREATE ROLE %I NOLOGIN
+                                   NOSUPERUSER
+                                   NOCREATEDB
+                                   NOCREATEROLE
+                                   NOREPLICATION', user_group);
+    EXECUTE format('GRANT %I TO %I WITH ADMIN OPTION;', user_group, user_name);
+END
+$BODY$;
+
 CREATE OR REPLACE FUNCTION public.geodb_group_publish_collection(collection text, user_group text)
     RETURNS void
     LANGUAGE 'plpgsql'

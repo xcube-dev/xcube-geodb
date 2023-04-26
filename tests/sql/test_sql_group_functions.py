@@ -93,6 +93,16 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         self.assertTrue('SELECT' in grants[self.member])
         self.assertTrue('UPDATE' in grants[self.member])
 
+    def test_create_role(self):
+        new_group_name = 'new_group'
+        with self.assertRaises(psycopg2.errors.InvalidParameterValue):
+            self._set_role(new_group_name)
+        self._conn.commit()
+        self._cursor = self._conn.cursor()
+        self._set_role(self.admin)
+        self.execute(f"SELECT geodb_create_role('{self.admin}', '{new_group_name}')")
+        self.grant_group_to(self.member)
+
     def retrieve_grants(self):
         result = self._cursor.fetchall()
         df = pd.DataFrame(result[0][0])

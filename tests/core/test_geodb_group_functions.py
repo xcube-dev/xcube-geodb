@@ -17,6 +17,18 @@ class GeoDBClientGroupsTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.base_test.tearDown()
 
+    def test_create_group(self, m):
+        self.base_test.set_global_mocks(m)
+        url = f'{self.base_test._base_url}/rpc/geodb_create_role'
+        m.post(url, text='')
+
+        usergroup = 'test_group'
+
+        r = self.base_test._api.create_group(usergroup)
+
+        expected = {'Message': f'Created new group {usergroup}.'}
+        self.base_test.check_message(r, expected)
+
     def test_add_user_to_group(self, m):
         self.base_test.set_global_mocks(m)
         url = f'{self.base_test._base_url}/rpc/geodb_group_grant'
@@ -84,13 +96,13 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         expected = {'Message': f'Unpublished collection {collection} in database {database} from group {group}.'}
         self.base_test.check_message(r, expected)
 
-    def test_get_user_roles(self, m):
+    def test_get_my_groups(self, m):
         self.base_test.set_global_mocks(m)
         url = f'{self.base_test._base_url}/rpc/geodb_get_user_roles'
         m.post(url, json=[{'src': [{'rolname': self.base_test._api.whoami}, {'rolname': 'authenticator'}]}])
 
-        roles = self.base_test._api.get_roles()
-        self.assertListEqual(['authenticator', self.base_test._api.whoami], roles)
+        roles = self.base_test._api.get_my_groups()
+        self.assertListEqual(['authenticator'], roles)
 
     def test_get_access_rights(self, m):
         self.base_test.set_global_mocks(m)

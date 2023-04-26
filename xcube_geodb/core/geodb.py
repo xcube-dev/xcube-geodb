@@ -2013,6 +2013,30 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e)
 
+    def create_group(self, group_name: str) -> Message:
+        """
+        Creates a new group with the given name, and makes the current user admin of that group: the current user can
+        now add or remove users to and from the group, and all group users can publish or unpublish their collections
+        to or from the group. Per default, no collection is published to the group.
+
+        Args:
+            group_name (str): Name of the group to create.
+
+        Returns:
+            A message if the group was successfully created.
+
+        Raises:
+            GeoDBError if the group already exists.
+        """
+        path = '/rpc/geodb_create_role'
+        payload = {
+            'user_name': self.whoami,
+            'user_group': group_name,
+        }
+
+        self._post(path=path, payload=payload)
+        return Message(f'Created new group {group_name}.')
+
     def add_user_to_group(self, user: str, group: str) -> Message:
         """
         Adds the user to the given group.
@@ -2130,16 +2154,16 @@ class GeoDBClient(object):
         self._post(path=path, payload=payload)
         return Message(f'Unpublished collection {collection} in database {database} from group {group}.')
 
-    def get_roles(self):
+    def get_my_groups(self):
         """
-        Returns the different roles of the current user.
+        Returns the different group memberships of the current user.
 
         Returns:
-            The different roles of the current user.
+            The different group memberships of the current user.
         """
         path = '/rpc/geodb_get_user_roles'
         names = self._post(path=path, payload={'user_name': self.whoami}).json()[0]['src']
-        return sorted([name['rolname'] for name in names])
+        return sorted([name['rolname'] for name in names if not name['rolname'] == self.whoami])
 
     def get_access_rights(self, collection: str, database: Optional[str] = None) -> Dict:
         """
