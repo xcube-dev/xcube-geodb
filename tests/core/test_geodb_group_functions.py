@@ -97,11 +97,14 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         url = f'{self.base_test._base_url}/rpc/geodb_get_grants'
 
         grantee = self.base_test._api.whoami
-        m.post(url, json=[([{'grantee': grantee, 'privilege_type': 'INSERT'},
-                            {'grantee': grantee, 'privilege_type': 'SELECT'},
-                            {'grantee': grantee, 'privilege_type': 'UPDATE'},
-                            {'grantee': grantee, 'privilege_type': 'DELETE'}
-                            ],)])
+
+        m.post(url, json=[{'res': [{'grantee': grantee, 'privilege_type': 'INSERT'},
+                                   {'grantee': grantee, 'privilege_type': 'SELECT'},
+                                   {'grantee': grantee, 'privilege_type': 'UPDATE'},
+                                   {'grantee': grantee, 'privilege_type': 'DELETE'}
+                                   ]
+                           }]
+               )
 
         rights = self.base_test._api.get_access_rights('test_col_test_db')
         self.assertDictEqual({self.base_test._api.whoami: ['INSERT', 'SELECT', 'UPDATE', 'DELETE']}, rights)
