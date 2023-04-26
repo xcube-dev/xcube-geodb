@@ -79,6 +79,26 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         self.assertEqual(1, len(role_names))
         self.assertEqual(role_names[0], 'test_nomember')
 
+    def test_get_grants(self):
+        self.grant_group_to(self.member)
+        self.create_table_as_user(self.member)
+        self.publish_table_to_group(self.member)
+        self._set_role(self.member)
+        self.execute(f"SELECT geodb_get_grants('{self.table_name}')")
+        grants = self.retrieve_grants()
+
+        self.assertEqual(2, len(grants))
+        self.assertTrue(self.member in grants)
+        self.assertTrue('test_group' in grants)
+        self.assertTrue('SELECT' in grants[self.member])
+        self.assertTrue('UPDATE' in grants[self.member])
+
+    def retrieve_grants(self):
+        result = self._cursor.fetchall()
+        df = pd.DataFrame(result[0][0])
+        df = df.groupby('grantee')['privilege_type'].apply(list)
+        return df.to_dict()
+
     def retrieve_role_names(self):
         result = self._cursor.fetchone()
         df = pd.DataFrame(result[0])
@@ -91,12 +111,12 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
     def revoke_group_from(self, user):
         self._set_role(self.admin)
-        sql = f"REVOKE \"test_group\" FROM \"{user}\"; "
+        sql = f"SELECT geodb_group_revoke('test_group', '{user}');"
         self.execute(sql)
 
     def grant_group_to(self, user):
         self._set_role(self.admin)
-        sql = f"GRANT \"test_group\" TO \"{user}\"; "
+        sql = f"SELECT geodb_group_grant('test_group', '{user}');"
         self.execute(sql)
 
     def unpublish_from_group(self, user):
