@@ -103,6 +103,28 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         self.execute(f"SELECT geodb_create_role('{self.admin}', '{new_group_name}')")
         self.grant_group_to(self.member)
 
+    def test_get_group_users(self):
+        self.execute(f"SELECT geodb_get_group_users('test_group')")
+        users = self.get_group_users()
+        self.assertListEqual(['test_admin'], users)
+
+        self.grant_group_to(self.member)
+        self.grant_group_to(self.member_2)
+        self.execute(f"SELECT geodb_get_group_users('test_group')")
+        users = self.get_group_users()
+        self.assertListEqual(['test_admin', self.member, self.member_2], users)
+
+        self.revoke_group_from(self.member_2)
+        self.execute(f"SELECT geodb_get_group_users('test_group')")
+        users = self.get_group_users()
+        self.assertListEqual(['test_admin', self.member], users)
+
+    def get_group_users(self):
+        result = self._cursor.fetchall()
+        df = pd.DataFrame(result[0][0])
+        users = sorted(df['rolname'].tolist())
+        return users
+
     def retrieve_grants(self):
         result = self._cursor.fetchall()
         df = pd.DataFrame(result[0][0])
