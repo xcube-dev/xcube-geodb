@@ -26,15 +26,15 @@ from xcube_geodb.version import version
 # -- Project information -----------------------------------------------------
 
 
-project = 'geodb'
-copyright = '2019, Brockmann Consult GmbH'
+project = 'xcube geoDB'
+copyright = '2023, Brockmann Consult GmbH'
 author = 'Brockmann Consult GmbH'
 
 # The full version, including alpha/beta/rc tags
 release = version
 
 # Title of the document
-doc_title = 'geodb Toolkit Documentation'
+doc_title = 'xcube geoDB Toolkit Documentation'
 
 # -- General configuration ---------------------------------------------------
 

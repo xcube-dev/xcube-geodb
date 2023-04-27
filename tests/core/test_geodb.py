@@ -218,13 +218,6 @@ class GeoDBClientTest(unittest.TestCase):
         bbox = json.dumps(self._api.get_collection_bbox('any', exact=True))
         self.assertEqual(str([9, -6, 11, 5]), str(bbox))
 
-        m.post(url, text='[{"geodb_get_collection_bbox":'
-                         '"BOX(112561.21 278713.135,685425.116 570140.955)"}]')
-        bbox = json.dumps(self._api.get_collection_bbox('any', exact=True))
-        self.assertEqual(str([278713.135, 112561.21, 570140.955, 685425.116]),
-                         str(bbox))
-
-
         url = f"{self._server_test_url}:" \
               f"{self._server_test_port}/rpc/geodb_estimate_collection_bbox"
         m.post(url, json="BOX(-5 8,2 10)")
@@ -232,12 +225,7 @@ class GeoDBClientTest(unittest.TestCase):
         bbox = json.dumps(self._api.get_collection_bbox('any'))
         self.assertEqual(str([8, -5, 10, 2]), str(bbox))
 
-        m.post(url, text='[{"geodb_get_collection_bbox":'
-                         '"BOX(-5 8,2 10)"}]')
-        bbox = json.dumps(self._api.get_collection_bbox('any'))
-        self.assertEqual(str([8, -5, 10, 2]), str(bbox))
-
-        m.post(url, text='[{"geodb_get_collection_bbox":null}]')
+        m.post(url, text='null')
         bbox = self._api.get_collection_bbox('any')
         self.assertIsNone(bbox)
 
@@ -618,6 +606,19 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertIsInstance(gdf, pd.DataFrame)
         self.assertEqual(0, len(gdf))
+
+    def test_get_collection_count(self, m):
+        self.set_global_mocks(m)
+
+        m.post(self._base_url + '/rpc/geodb_estimate_collection_count',
+               text='12')
+        m.post(self._base_url + '/rpc/geodb_count_collection', text='10')
+
+        res = self._api.count_collection_rows('test')
+        self.assertEqual(12, res)
+
+        res = self._api.count_collection_rows('test', exact_count=True)
+        self.assertEqual(10, res)
 
     def test_reproject_bbox(self, m):
         bbox_4326 = (9.8, 53.51, 10.0, 53.57)
@@ -1437,7 +1438,7 @@ class GeoDBClientTest(unittest.TestCase):
     def test_get_geodb_sql_version(self, m):
         self.set_global_mocks(m)
         url = f'{self._base_url}/rpc/geodb_get_geodb_sql_version'
-        m.get(url, json=[{'geodb_get_geodb_sql_version': '1.1.5-dev'}])
+        m.get(url, text='"1.1.5-dev"')
         self.assertEqual('1.1.5-dev', self._api.get_geodb_sql_version())
 
     def test_get_event_log(self, m):
