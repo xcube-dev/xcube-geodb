@@ -2,7 +2,7 @@ import json
 import os
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Dict, Optional, Union, Sequence, Tuple
+from typing import Dict, Optional, Union, Sequence, Tuple, List
 
 import geopandas as gpd
 import requests
@@ -975,13 +975,17 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e)
 
-    def unpublish_collection(self, collection: str, database: Optional[str] = None) -> Message:
+    def unpublish_collection(self, collection: str,
+                             database: Optional[str] = None) -> Message:
         """
-        Revoke public access to a collection. The collection will not be accessible by all users in the geoDB.
+        Revoke public access to a collection. The collection will not be
+        accessible by all users in the geoDB.
 
         Args:
-            database (str): The database the collection resides in [current database]
-            collection (str): The name of the collection that will be removed from public access
+            database (str): The database the collection resides in
+            [current database]
+            collection (str): The name of the collection that will be removed
+            from public access
 
         Returns:
             Message: Message whether operation succeeded
@@ -993,7 +997,9 @@ class GeoDBClient(object):
         database = database or self.database
 
         try:
-            return self.revoke_access_from_collection(collection=collection, usr='public', database=database)
+            return self.revoke_access_from_collection(collection=collection,
+                                                      usr='public',
+                                                      database=database)
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -2015,9 +2021,11 @@ class GeoDBClient(object):
 
     def create_group(self, group_name: str) -> Message:
         """
-        Creates a new group with the given name, and makes the current user admin of that group: the current user can
-        now add or remove users to and from the group, and all group users can publish or unpublish their collections
-        to or from the group. Per default, no collection is published to the group.
+        Creates a new group with the given name, and makes the current user
+        admin of that group: the current user can now add or remove users to
+        and from the group, and all group users can publish or unpublish their
+        collections to or from the group. Per default, no collection is
+        published to the group.
 
         Args:
             group_name (str): Name of the group to create.
@@ -2049,7 +2057,8 @@ class GeoDBClient(object):
             A message if the user was added to the group.
 
         Raises:
-            GeoDBError if (1) the user does not exist, (2) the group does not exist, (3) the current user does not have
+            GeoDBError if (1) the user does not exist, (2) the group does not
+            exist, (3) the current user does not have
             sufficient rights to add the user to the group.
         """
 
@@ -2074,7 +2083,8 @@ class GeoDBClient(object):
             A message if the user was removed from the group.
 
         Raises:
-            GeoDBError if (1) the user does not exist, (2) the group does not exist, (3) the current user does not have
+            GeoDBError if (1) the user does not exist, (2) the group does not
+            exist, (3) the current user does not have
             sufficient rights to remove the user from the group.
         """
 
@@ -2087,22 +2097,27 @@ class GeoDBClient(object):
         self._post(path=path, payload=payload)
         return Message(f'Removed user {user} from {group}')
 
-    def publish_collection_to_group(self, collection: str, group: str, database: Optional[str] = None) -> Message:
+    def publish_collection_to_group(self, collection: str, group: str,
+                                    database: Optional[str] = None) -> Message:
         """
-        Publishes the collection to the given group. Group members get read and write access to the collection; they
+        Publishes the collection to the given group. Group members get read
+        and write access to the collection; they
         cannot publish the collection to other users or groups.
-        This is only allowed if the current user is the owner of the collection.
+        This is only allowed if the current user is the owner of the
+        collection.
 
         Args:
             collection (str): The collection's name
             group (str): Name of the group.
-            database (str): The name of the database the collection resides in [current database].
+            database (str): The name of the database the collection resides
+            in [current database].
 
         Returns:
             A message if the collection was published to the group.
 
         Raises:
-            GeoDBError if (1) the collection does not exist, (2) the group does not exist,
+            GeoDBError if (1) the collection does not exist, (2) the group
+            does not exist,
             (3) the current user is not the owner of the collection.
         """
 
@@ -2110,7 +2125,8 @@ class GeoDBClient(object):
         dn = f'{database}_{collection}'
 
         if not self._is_owner_of(dn):
-            raise GeoDBError(f'User {self.whoami} must be owner of collection {dn} to publish.')
+            raise GeoDBError(f'User {self.whoami} must be owner of collection '
+                             f'{dn} to publish.')
 
         path = '/rpc/geodb_group_publish_collection'
         payload = {
@@ -2120,22 +2136,28 @@ class GeoDBClient(object):
 
         self._post(path=path, payload=payload)
 
-        return Message(f'Published collection {collection} in database {database} to group {group}.')
+        return Message(f'Published collection {collection} in database '
+                       f'{database} to group {group}.')
 
-    def unpublish_collection_from_group(self, collection: str, group: str, database: Optional[str] = None) -> Message:
+    def unpublish_collection_from_group(
+            self,
+            collection: str, group: str,
+            database: Optional[str] = None) -> Message:
         """
         Unpublishes the collection from the given group.
 
         Args:
             collection (str): The collection's name
-            database (str): The name of the database the collection resides in [current database].
+            database (str): The name of the database the collection resides
+            in [current database].
             group (str): Name of the group.
 
         Returns:
             A message if the collection was unpublished from the group.
 
         Raises:
-            GeoDBError if (1) the collection does not exist, (2) the group does not exist,
+            GeoDBError if (1) the collection does not exist, (2) the group
+            does not exist,
             (3) the current user is not the owner of the collection.
         """
 
@@ -2143,7 +2165,8 @@ class GeoDBClient(object):
         dn = f'{database}_{collection}'
 
         if not self._is_owner_of(dn):
-            raise GeoDBError(f'User {self.whoami} must be owner of collection {dn} to unpublish.')
+            raise GeoDBError(f'User {self.whoami} must be owner of '
+                             f'collection {dn} to unpublish.')
 
         path = '/rpc/geodb_group_unpublish_collection'
         payload = {
@@ -2152,7 +2175,8 @@ class GeoDBClient(object):
         }
 
         self._post(path=path, payload=payload)
-        return Message(f'Unpublished collection {collection} in database {database} from group {group}.')
+        return Message(f'Unpublished collection {collection} in database '
+                       f'{database} from group {group}.')
 
     def get_my_groups(self):
         """
@@ -2162,15 +2186,32 @@ class GeoDBClient(object):
             The different group memberships of the current user.
         """
         path = '/rpc/geodb_get_user_roles'
-        names = self._post(path=path, payload={'user_name': self.whoami}).json()[0]['src']
-        return sorted([name['rolname'] for name in names if not name['rolname'] == self.whoami])
+        names = self._post(path=path,
+                           payload={'user_name': self.whoami}).json()[0]['src']
+        return sorted(
+            [name['rolname'] for name in names
+             if not name['rolname'] == self.whoami])
 
-    def get_access_rights(self, collection: str, database: Optional[str] = None) -> Dict:
+    def get_group_users(self, group: str) -> List:
+        """
+        Returns the users that are member of the given group.
+
+        Returns:
+            the users that are member of the given group.
+        """
+        path = '/rpc/geodb_get_group_users'
+        result = self._post(path=path, payload={'group_name': group}).json()
+        names = result[0]['res']
+        return sorted([name['rolname'] for name in names])
+
+    def get_access_rights(self, collection: str,
+                          database: Optional[str] = None) -> Dict:
         """
         Returns the access rights on the given collection.
 
         Returns:
-            The access rights on the collection of the current user and all groups the user is in.
+            The access rights on the collection of the current user and all
+            groups the user is in.
 
         Raises:
             GeoDBError if the collection does not exist

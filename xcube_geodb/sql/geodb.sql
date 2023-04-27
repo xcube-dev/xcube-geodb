@@ -1469,6 +1469,24 @@ BEGIN
 END
 $BODY$;
 
+CREATE OR REPLACE FUNCTION public.geodb_get_group_users(group_name text)
+    RETURNS TABLE
+            (
+                res json
+            )
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    RETURN QUERY EXECUTE format(
+            'SELECT JSON_AGG(res) FROM
+                (SELECT rolname from pg_catalog.pg_roles
+                    WHERE oid in
+                        (SELECT member FROM pg_catalog.pg_roles AS roles JOIN pg_catalog.pg_auth_members m ON m.roleid = roles.oid
+                            WHERE roles.rolname = ''%s'')) as res;', group_name);
+END
+$BODY$;
+
 CREATE OR REPLACE FUNCTION public.geodb_group_grant(user_group text, user_name text)
     RETURNS void
     LANGUAGE 'plpgsql'

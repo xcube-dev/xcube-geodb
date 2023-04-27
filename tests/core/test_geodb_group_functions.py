@@ -54,6 +54,17 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         expected = {'Message': f'Removed user {username} from {usergroup}'}
         self.base_test.check_message(r, expected)
 
+    def test_get_group_users(self, m):
+        self.base_test.set_global_mocks(m)
+        url = f'{self.base_test._base_url}/rpc/geodb_get_group_users'
+        m.post(url, json=[{'res': [{'rolname': self.base_test._api.whoami},
+                                   {'rolname': 'authenticator'}]}])
+
+        usergroup = 'test_group'
+
+        r = self.base_test._api.get_group_users(usergroup)
+        self.assertListEqual(['authenticator', self.base_test._api.whoami], r)
+
     def test_publish_collection_to_group(self, m):
         self.base_test.set_global_mocks(m)
         url = f'{self.base_test._base_url}/rpc/geodb_group_publish_collection'
@@ -65,9 +76,11 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         database = 'test_db'
         group = 'test_group'
 
-        r = self.base_test._api.publish_collection_to_group(collection, group, database)
+        r = self.base_test._api.publish_collection_to_group(collection,
+                                                            group, database)
 
-        expected = {'Message': f'Published collection {collection} in database {database} to group {group}.'}
+        expected = {'Message': f'Published collection {collection} in '
+                               f'database {database} to group {group}.'}
         self.base_test.check_message(r, expected)
 
     def test_publish_collection_to_group_fails(self, m):
@@ -78,11 +91,13 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         m.post(url, text='0')  # user is NOT owner of database
 
         with self.assertRaises(GeoDBError):
-            self.base_test._api.publish_collection_to_group('collection', 'group', 'database')
+            self.base_test._api.publish_collection_to_group(
+                'collection', 'group', 'database')
 
     def test_unpublish_collection_from_group(self, m):
         self.base_test.set_global_mocks(m)
-        url = f'{self.base_test._base_url}/rpc/geodb_group_unpublish_collection'
+        url = f'{self.base_test._base_url}/rpc/' \
+              f'geodb_group_unpublish_collection'
         m.post(url, text='')
         url = f'{self.base_test._base_url}/rpc/geodb_user_allowed'
         m.post(url, text='1')  # user is owner of database
@@ -91,15 +106,18 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         database = 'test_db'
         group = 'test_group'
 
-        r = self.base_test._api.unpublish_collection_from_group(collection, group, database)
+        r = self.base_test._api.unpublish_collection_from_group(
+            collection, group, database)
 
-        expected = {'Message': f'Unpublished collection {collection} in database {database} from group {group}.'}
+        expected = {'Message': f'Unpublished collection {collection} in '
+                               f'database {database} from group {group}.'}
         self.base_test.check_message(r, expected)
 
     def test_get_my_groups(self, m):
         self.base_test.set_global_mocks(m)
         url = f'{self.base_test._base_url}/rpc/geodb_get_user_roles'
-        m.post(url, json=[{'src': [{'rolname': self.base_test._api.whoami}, {'rolname': 'authenticator'}]}])
+        m.post(url, json=[{'src': [{'rolname': self.base_test._api.whoami},
+                                   {'rolname': 'authenticator'}]}])
 
         roles = self.base_test._api.get_my_groups()
         self.assertListEqual(['authenticator'], roles)
@@ -110,13 +128,17 @@ class GeoDBClientGroupsTest(unittest.TestCase):
 
         grantee = self.base_test._api.whoami
 
-        m.post(url, json=[{'res': [{'grantee': grantee, 'privilege_type': 'INSERT'},
-                                   {'grantee': grantee, 'privilege_type': 'SELECT'},
-                                   {'grantee': grantee, 'privilege_type': 'UPDATE'},
-                                   {'grantee': grantee, 'privilege_type': 'DELETE'}
-                                   ]
-                           }]
+        m.post(url, json=[
+            {'res':
+                 [{'grantee': grantee, 'privilege_type': 'INSERT'},
+                  {'grantee': grantee, 'privilege_type': 'SELECT'},
+                  {'grantee': grantee, 'privilege_type': 'UPDATE'},
+                  {'grantee': grantee, 'privilege_type': 'DELETE'}
+                  ]
+             }]
                )
 
         rights = self.base_test._api.get_access_rights('test_col_test_db')
-        self.assertDictEqual({self.base_test._api.whoami: ['INSERT', 'SELECT', 'UPDATE', 'DELETE']}, rights)
+        self.assertDictEqual({
+            self.base_test._api.whoami: ['INSERT', 'SELECT', 'UPDATE',
+                                         'DELETE']}, rights)
