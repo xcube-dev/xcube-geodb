@@ -171,8 +171,8 @@ jobs:
         id: get_installation_token
         uses: tibdex/github-app-token@v1
         with:
-          app_id: ${{ secrets.XCUBE_GEODB_GH_ID }}
-          private_key: ${{ secrets.PRIVATE_KEY_XCUBE_GEODB_APP }}
+          app_id: ${{ secrets.TOKEN_PROVIDER_APP_ID }}
+          private_key: ${{ secrets.TOKEN_PROVIDER_KEY }}
           repository: bc-org/k8s-configs
           # the installationId of the GitHub app we are using
           installationId: 36950178
