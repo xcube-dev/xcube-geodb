@@ -17,8 +17,8 @@ env:
   # When developing jobs it could make sense to switch off the test sections as they take time
   # Unfortunately, you cannot set an if statement on job level. Hence, these variables are used in each step
   # of a unittest/nb-test job.
-  RUN_UNITTESTS: "0"
-  RUN_NB_TESTS: "0"
+  RUN_UNITTESTS: "1"
+  RUN_NB_TESTS: "1"
 
   # Determines whether the dev branch ouy are working on shall have a docker image (default 0)
   DOCKER_BUILD_MY_BRANCH: "0"
@@ -137,8 +137,7 @@ jobs:
       - uses: mr-smithers-excellent/docker-build-push@v5.5
         name: build-push-docker-image-latest
         # Build the image only for dev/stage/prod phases or if DOCKER_BUILD_MY_BRANCH is set to '1'
-        if: ${{ env.DOCKER_BUILD_MY_BRANCH == '1' }}
-#        if: ${{ steps.deployment-phase.outputs.phase != 'ignore' || env.DOCKER_BUILD_MY_BRANCH == '1' }}
+        if: ${{ steps.deployment-phase.outputs.phase != 'ignore' || env.DOCKER_BUILD_MY_BRANCH == '1' }}
         with:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-lab
           # Adds 'latest' tag when main is built (see: https://github.com/mr-smithers-excellent/docker-build-push#tagging-the-image-using-gitops)
@@ -150,7 +149,7 @@ jobs:
       # Build PostGIS docker image
       - uses: mr-smithers-excellent/docker-build-push@v5.5
         name: build-push-docker-backend-image-latest
-        if: ${{ env.DOCKER_BUILD_MY_BRANCH == '1' }}
+        if: ${{ steps.deployment-phase.outputs.phase != 'ignore'  || env.DOCKER_BUILD_MY_BRANCH == '1' }}
         with:
           image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
           directory: xcube_geodb/sql
@@ -165,25 +164,16 @@ jobs:
     env:
       PUSH: 1
     runs-on: ubuntu-latest
-#    needs: build-docker-image
+    needs: build-docker-image
     name: update-tag
     steps:
-      - name: Generate token
-        id: generate_token
-        uses: tibdex/github-app-token@v1
-        with:
-          app_id: ${{ secrets.XCUBE_GEODB_GH_ID }}
-          private_key: ${{ secrets.PRIVATE_KEY_XCUBE_GEODB_APP }}
-          repository: bc-org/k8s-configs
-          installationId: 36950178
       - name: git-checkout
         uses: actions/checkout@v2
       # Clone k8s-config into path 'k8s'
       - uses: actions/checkout@v2
         with:
           repository: bc-org/k8s-configs
-          token: ${{ steps.generate_token.outputs.token }}
-          ref: main
+          token: ${{ secrets.API_TOKEN_GITHUB }}
           path: k8s
       # Get the release tag (or main on push)
       - name: get-release-tag
