@@ -241,6 +241,7 @@ jobs:
 #        if: ${{ steps.deployment-phase.outputs.phase != 'ignore' && !env.ACT }}
         run: |
           cd ./k8s/k8s-configs
+          git config user.name "$GITHUB_ACTOR"
           echo "deleteme" >> xcube-geodb/test.txt
           git add xcube-geodb/test.txt
           git commit -m "test"
