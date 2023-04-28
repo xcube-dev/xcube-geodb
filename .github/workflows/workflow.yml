@@ -175,16 +175,22 @@ jobs:
           app_id: ${{ secrets.XCUBE_GEODB_GH_ID }}
           private_key: ${{ secrets.PRIVATE_KEY_XCUBE_GEODB_APP }}
           repository: bc-org/k8s-configs
+          # the installationId of the GitHub app we are using
           installationId: 36950178
       - name: git-checkout
         uses: actions/checkout@v2
       # Clone k8s-config into path 'k8s'
-      - uses: actions/checkout@v2
-        with:
-          repository: bc-org/k8s-configs
-          token: ${{ steps.get_installation_token.outputs.token }}
-          ref: main
-          path: k8s
+#      - uses: actions/checkout@v2
+#        with:
+#          repository: bc-org/k8s-configs
+#          token: ${{ steps.get_installation_token.outputs.token }}
+#          ref: main
+#          path: k8s
+      - name: checkout-k8s
+        run: |
+          mkdir k8s
+          cd k8s
+          git clone https://x-access-token:${{ steps.get_installation_token.outputs.token }}@github.com/bc-org/k8s-configs.git
       # Get the release tag (or main on push)
       - name: get-release-tag
         id: release
