@@ -228,9 +228,9 @@ jobs:
           delimiter: ' '
           tag: ${{ steps.deployment-phase.outputs.tag }}
           hash: ${{ steps.get-hash.outputs.hash }}
-          working-directory: "./k8s/${{ env.APP_NAME }}-jh/helm"
+          working-directory: "./k8s/k8s-configs/${{ env.APP_NAME }}-jh/helm"
       - name: cat-result
-        working-directory: "./k8s/${{ env.APP_NAME }}-jh/helm"
+        working-directory: "./k8s/k8s-configs/${{ env.APP_NAME }}-jh/helm"
         run: |
           head values-dev.yaml
           head values-stage.yaml
