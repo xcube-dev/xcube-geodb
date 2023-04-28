@@ -168,8 +168,8 @@ jobs:
 #    needs: build-docker-image
     name: update-tag
     steps:
-      - name: Generate token
-        id: generate_token
+      - name: Get installation token
+        id: get_installation_token
         uses: tibdex/github-app-token@v1
         with:
           app_id: ${{ secrets.XCUBE_GEODB_GH_ID }}
@@ -182,7 +182,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           repository: bc-org/k8s-configs
-          token: ${{ steps.generate_token.outputs.token }}
+          token: ${{ steps.get_installation_token.outputs.token }}
           ref: main
           path: k8s
       # Get the release tag (or main on push)
