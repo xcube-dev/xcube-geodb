@@ -1452,3 +1452,59 @@ BEGIN
                       ) as vals;
 END
 $BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_show_indexes(collection text)
+    RETURNS TABLE(indexname name)
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    RETURN QUERY EXECUTE format('SELECT indexname FROM pg_indexes WHERE tablename = ''%s''', collection);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_create_index(collection text, property text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+DECLARE
+    idx_name text;
+BEGIN
+    idx_name := geodb_get_index_name(collection, property);
+    IF property = 'geometry' then
+        EXECUTE format('CREATE INDEX %I ON %I USING GIST(%I)', idx_name, collection, property);
+    ELSE
+        EXECUTE format('CREATE INDEX %I ON %I (%I)', idx_name, collection, property);
+    END IF;
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_drop_index(collection text, property text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+DECLARE
+    idx_name text;
+BEGIN
+    idx_name := geodb_get_index_name(collection, property);
+    EXECUTE format('DROP INDEX %I', idx_name);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_get_index_name(collection text, property text)
+    RETURNS text
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+DECLARE
+    idx_name text;
+BEGIN
+    idx_name := format('idx_%I_%I', property, collection);
+    IF LENGTH(idx_name) > 63 then
+        idx_name := SUBSTR(idx_name, 0, 63);
+    END IF;
+    RETURN idx_name;
+END
+$BODY$;
