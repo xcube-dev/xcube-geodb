@@ -167,14 +167,23 @@ jobs:
     needs: build-docker-image
     name: update-tag
     steps:
+      - name: Get installation token
+        id: get_installation_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.TOKEN_PROVIDER_APP_ID }}
+          private_key: ${{ secrets.TOKEN_PROVIDER_KEY }}
+          repository: bc-org/k8s-configs
+          # the installationId of the GitHub app we are using
+          installationId: 36950178
       - name: git-checkout
         uses: actions/checkout@v2
       # Clone k8s-config into path 'k8s'
-      - uses: actions/checkout@v2
-        with:
-          repository: bc-org/k8s-configs
-          token: ${{ secrets.API_TOKEN_GITHUB }}
-          path: k8s
+      - name: checkout-k8s
+        run: |
+          mkdir k8s
+          cd k8s
+          git clone https://x-access-token:${{ steps.get_installation_token.outputs.token }}@github.com/bc-org/k8s-configs.git
       # Get the release tag (or main on push)
       - name: get-release-tag
         id: release
@@ -193,7 +202,7 @@ jobs:
           if [[ "$HASH" == *"sha256"* ]]; then
             echo ::set-output name=hash::$HASH
           else
-            echo "No has present. Using none as hash. This will use the version tag instead for deployment."
+            echo "No hash present. Using none as hash. This will use the version tag instead for deployment."
             echo ::set-output name=hash::none
           fi
       - name: info
@@ -212,9 +221,9 @@ jobs:
           delimiter: ' '
           tag: ${{ steps.deployment-phase.outputs.tag }}
           hash: ${{ steps.get-hash.outputs.hash }}
-          working-directory: "./k8s/${{ env.APP_NAME }}-jh/helm"
+          working-directory: "./k8s/k8s-configs/${{ env.APP_NAME }}-jh/helm"
       - name: cat-result
-        working-directory: "./k8s/${{ env.APP_NAME }}-jh/helm"
+        working-directory: "./k8s/k8s-configs/${{ env.APP_NAME }}-jh/helm"
         run: |
           head values-dev.yaml
           head values-stage.yaml
@@ -223,13 +232,10 @@ jobs:
       - name: Pushes to another repository
         # Don't run if run locally and should be ignored
         if: ${{ steps.deployment-phase.outputs.phase != 'ignore' && !env.ACT }}
-        uses: cpina/github-action-push-to-another-repository@main
-        env:
-          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
-        with:
-          source-directory: 'k8s'
-          destination-github-username: 'bc-org'
-          destination-repository-name: 'k8s-configs'
-          user-email: bcdev@brockmann-consult.de
-          target-branch: main
-          commit-message: ${{ github.event.release }}. Set version to ${{ steps.release.outputs.tag }}
+        run: |
+          cd ./k8s/k8s-configs
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git commit -m "${{ github.event.release }}. Set version to ${{ steps.release.outputs.tag }}"
+          git remote set-url origin https://x-access-token:${{ steps.get_installation_token.outputs.token }}@github.com/bc-org/k8s-configs.git
+          git push origin main
