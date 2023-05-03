@@ -1849,7 +1849,6 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e, return_df=True)
 
-    #  todo: write tests!
     def create_index(self, collection: str, prop: str, database: str = None) -> Message:
         """
         Creates a new index on the given collection and the given property. This may drastically speed up your queries,
