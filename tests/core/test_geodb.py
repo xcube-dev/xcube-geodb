@@ -58,6 +58,9 @@ class GeoDBClientTest(unittest.TestCase):
         url = f"{self._base_url}/rpc/geodb_get_collection_srid"
         m.post(url, json=[{"src": [{"srid": 4326}]}])
 
+        url = f'{self._base_url}/rpc/geodb_log_event'
+        m.post(url, text=json.dumps(''))
+
     def set_auth_change_mocks(self, m):
         m.post(self._server_test_auth_domain + "/oauth/token", json={
             "access_token": "A long lived token but a different user",
