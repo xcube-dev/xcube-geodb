@@ -92,6 +92,8 @@ class EventType:
     ROWS_DROPPED = 'dropped rows'
     PROPERTY_ADDED = 'added property'
     PROPERTY_DROPPED = 'dropped property'
+    INDEX_CREATED = 'created index'
+    INDEX_DROPPED = 'dropped index'
 
 
 # noinspection PyShadowingNames,PyUnusedLocal
@@ -1889,6 +1891,8 @@ class GeoDBClient(object):
         }
 
         self._post(path=path, payload=payload)
+        self._log_event(EventType.INDEX_CREATED,
+                        'table {dn} and property {prop}')
         return Message(f'Created new index on table {dn} and property {prop}.')
 
     def show_indexes(self, collection: str, database: str = None) -> DataFrame:
@@ -1938,7 +1942,10 @@ class GeoDBClient(object):
             'property': prop,
         }
 
-        r = self._post(path=path, payload=payload)
+        self._log_event(EventType.INDEX_DROPPED,
+                        'table {dn} and property {prop}')
+
+        self._post(path=path, payload=payload)
         return Message(f'Removed index from table {dn} and property {prop}.')
 
     @property
