@@ -92,6 +92,11 @@ class EventType:
     ROWS_DROPPED = 'dropped rows'
     PROPERTY_ADDED = 'added property'
     PROPERTY_DROPPED = 'dropped property'
+    GROUP_CREATED = 'added group'
+    GROUP_ADDED = 'added to group'
+    GROUP_REMOVED = 'removed from group'
+    PUBLISHED_GROUP = 'published to group'
+    UNPUBLISHED_GROUP = 'unpublished from group'
 
 
 # noinspection PyShadowingNames,PyUnusedLocal
@@ -2084,6 +2089,7 @@ class GeoDBClient(object):
         }
 
         self._post(path=path, payload=payload)
+        self._log_event(EventType.GROUP_CREATED, group_name)
         return Message(f'Created new group {group_name}.')
 
     def add_user_to_group(self, user: str, group: str) -> Message:
@@ -2110,6 +2116,7 @@ class GeoDBClient(object):
         }
 
         self._post(path=path, payload=payload)
+        self._log_event(EventType.GROUP_ADDED, f'{user}, {group}')
         return Message(f'Added user {user} to {group}')
 
     def remove_user_from_group(self, user: str, group: str) -> Message:
@@ -2136,6 +2143,7 @@ class GeoDBClient(object):
         }
 
         self._post(path=path, payload=payload)
+        self._log_event(EventType.GROUP_REMOVED, f'{user}, {group}')
         return Message(f'Removed user {user} from {group}')
 
     def publish_collection_to_group(self, collection: str, group: str,
@@ -2176,7 +2184,7 @@ class GeoDBClient(object):
         }
 
         self._post(path=path, payload=payload)
-
+        self._log_event(EventType.PUBLISHED_GROUP, f'{collection}, {group}')
         return Message(f'Published collection {collection} in database '
                        f'{database} to group {group}.')
 
@@ -2216,6 +2224,7 @@ class GeoDBClient(object):
         }
 
         self._post(path=path, payload=payload)
+        self._log_event(EventType.UNPUBLISHED_GROUP, f'{collection}, {group}')
         return Message(f'Unpublished collection {collection} in database '
                        f'{database} from group {group}.')
 

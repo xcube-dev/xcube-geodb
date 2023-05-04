@@ -1,3 +1,4 @@
+import json
 import unittest
 
 import requests_mock
@@ -22,6 +23,9 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         url = f'{self.base_test._base_url}/rpc/geodb_create_role'
         m.post(url, text='')
 
+        url = f'{self.base_test._base_url}/rpc/geodb_log_event'
+        m.post(url, text=json.dumps(''))
+
         usergroup = 'test_group'
 
         r = self.base_test._api.create_group(usergroup)
@@ -36,6 +40,9 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         usergroup = 'test_group'
         m.post(url, text='')
 
+        url = f'{self.base_test._base_url}/rpc/geodb_log_event'
+        m.post(url, text=json.dumps(''))
+
         r = self.base_test._api.add_user_to_group(username, usergroup)
 
         expected = {'Message': f'Added user {username} to {usergroup}'}
@@ -45,6 +52,9 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         self.base_test.set_global_mocks(m)
         url = f'{self.base_test._base_url}/rpc/geodb_group_revoke'
         m.post(url, text='')
+
+        url = f'{self.base_test._base_url}/rpc/geodb_log_event'
+        m.post(url, text=json.dumps(''))
 
         username = 'test_user'
         usergroup = 'test_group'
@@ -71,6 +81,9 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         m.post(url, text='')
         url = f'{self.base_test._base_url}/rpc/geodb_user_allowed'
         m.post(url, text='1')  # user is owner of database
+
+        url = f'{self.base_test._base_url}/rpc/geodb_log_event'
+        m.post(url, text=json.dumps(''))
 
         collection = 'test_col'
         database = 'test_db'
@@ -101,6 +114,9 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         m.post(url, text='')
         url = f'{self.base_test._base_url}/rpc/geodb_user_allowed'
         m.post(url, text='1')  # user is owner of database
+
+        url = f'{self.base_test._base_url}/rpc/geodb_log_event'
+        m.post(url, text=json.dumps(''))
 
         collection = 'test_col'
         database = 'test_db'
