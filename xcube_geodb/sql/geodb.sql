@@ -1500,11 +1500,14 @@ AS
 $BODY$
 DECLARE
     idx_name text;
+    collection_shortened text;
 BEGIN
-    idx_name := format('idx_%I_%I', property, collection);
-    IF LENGTH(idx_name) > 63 then
-        idx_name := SUBSTR(idx_name, 0, 63);
-    END IF;
+    idx_name := format('idx_%s_%s', property, collection);
+    collection_shortened := collection;
+    WHILE LENGTH(idx_name) > 63 LOOP
+        collection_shortened := SUBSTR(collection_shortened, 2, LENGTH(collection_shortened));
+        idx_name := format('idx_%s_%s', property, collection_shortened);
+    END LOOP;
     RETURN idx_name;
 END
 $BODY$;

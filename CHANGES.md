@@ -2,6 +2,7 @@
 
 ### New Features
 
+- added functions that allow to create/show/remove indexes on collections
 
 ### Fixes
 
