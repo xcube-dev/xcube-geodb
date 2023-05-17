@@ -93,6 +93,7 @@ class EventType:
     PROPERTY_ADDED = 'added property'
     PROPERTY_DROPPED = 'dropped property'
     GROUP_CREATED = 'added group'
+    GROUP_DROPPED = 'removed group'
     GROUP_ADDED = 'added to group'
     GROUP_REMOVED = 'removed from group'
     PUBLISHED_GROUP = 'published to group'
@@ -2072,6 +2073,8 @@ class GeoDBClient(object):
         and from the group, and all group users can publish or unpublish their
         collections to or from the group. Per default, no collection is
         published to the group.
+        This function is restricted to users with a subscription of type
+        'manage' (or related).
 
         Args:
             group_name (str): Name of the group to create.
@@ -2091,6 +2094,29 @@ class GeoDBClient(object):
         self._post(path=path, payload=payload)
         self._log_event(EventType.GROUP_CREATED, group_name)
         return Message(f'Created new group {group_name}.')
+
+    def remove_group(self, group_name: str) -> Message:
+        """
+        Removes the new group with the given name. Only the group admin can
+        use this function.
+
+        Args:
+            group_name (str): Name of the group to remove.
+
+        Returns:
+            A message if the group was successfully removed.
+
+        Raises:
+            GeoDBError if the user is not the admin of the group.
+        """
+        path = '/rpc/geodb_drop_role'
+        payload = {
+            'user_name': self.whoami,
+        }
+
+        self._post(path=path, payload=payload)
+        self._log_event(EventType.GROUP_DROPPED, group_name)
+        return Message(f'Removed group {group_name}.')
 
     def add_user_to_group(self, user: str, group: str) -> Message:
         """

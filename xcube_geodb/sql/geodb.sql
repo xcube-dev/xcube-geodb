@@ -1464,13 +1464,31 @@ CREATE OR REPLACE FUNCTION public.geodb_create_role(user_name text, user_group t
     SET search_path = public,pg_temp
 AS
 $BODY$
+DECLARE
+    manage integer;
 BEGIN
+    EXECUTE format('SELECT COUNT(*) FROM geodb_user_info WHERE user_name = ''%s'' AND subscription LIKE ''%%manage%%''', user_name) INTO manage;
+    IF manage = 0 THEN
+        RAISE EXCEPTION 'Insufficient subscription for user %', user_name;
+    END IF;
+
     EXECUTE format('CREATE ROLE %I NOLOGIN
                                    NOSUPERUSER
                                    NOCREATEDB
                                    NOCREATEROLE
                                    NOREPLICATION', user_group);
     EXECUTE format('GRANT %I TO %I WITH ADMIN OPTION;', user_group, user_name);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_drop_role(user_group text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA public FROM %I', user_group);
+    EXECUTE format('DROP ROLE %I', user_group);
 END
 $BODY$;
 

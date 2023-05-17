@@ -26,10 +26,12 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
         cls._conn.commit()
         cls.admin = "test_admin"
+        cls.noadmin = "test_noadmin"
         cls.member = "test_member"
         cls.member_2 = "test_member_2"
         cls.nomember = "test_nomember"
         cls.table_name = "test_member_table_for_group"
+        cls.test_group = "test_group"
 
     def tearDown(self) -> None:
         self.base_test.tearDown()
@@ -59,7 +61,7 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         self.execute(f"SELECT geodb_get_user_roles('{self.member}')")
         role_names = self.retrieve_role_names()
         self.assertEqual(2, len(role_names))
-        self.assertEqual(role_names[0], 'test_group')
+        self.assertEqual(role_names[0], self.test_group)
         self.assertEqual(role_names[1], 'test_member')
 
         self.execute(f"SELECT geodb_get_user_roles('{self.member_2}')")
@@ -71,7 +73,7 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         self.execute(f"SELECT geodb_get_user_roles('{self.member_2}')")
         role_names = self.retrieve_role_names()
         self.assertEqual(2, len(role_names))
-        self.assertEqual(role_names[0], 'test_group')
+        self.assertEqual(role_names[0], self.test_group)
         self.assertEqual(role_names[1], 'test_member_2')
 
         self.execute(f"SELECT geodb_get_user_roles('{self.nomember}')")
@@ -89,7 +91,7 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
         self.assertEqual(2, len(grants))
         self.assertTrue(self.member in grants)
-        self.assertTrue('test_group' in grants)
+        self.assertTrue(self.test_group in grants)
         self.assertTrue('SELECT' in grants[self.member])
         self.assertTrue('UPDATE' in grants[self.member])
 
@@ -103,19 +105,38 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         self.execute(f"SELECT geodb_create_role('{self.admin}', '{new_group_name}')")
         self.grant_group_to(self.member)
 
+    def test_drop_role(self):
+        self.grant_group_to(self.member)
+        self._set_role(self.member)
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
+            self.execute(f"SELECT geodb_drop_role('{self.test_group}')")
+        self._conn.commit()
+        self._cursor = self._conn.cursor()
+
+        self.create_table_as_user(self.member)
+        self.publish_table_to_group(self.member)
+        self._set_role(self.admin)
+        self._conn.commit()
+        self.execute(f"SELECT geodb_drop_role('{self.test_group}')")
+
+    def test_create_role_fails(self):
+        self._set_role(self.noadmin)
+        with self.assertRaises(psycopg2.errors.RaiseException):
+            self.execute(f"SELECT geodb_create_role('{self.noadmin}', 'any_group')")
+
     def test_get_group_users(self):
-        self.execute(f"SELECT geodb_get_group_users('test_group')")
+        self.execute(f"SELECT geodb_get_group_users('{self.test_group}')")
         users = self.get_group_users()
         self.assertListEqual(['test_admin'], users)
 
         self.grant_group_to(self.member)
         self.grant_group_to(self.member_2)
-        self.execute(f"SELECT geodb_get_group_users('test_group')")
+        self.execute(f"SELECT geodb_get_group_users('{self.test_group}')")
         users = self.get_group_users()
         self.assertListEqual(['test_admin', self.member, self.member_2], users)
 
         self.revoke_group_from(self.member_2)
-        self.execute(f"SELECT geodb_get_group_users('test_group')")
+        self.execute(f"SELECT geodb_get_group_users('{self.test_group}')")
         users = self.get_group_users()
         self.assertListEqual(['test_admin', self.member], users)
 
@@ -143,24 +164,24 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
     def revoke_group_from(self, user):
         self._set_role(self.admin)
-        sql = f"SELECT geodb_group_revoke('test_group', '{user}');"
+        sql = f"SELECT geodb_group_revoke('{self.test_group}', '{user}');"
         self.execute(sql)
 
     def grant_group_to(self, user):
         self._set_role(self.admin)
-        sql = f"SELECT geodb_group_grant('test_group', '{user}');"
+        sql = f"SELECT geodb_group_grant('{self.test_group}', '{user}');"
         self.execute(sql)
 
     def unpublish_from_group(self, user):
         self._set_role(user)
         sql = f"SELECT geodb_group_unpublish_collection('{self.table_name}'," \
-              f" 'test_group')"
+              f" '{self.test_group}')"
         self.execute(sql)
 
     def publish_table_to_group(self, user):
         self._set_role(user)
         sql = f"SELECT geodb_group_publish_collection('{self.table_name}'," \
-              f"'test_group')"
+              f"'{self.test_group}')"
         self.execute(sql)
 
     def access_table_with_user_fail(self, user):

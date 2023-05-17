@@ -30,6 +30,18 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         expected = {'Message': f'Created new group {usergroup}.'}
         self.base_test.check_message(r, expected)
 
+    def test_remove_group(self, m):
+        self.base_test.set_global_mocks(m)
+        url = f'{self.base_test._base_url}/rpc/geodb_drop_role'
+        m.post(url, text='')
+
+        usergroup = 'test_group'
+
+        r = self.base_test._api.remove_group(usergroup)
+
+        expected = {'Message': f'Removed group {usergroup}.'}
+        self.base_test.check_message(r, expected)
+
     def test_add_user_to_group(self, m):
         self.base_test.set_global_mocks(m)
         url = f'{self.base_test._base_url}/rpc/geodb_group_grant'
