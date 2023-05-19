@@ -2095,29 +2095,6 @@ class GeoDBClient(object):
         self._log_event(EventType.GROUP_CREATED, group_name)
         return Message(f'Created new group {group_name}.')
 
-    def remove_group(self, group_name: str) -> Message:
-        """
-        Removes the new group with the given name. Only the group admin can
-        use this function.
-
-        Args:
-            group_name (str): Name of the group to remove.
-
-        Returns:
-            A message if the group was successfully removed.
-
-        Raises:
-            GeoDBError if the user is not the admin of the group.
-        """
-        path = '/rpc/geodb_drop_role'
-        payload = {
-            'user_group': group_name,
-        }
-
-        self._post(path=path, payload=payload)
-        self._log_event(EventType.GROUP_DROPPED, group_name)
-        return Message(f'Removed group {group_name}.')
-
     def add_user_to_group(self, user: str, group: str) -> Message:
         """
         Adds the user to the given group.

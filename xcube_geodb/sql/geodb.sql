@@ -1481,17 +1481,6 @@ BEGIN
 END
 $BODY$;
 
-CREATE OR REPLACE FUNCTION public.geodb_drop_role(user_group text)
-    RETURNS void
-    LANGUAGE 'plpgsql'
-AS
-$BODY$
-BEGIN
-    EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA public FROM %I', user_group);
-    EXECUTE format('DROP ROLE %I', user_group);
-END
-$BODY$;
-
 CREATE OR REPLACE FUNCTION public.geodb_group_publish_collection(collection text, user_group text)
     RETURNS void
     LANGUAGE 'plpgsql'

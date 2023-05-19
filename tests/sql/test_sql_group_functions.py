@@ -105,20 +105,6 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         self.execute(f"SELECT geodb_create_role('{self.admin}', '{new_group_name}')")
         self.grant_group_to(self.member)
 
-    def test_drop_role(self):
-        self.grant_group_to(self.member)
-        self._set_role(self.member)
-        with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
-            self.execute(f"SELECT geodb_drop_role('{self.test_group}')")
-        self._conn.commit()
-        self._cursor = self._conn.cursor()
-
-        self.create_table_as_user(self.member)
-        self.publish_table_to_group(self.member)
-        self._set_role(self.admin)
-        self._conn.commit()
-        self.execute(f"SELECT geodb_drop_role('{self.test_group}')")
-
     def test_create_role_fails(self):
         self._set_role(self.noadmin)
         with self.assertRaises(psycopg2.errors.RaiseException):
