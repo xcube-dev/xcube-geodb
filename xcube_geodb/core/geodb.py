@@ -2111,7 +2111,7 @@ class GeoDBClient(object):
         """
         path = '/rpc/geodb_drop_role'
         payload = {
-            'user_name': self.whoami,
+            'user_group': group_name,
         }
 
         self._post(path=path, payload=payload)
