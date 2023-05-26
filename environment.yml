@@ -16,3 +16,4 @@ dependencies:
   - python-fastjsonschema
   - python-dotenv
   - pystac
+  - geojson
