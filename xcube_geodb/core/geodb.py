@@ -13,6 +13,7 @@ from shapely import wkb
 
 from xcube_geodb.const import MINX, MINY, MAXX, MAXY
 from xcube_geodb.core.message import Message
+from xcube_geodb.core.stac import StacTransformer
 from xcube_geodb.defaults import GEODB_DEFAULTS
 from xcube_geodb.version import version
 import warnings
@@ -1469,6 +1470,45 @@ class GeoDBClient(object):
         msg = f"{total_rows} rows inserted into "
         self._log_event(EventType.ROWS_ADDED, f'{msg}{dn}')
         return Message(f'{msg}{collection}')
+
+    def import_stac_catalog(self, catalog_path: str,
+                            database: Optional[str] = None) -> Message:
+        """
+        Imports all collections from a STAC catalog, given by a path to a JSON
+         file, into the geoDB.
+
+        Args:
+            catalog_path (str): The path of the STAC catalog JSON file.
+            database (str):     The name of the database the collections shall
+                                be added to.
+        Raises:
+            ValueError: When the catalog is not STAC-compliant, or when
+                        the catalog contains a collection without CRS, or when
+                        the catalog contains items with different CRS within a
+                        single collection.
+
+        Returns:
+            Message: On successful import, returns a Message wrapping up the
+                     import.
+
+        """
+        stac_transformer = StacTransformer()
+        collections = stac_transformer.transform_stac_catalog(catalog_path)
+        database = database or self.database
+
+        for collection in collections:
+            collection_name = f'{database}_{collection.name}'
+            if len(collection_name) > 63:
+                collection_name = collection_name[:63]
+            collection_name = collection_name[len(database) + 1:]
+            self.create_collection(collection_name,
+                                   collection.properties,
+                                   database=database)
+            self.insert_into_collection(collection_name,
+                                        collection.data,
+                                        database=database)
+        return Message(f'Imported STAC catalog {catalog_path} into database '
+                       f'{database}.')
 
     @staticmethod
     def transform_bbox_crs(bbox: Tuple[float, float, float, float], from_crs: Union[int, str], to_crs: Union[int, str],

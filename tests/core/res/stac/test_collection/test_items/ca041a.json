@@ -1,0 +1,297 @@
+{
+  "id": "ca041a",
+  "type": "Feature",
+  "stac_extensions": [
+    "https://stac-extensions.github.io/storage/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/label/v1.0.1/schema.json"
+  ],
+  "stac_version": "1.0.0",
+  "geometry": {
+    "coordinates": [
+      [
+        [
+          -0.2260939759101167,
+          5.607821019807083
+        ],
+        [
+          -0.22707525357332697,
+          5.609567361411101
+        ],
+        [
+          -0.2257626190986551,
+          5.610742610987594
+        ],
+        [
+          -0.2209214783972656,
+          5.60396659440964
+        ],
+        [
+          -0.2209297943096631,
+          5.603475955578037
+        ],
+        [
+          -0.21938590601191368,
+          5.601711342600872
+        ],
+        [
+          -0.21863322644066166,
+          5.601370284670147
+        ],
+        [
+          -0.2171984310079642,
+          5.60126443910544
+        ],
+        [
+          -0.2150344772406196,
+          5.602172946869177
+        ],
+        [
+          -0.21221192884842804,
+          5.603687126475405
+        ],
+        [
+          -0.2071666235973881,
+          5.60628622311988
+        ],
+        [
+          -0.20581415249279408,
+          5.604666197948947
+        ],
+        [
+          -0.2074253572000044,
+          5.603584221065274
+        ],
+        [
+          -0.2083544460457665,
+          5.6019965375946645
+        ],
+        [
+          -0.20906008314381597,
+          5.600996885039098
+        ],
+        [
+          -0.21070656970592522,
+          5.599526807751497
+        ],
+        [
+          -0.2114122068039735,
+          5.597897962116837
+        ],
+        [
+          -0.212416616071534,
+          5.595984932725826
+        ],
+        [
+          -0.2138692108714978,
+          5.593295072530488
+        ],
+        [
+          -0.21395275670010877,
+          5.593002662130355
+        ],
+        [
+          -0.21397782044869207,
+          5.590391854986293
+        ],
+        [
+          -0.2141449121059085,
+          5.590032607923272
+        ],
+        [
+          -0.21550670911225214,
+          5.588150738133833
+        ],
+        [
+          -0.21721104401589492,
+          5.585527399115482
+        ],
+        [
+          -0.21795907856051402,
+          5.590627248068187
+        ],
+        [
+          -0.21855973661963968,
+          5.59108215821591
+        ],
+        [
+          -0.2203440443835102,
+          5.593219794249854
+        ],
+        [
+          -0.22225201704190803,
+          5.59588742268891
+        ],
+        [
+          -0.2234356667466541,
+          5.598325387752418
+        ],
+        [
+          -0.22523764092403067,
+          5.601536258406711
+        ],
+        [
+          -0.22571463408862905,
+          5.6031880680693025
+        ],
+        [
+          -0.2259010426101557,
+          5.606526622234949
+        ],
+        [
+          -0.2260939759101167,
+          5.607821019807083
+        ]
+      ]
+    ],
+    "type": "Polygon"
+  },
+  "bbox": [
+    -0.22707525357332697,
+    5.585527399115482,
+    -0.20581415249279408,
+    5.610742610987594
+  ],
+  "properties": {
+    "label:description": "Geojson building labels for scene ca041a",
+    "area": "acc",
+    "label:type": "vector",
+    "label:properties": [
+      "building",
+      "building:material",
+      "roof:material",
+      "amenity",
+      "building:levels"
+    ],
+    "label:overviews": [
+      {
+        "property_key": "building",
+        "counts": [
+          {
+            "name": "yes",
+            "count": 10194
+          }
+        ]
+      },
+      {
+        "property_key": "building:material",
+        "counts": [
+          {
+            "name": "cement_block",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "property_key": "amenity",
+        "counts": [
+          {
+            "name": "bank",
+            "count": 2
+          },
+          {
+            "name": "place_of_worship",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "property_key": "building:levels",
+        "counts": [
+          {
+            "name": "2",
+            "count": 1
+          },
+          {
+            "name": "3",
+            "count": 1
+          }
+        ]
+      }
+    ],
+    "license": "ODbL-1.0",
+    "datetime": "2018-11-12T00:00:00+00:00",
+    "label:classes": [
+      {
+        "name": "building",
+        "classes": [
+          "yes"
+        ]
+      },
+      {
+        "name": "building:material",
+        "classes": [
+          "cement_block"
+        ]
+      },
+      {
+        "name": "amenity",
+        "classes": [
+          "bank",
+          "place_of_worship"
+        ]
+      },
+      {
+        "name": "building:levels",
+        "classes": [
+          "2",
+          "3"
+        ]
+      }
+    ],
+    "proj:epsg": 32631,
+    "proj:transform": [
+      4.873046875,
+      0.0,
+      166021.443,
+      0.0,
+      -4.8828125,
+      5000.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "proj:shape": [
+      1024,
+      1024
+    ],
+    "anon:size": 1,
+    "anon:warning": "gnöh"
+  },
+  "links": [
+    {
+      "href": "../../open_cities_ai_challenge_train_tier_1_source/open_cities_ai_challenge_train_tier_1_source_acc_ca041a/open_cities_ai_challenge_train_tier_1_source_acc_ca041a.json",
+      "rel": "source"
+    },
+    {
+      "rel": "collection",
+      "href": "../collection.json"
+    },
+    {
+      "rel": "root",
+      "href": "../../catalog.json"
+    },
+    {
+      "rel": "parent",
+      "href": "../collection.json"
+    },
+    {
+      "rel": "self",
+      "href": "open_cities_ai_challenge_train_tier_1_labels_acc_ca041a.json"
+    }
+  ],
+  "assets": {
+    "vector_labels": {
+      "href": "https://radiantearth.blob.core.windows.net/mlhub/open-cities-ai-challenge/train_tier_1/acc/ca041a-labels/ca041a.geojson",
+      "type": "application/geo+json",
+      "roles": [
+        "data",
+        "labels"
+      ],
+      "storage:platform": "AZURE",
+      "storage:region": "westeurope",
+      "storage:requester_pays": false,
+      "storage:tier": "hot"
+    }
+  },
+  "collection": "open_cities_ai_challenge_train_tier_1_labels"
+}

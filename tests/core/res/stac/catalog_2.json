@@ -1,0 +1,25 @@
+{
+    "id": "test_cat",
+    "stac_version": "1.0.0",
+    "description": "Test Catalog",
+    "links": [
+        {
+            "rel": "root",
+            "href": "catalog.json",
+            "type": "application/json"
+        },
+        {
+            "rel": "child",
+            "href": "test_collection/collection_2.json",
+            "type": "application/json"
+        },
+        {
+            "rel": "self",
+            "href": "catalog.json",
+            "type": "application/json"
+        }
+    ],
+    "type": "Catalog",
+    "created": "2020-11-30T00:00:00Z",
+    "updated": "2022-12-20T19:22:22Z"
+}

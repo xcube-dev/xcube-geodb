@@ -1,0 +1,85 @@
+{
+    "stac_version": "1.0.0",
+    "stac_extensions": [
+        "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
+    ],
+    "id": "test_collection",
+    "title": "Test Dataset",
+    "description": "Test Dataset",
+    "license": "CC-BY-4.0",
+    "links": [
+        {
+            "href": "collection.json",
+            "rel": "self"
+        },
+        {
+            "href": "test_items/ca041a.json",
+            "rel": "item"
+        },
+        {
+            "href": "test_items/ca041a_different_crs.json",
+            "rel": "item"
+        },
+        {
+            "rel": "root",
+            "href": "../catalog.json"
+        },
+        {
+            "rel": "parent",
+            "href": "../catalog.json"
+        },
+        {
+            "rel": "cite-as",
+            "href": "https://doi.org/10.34911/rdnt.f94cxb"
+        }
+    ],
+    "extent": {
+        "spatial": {
+            "bbox": [
+                [
+                    0.0,
+                    0.0,
+                    0.045,
+                    0.045
+                ]
+            ]
+        },
+        "temporal": {
+            "interval": [
+                [
+                    "2019-10-29T00:00:00Z",
+                    "2019-10-29T00:00:00Z"
+                ]
+            ]
+        }
+    },
+    "sci:doi": "i am a doi",
+    "sci:citation": "cite me",
+    "type": "Collection",
+    "assets": {},
+    "summaries": {
+        "eo:bands": [
+            {
+                "name": "B01",
+                "common_name": "red"
+            },
+            {
+                "name": "B02",
+                "common_name": "green"
+            },
+            {
+                "name": "B03",
+                "common_name": "blue"
+            }
+        ],
+        "proj:epsg": [
+            32631
+        ],
+        "proj:shape": [
+            1024
+        ],
+        "anon:size": [
+            1
+        ]
+    }
+}

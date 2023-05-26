@@ -2,6 +2,7 @@
 
 ### New Features
 
+- add method to easily import metadata given by STAC catalogs
 
 ### Fixes
 

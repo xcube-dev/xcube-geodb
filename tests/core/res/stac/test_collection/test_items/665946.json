@@ -1,0 +1,965 @@
+{
+  "id": "665946",
+  "type": "Feature",
+  "stac_extensions": [
+    "https://stac-extensions.github.io/storage/v1.0.0/schema.json",
+    "https://stac-extensions.github.io/label/v1.0.1/schema.json"
+  ],
+  "stac_version": "1.0.0",
+  "geometry": {
+    "coordinates": [
+      [
+        [
+          -0.24297113100354567,
+          5.639021431491198
+        ],
+        [
+          -0.23897453489157597,
+          5.641691785417461
+        ],
+        [
+          -0.23850428635941076,
+          5.642250323405412
+        ],
+        [
+          -0.2366780918775795,
+          5.646581694873462
+        ],
+        [
+          -0.2365678982420534,
+          5.647261088925513
+        ],
+        [
+          -0.23628962908589524,
+          5.6470592605205
+        ],
+        [
+          -0.23574709855965523,
+          5.646250384519349
+        ],
+        [
+          -0.23549999005573774,
+          5.646062606522559
+        ],
+        [
+          -0.2352479883141164,
+          5.645837517588297
+        ],
+        [
+          -0.2351489002506633,
+          5.645826507803469
+        ],
+        [
+          -0.23489078196191707,
+          5.645643011389668
+        ],
+        [
+          -0.23501342114346913,
+          5.645366016963376
+        ],
+        [
+          -0.23498470193337662,
+          5.645184128632788
+        ],
+        [
+          -0.23469272329743152,
+          5.644748553946379
+        ],
+        [
+          -0.23452040803687635,
+          5.644241181234739
+        ],
+        [
+          -0.23438159852142515,
+          5.644073652509197
+        ],
+        [
+          -0.23389815848486362,
+          5.643677566736666
+        ],
+        [
+          -0.23365883173408977,
+          5.643060103719671
+        ],
+        [
+          -0.23308923406724827,
+          5.642587433386895
+        ],
+        [
+          -0.2330078629719845,
+          5.642391185451258
+        ],
+        [
+          -0.23287862652656693,
+          5.641023433070588
+        ],
+        [
+          -0.2325962209606543,
+          5.640494520951376
+        ],
+        [
+          -0.23233774806981916,
+          5.639542000483295
+        ],
+        [
+          -0.231619767817498,
+          5.638628968929094
+        ],
+        [
+          -0.2313230026465391,
+          5.637736280148708
+        ],
+        [
+          -0.23095443945034647,
+          5.637243267042115
+        ],
+        [
+          -0.23061459546424917,
+          5.63661742758884
+        ],
+        [
+          -0.2303513360383966,
+          5.635274804516999
+        ],
+        [
+          -0.23008329007752945,
+          5.634768628439113
+        ],
+        [
+          -0.2294179617103787,
+          5.63434741335775
+        ],
+        [
+          -0.22888186978864675,
+          5.633672511920566
+        ],
+        [
+          -0.22813038379121683,
+          5.632798969280243
+        ],
+        [
+          -0.22817824914137264,
+          5.632402883507711
+        ],
+        [
+          -0.22802029348586056,
+          5.630963333101811
+        ],
+        [
+          -0.2282117548864802,
+          5.630476303163984
+        ],
+        [
+          -0.22777618020007248,
+          5.630079020757702
+        ],
+        [
+          -0.2282117548864806,
+          5.6293371078303025
+        ],
+        [
+          -0.22854202580254826,
+          5.628882387003831
+        ],
+        [
+          -0.22852628100057304,
+          5.628226174025203
+        ],
+        [
+          -0.22799593868162446,
+          5.627172467575712
+        ],
+        [
+          -0.22778055649501683,
+          5.626682654237342
+        ],
+        [
+          -0.2278709467984373,
+          5.626501873630503
+        ],
+        [
+          -0.22845649911650084,
+          5.62644673598136
+        ],
+        [
+          -0.22858210650783073,
+          5.625651222502934
+        ],
+        [
+          -0.22899381962385806,
+          5.62461496152446
+        ],
+        [
+          -0.22936723044334495,
+          5.623408328310911
+        ],
+        [
+          -0.2292520125949269,
+          5.621492222212219
+        ],
+        [
+          -0.22909151426155971,
+          5.620375712067064
+        ],
+        [
+          -0.23060578114592858,
+          5.620077394512653
+        ],
+        [
+          -0.23103842882717712,
+          5.620844995237451
+        ],
+        [
+          -0.23218982991437007,
+          5.622524994096494
+        ],
+        [
+          -0.23385761694369905,
+          5.62503016373469
+        ],
+        [
+          -0.23535094926284753,
+          5.627118386615555
+        ],
+        [
+          -0.24008913919135902,
+          5.634579814569995
+        ],
+        [
+          -0.24297113100354567,
+          5.639021431491198
+        ]
+      ]
+    ],
+    "type": "Polygon"
+  },
+  "bbox": [
+    -0.24297113100354567,
+    5.620077394512653,
+    -0.22777618020007248,
+    5.647261088925513
+  ],
+  "properties": {
+    "label:description": "Geojson building labels for scene 665946",
+    "area": "acc",
+    "label:type": "vector",
+    "label:properties": [
+      "building",
+      "building:material",
+      "roof:material",
+      "amenity",
+      "building:levels"
+    ],
+    "label:overviews": [
+      {
+        "property_key": "building",
+        "counts": [
+          {
+            "name": "yes",
+            "count": 7308
+          }
+        ]
+      },
+      {
+        "property_key": "building:material",
+        "counts": [
+          {
+            "name": "brick",
+            "count": 7
+          },
+          {
+            "name": "brick;cement_block",
+            "count": 7
+          },
+          {
+            "name": "brick;concrete",
+            "count": 1
+          },
+          {
+            "name": "brick;concrete;cement_block",
+            "count": 2
+          },
+          {
+            "name": "brick;metal;cement_block;concrete;glass",
+            "count": 1
+          },
+          {
+            "name": "brick;stone;cement_block;concrete",
+            "count": 2
+          },
+          {
+            "name": "brick;stone;concrete",
+            "count": 1
+          },
+          {
+            "name": "canvas",
+            "count": 2
+          },
+          {
+            "name": "canvas;cement_block",
+            "count": 1
+          },
+          {
+            "name": "canvas;metal",
+            "count": 6
+          },
+          {
+            "name": "canvas;wood",
+            "count": 2
+          },
+          {
+            "name": "cement_block",
+            "count": 2040
+          },
+          {
+            "name": "cement_block;metal",
+            "count": 4
+          },
+          {
+            "name": "cement_block;wood",
+            "count": 36
+          },
+          {
+            "name": "concrete",
+            "count": 8
+          },
+          {
+            "name": "concrete;cement_block",
+            "count": 560
+          },
+          {
+            "name": "concrete;metal",
+            "count": 1
+          },
+          {
+            "name": "concrete;wood",
+            "count": 1
+          },
+          {
+            "name": "glass;cement_block",
+            "count": 15
+          },
+          {
+            "name": "glass;concrete",
+            "count": 7
+          },
+          {
+            "name": "glass;concrete;cement_block",
+            "count": 20
+          },
+          {
+            "name": "glass;metal",
+            "count": 1
+          },
+          {
+            "name": "glass;stone;concrete;cement_block",
+            "count": 1
+          },
+          {
+            "name": "glass;wood",
+            "count": 1
+          },
+          {
+            "name": "loam",
+            "count": 1
+          },
+          {
+            "name": "loam;metal",
+            "count": 2
+          },
+          {
+            "name": "loam;metal;cement_block",
+            "count": 2
+          },
+          {
+            "name": "loam;wood",
+            "count": 1
+          },
+          {
+            "name": "loam;wood;concrete;cement_block",
+            "count": 1
+          },
+          {
+            "name": "metal",
+            "count": 523
+          },
+          {
+            "name": "metal;cement_block",
+            "count": 104
+          },
+          {
+            "name": "metal;cement_block;concrete",
+            "count": 2
+          },
+          {
+            "name": "metal;cement_block;concrete;wood",
+            "count": 4
+          },
+          {
+            "name": "metal;cement_block;wood;glass",
+            "count": 2
+          },
+          {
+            "name": "metal;concrete",
+            "count": 16
+          },
+          {
+            "name": "metal;concrete;cement_block",
+            "count": 37
+          },
+          {
+            "name": "metal;concrete;loam;wood;glass",
+            "count": 1
+          },
+          {
+            "name": "metal;concrete;wood;glass",
+            "count": 1
+          },
+          {
+            "name": "metal;glass",
+            "count": 3
+          },
+          {
+            "name": "metal;glass;cement_block",
+            "count": 7
+          },
+          {
+            "name": "metal;glass;concrete",
+            "count": 10
+          },
+          {
+            "name": "metal;glass;concrete;cement_block",
+            "count": 21
+          },
+          {
+            "name": "metal;glass;stone;concrete;cement_block",
+            "count": 1
+          },
+          {
+            "name": "metal;stone;concrete;cement_block;wood",
+            "count": 1
+          },
+          {
+            "name": "metal;wood",
+            "count": 92
+          },
+          {
+            "name": "metal;wood;cement_block",
+            "count": 19
+          },
+          {
+            "name": "metal;wood;concrete",
+            "count": 2
+          },
+          {
+            "name": "stone;cement_block",
+            "count": 3
+          },
+          {
+            "name": "stone;concrete",
+            "count": 1
+          },
+          {
+            "name": "stone;concrete;cement_block",
+            "count": 19
+          },
+          {
+            "name": "wood",
+            "count": 2452
+          },
+          {
+            "name": "wood;cement_block",
+            "count": 192
+          },
+          {
+            "name": "wood;concrete",
+            "count": 29
+          },
+          {
+            "name": "wood;concrete;cement_block",
+            "count": 30
+          },
+          {
+            "name": "wood;glass",
+            "count": 4
+          },
+          {
+            "name": "wood;glass;concrete",
+            "count": 2
+          },
+          {
+            "name": "wood;metal",
+            "count": 5
+          }
+        ]
+      },
+      {
+        "property_key": "roof:material",
+        "counts": [
+          {
+            "name": "No roof",
+            "count": 2
+          },
+          {
+            "name": "asbestos",
+            "count": 26
+          },
+          {
+            "name": "canvas",
+            "count": 37
+          },
+          {
+            "name": "canvas;metal",
+            "count": 7
+          },
+          {
+            "name": "cement",
+            "count": 3
+          },
+          {
+            "name": "concrete",
+            "count": 171
+          },
+          {
+            "name": "concrete;metal",
+            "count": 4
+          },
+          {
+            "name": "concrete;metal;tile",
+            "count": 2
+          },
+          {
+            "name": "concrete;tile",
+            "count": 2
+          },
+          {
+            "name": "metal",
+            "count": 5661
+          },
+          {
+            "name": "metal;cement",
+            "count": 2
+          },
+          {
+            "name": "metal;cement;concrete",
+            "count": 2
+          },
+          {
+            "name": "metal;concrete",
+            "count": 27
+          },
+          {
+            "name": "metal;plastic",
+            "count": 4
+          },
+          {
+            "name": "metal;slate",
+            "count": 1
+          },
+          {
+            "name": "metal;thatch",
+            "count": 1
+          },
+          {
+            "name": "metal;tile",
+            "count": 22
+          },
+          {
+            "name": "metal;tile;concrete",
+            "count": 1
+          },
+          {
+            "name": "metal;wood",
+            "count": 3
+          },
+          {
+            "name": "none",
+            "count": 2
+          },
+          {
+            "name": "plastic",
+            "count": 2
+          },
+          {
+            "name": "slate",
+            "count": 19
+          },
+          {
+            "name": "thatch",
+            "count": 3
+          },
+          {
+            "name": "tile",
+            "count": 164
+          },
+          {
+            "name": "tile;cement",
+            "count": 1
+          },
+          {
+            "name": "tile;concrete",
+            "count": 6
+          },
+          {
+            "name": "tile;metal",
+            "count": 3
+          },
+          {
+            "name": "tile;thatch",
+            "count": 1
+          },
+          {
+            "name": "wood",
+            "count": 18
+          },
+          {
+            "name": "wood:metal",
+            "count": 1
+          },
+          {
+            "name": "wood;concrete",
+            "count": 1
+          },
+          {
+            "name": "wood;metal",
+            "count": 8
+          },
+          {
+            "name": "wood;metal;concrete",
+            "count": 3
+          },
+          {
+            "name": "wood;metal;plastic",
+            "count": 2
+          },
+          {
+            "name": "wood;metal;tile",
+            "count": 1
+          },
+          {
+            "name": "wood;tile",
+            "count": 3
+          },
+          {
+            "name": "wood;tile;concrete",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "property_key": "amenity",
+        "counts": [
+          {
+            "name": "bank",
+            "count": 5
+          },
+          {
+            "name": "bar",
+            "count": 18
+          },
+          {
+            "name": "bus_station",
+            "count": 1
+          },
+          {
+            "name": "fast_food",
+            "count": 22
+          },
+          {
+            "name": "fuel",
+            "count": 2
+          },
+          {
+            "name": "marketplace",
+            "count": 2
+          },
+          {
+            "name": "mobile_money_agent",
+            "count": 1
+          },
+          {
+            "name": "money_transfer",
+            "count": 3
+          },
+          {
+            "name": "parking",
+            "count": 8
+          },
+          {
+            "name": "pharmacy",
+            "count": 1
+          },
+          {
+            "name": "place_of_worship",
+            "count": 51
+          },
+          {
+            "name": "pub",
+            "count": 21
+          },
+          {
+            "name": "restaurant",
+            "count": 25
+          },
+          {
+            "name": "school",
+            "count": 3
+          },
+          {
+            "name": "shelter",
+            "count": 2
+          },
+          {
+            "name": "shower",
+            "count": 8
+          },
+          {
+            "name": "studio",
+            "count": 1
+          },
+          {
+            "name": "toilets",
+            "count": 31
+          },
+          {
+            "name": "water_point",
+            "count": 2
+          },
+          {
+            "name": "watering_place",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "property_key": "building:levels",
+        "counts": [
+          {
+            "name": "1",
+            "count": 5895
+          },
+          {
+            "name": "2",
+            "count": 306
+          },
+          {
+            "name": "3",
+            "count": 46
+          },
+          {
+            "name": "4",
+            "count": 13
+          },
+          {
+            "name": "5",
+            "count": 3
+          }
+        ]
+      }
+    ],
+    "license": "ODbL-1.0",
+    "datetime": "2018-08-05T00:00:00+00:00",
+    "label:classes": [
+      {
+        "name": "building",
+        "classes": [
+          "yes"
+        ]
+      },
+      {
+        "name": "building:material",
+        "classes": [
+          "brick",
+          "brick;cement_block",
+          "brick;concrete",
+          "brick;concrete;cement_block",
+          "brick;metal;cement_block;concrete;glass",
+          "brick;stone;cement_block;concrete",
+          "brick;stone;concrete",
+          "canvas",
+          "canvas;cement_block",
+          "canvas;metal",
+          "canvas;wood",
+          "cement_block",
+          "cement_block;metal",
+          "cement_block;wood",
+          "concrete",
+          "concrete;cement_block",
+          "concrete;metal",
+          "concrete;wood",
+          "glass;cement_block",
+          "glass;concrete",
+          "glass;concrete;cement_block",
+          "glass;metal",
+          "glass;stone;concrete;cement_block",
+          "glass;wood",
+          "loam",
+          "loam;metal",
+          "loam;metal;cement_block",
+          "loam;wood",
+          "loam;wood;concrete;cement_block",
+          "metal",
+          "metal;cement_block",
+          "metal;cement_block;concrete",
+          "metal;cement_block;concrete;wood",
+          "metal;cement_block;wood;glass",
+          "metal;concrete",
+          "metal;concrete;cement_block",
+          "metal;concrete;loam;wood;glass",
+          "metal;concrete;wood;glass",
+          "metal;glass",
+          "metal;glass;cement_block",
+          "metal;glass;concrete",
+          "metal;glass;concrete;cement_block",
+          "metal;glass;stone;concrete;cement_block",
+          "metal;stone;concrete;cement_block;wood",
+          "metal;wood",
+          "metal;wood;cement_block",
+          "metal;wood;concrete",
+          "stone;cement_block",
+          "stone;concrete",
+          "stone;concrete;cement_block",
+          "wood",
+          "wood;cement_block",
+          "wood;concrete",
+          "wood;concrete;cement_block",
+          "wood;glass",
+          "wood;glass;concrete",
+          "wood;metal"
+        ]
+      },
+      {
+        "name": "roof:material",
+        "classes": [
+          "No roof",
+          "asbestos",
+          "canvas",
+          "canvas;metal",
+          "cement",
+          "concrete",
+          "concrete;metal",
+          "concrete;metal;tile",
+          "concrete;tile",
+          "metal",
+          "metal;cement",
+          "metal;cement;concrete",
+          "metal;concrete",
+          "metal;plastic",
+          "metal;slate",
+          "metal;thatch",
+          "metal;tile",
+          "metal;tile;concrete",
+          "metal;wood",
+          "none",
+          "plastic",
+          "slate",
+          "thatch",
+          "tile",
+          "tile;cement",
+          "tile;concrete",
+          "tile;metal",
+          "tile;thatch",
+          "wood",
+          "wood:metal",
+          "wood;concrete",
+          "wood;metal",
+          "wood;metal;concrete",
+          "wood;metal;plastic",
+          "wood;metal;tile",
+          "wood;tile",
+          "wood;tile;concrete"
+        ]
+      },
+      {
+        "name": "amenity",
+        "classes": [
+          "bank",
+          "bar",
+          "bus_station",
+          "fast_food",
+          "fuel",
+          "marketplace",
+          "mobile_money_agent",
+          "money_transfer",
+          "parking",
+          "pharmacy",
+          "place_of_worship",
+          "pub",
+          "restaurant",
+          "school",
+          "shelter",
+          "shower",
+          "studio",
+          "toilets",
+          "water_point",
+          "watering_place"
+        ]
+      },
+      {
+        "name": "building:levels",
+        "classes": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ]
+      }
+    ],
+    "proj:epsg": 32631,
+    "proj:transform": [
+      4.873046875,
+      0.0,
+      166021.443,
+      0.0,
+      -4.8828125,
+      5000.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "proj:shape": [
+      1024,
+      1024
+    ],
+    "anon:size": 1,
+    "anon:warning": "gnöh"
+  },
+  "links": [
+    {
+      "href": "../../open_cities_ai_challenge_train_tier_1_source/open_cities_ai_challenge_train_tier_1_source_acc_665946/open_cities_ai_challenge_train_tier_1_source_acc_665946.json",
+      "rel": "source"
+    },
+    {
+      "rel": "collection",
+      "href": "../collection.json"
+    },
+    {
+      "rel": "root",
+      "href": "../../catalog.json"
+    },
+    {
+      "rel": "parent",
+      "href": "../collection.json"
+    },
+    {
+      "rel": "self",
+      "href": "open_cities_ai_challenge_train_tier_1_labels_acc_665946.json"
+    }
+  ],
+  "assets": {
+    "vector_labels": {
+      "href": "https://radiantearth.blob.core.windows.net/mlhub/open-cities-ai-challenge/train_tier_1/acc/665946-labels/665946.geojson",
+      "type": "application/geo+json",
+      "roles": [
+        "data",
+        "labels"
+      ],
+      "storage:platform": "AZURE",
+      "storage:region": "westeurope",
+      "storage:requester_pays": false,
+      "storage:tier": "hot"
+    }
+  },
+  "collection": "open_cities_ai_challenge_train_tier_1_labels"
+}
