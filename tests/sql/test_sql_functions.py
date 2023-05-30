@@ -81,9 +81,9 @@ class GeoDBSqlTest(unittest.TestCase):
 
         try:
             subprocess.call([
-                    'taskkill', '/F', '/T', '/PID',
-                    str(self._postgresql.child_process.pid)
-                ])
+                'taskkill', '/F', '/T', '/PID',
+                str(self._postgresql.child_process.pid)
+            ])
             self._conn.close()
             dsn = self._postgresql.dsn()
             dsn['port'] = 5432
@@ -401,6 +401,32 @@ class GeoDBSqlTest(unittest.TestCase):
         res = self._cursor.fetchone()
         self.assertEqual('BOX(-6.054999828338623 8.989999771118164,'
                          '5.054999828338623 11.010000228881836)', res[0])
+
+    def test_index_functions(self):
+        self.execute("SELECT geodb_show_indexes('geodb_user_land_use')")
+        self.assertListEqual([('geodb_user_land_use_pkey',)], self._cursor.fetchall())
+
+        self.execute("SELECT geodb_create_index('geodb_user_land_use', 'geometry')")
+        self.execute("SELECT geodb_show_indexes('geodb_user_land_use')")
+        self.assertListEqual([('geodb_user_land_use_pkey',), ('idx_geometry_geodb_user_land_use',)],
+                             self._cursor.fetchall())
+
+        self.execute("SELECT geodb_drop_index('geodb_user_land_use', 'geometry')")
+        self.execute("SELECT geodb_show_indexes('geodb_user_land_use')")
+        self.assertListEqual([('geodb_user_land_use_pkey',)], self._cursor.fetchall())
+
+    def test_cant_create_index_twice(self):
+        self.execute("SELECT geodb_create_index('geodb_user_land_use', 'geometry')")
+        with self.assertRaises(psycopg2.errors.DuplicateTable):
+            self.execute("SELECT geodb_create_index('geodb_user_land_use', 'geometry')")
+        self._conn.commit()
+        self._cursor = self._conn.cursor()
+        self.execute("SELECT geodb_drop_index('geodb_user_land_use', 'geometry')")
+        self.execute("SELECT geodb_create_index('geodb_user_land_use', 'geometry')")
+
+    def execute(self, sql):
+        self._cursor.execute(sql)
+        self._conn.commit()
 
     # noinspection SpellCheckingInspection
     def test_issue_35_unpublish(self):

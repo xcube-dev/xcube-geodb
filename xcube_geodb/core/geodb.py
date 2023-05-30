@@ -92,6 +92,8 @@ class EventType:
     ROWS_DROPPED = 'dropped rows'
     PROPERTY_ADDED = 'added property'
     PROPERTY_DROPPED = 'dropped property'
+    INDEX_CREATED = 'created index'
+    INDEX_DROPPED = 'dropped index'
     GROUP_CREATED = 'added group'
     GROUP_DROPPED = 'removed group'
     GROUP_ADDED = 'added to group'
@@ -1860,6 +1862,103 @@ class GeoDBClient(object):
                 return DataFrame(columns=["Empty Result"])
         except GeoDBError as e:
             return self._maybe_raise(e, return_df=True)
+
+    def create_index(self, collection: str, prop: str, database: str = None) \
+            -> Message:
+        """
+        Creates a new index on the given collection and the given property.
+        This may drastically speed up your queries, but adding too many
+        indexes on a collection might also hamper its performance. Please use
+        with care, and use only if you know what you are doing.
+
+        In case you are doing lots of geographical queries, you'll probably
+        want to add an index to your geometry column like this:
+
+            >>> geodb = GeoDBClient()
+            >>> geodb.create_index(collection='[MyCollection]',
+                                   prop='geometry')
+
+        Note that you may remove your indexes using `remove_index`.
+
+        Args:
+            collection (str): The collection's name
+            prop (str): The name of the property to add an index to.
+                        Use `get_collection_info` to get the list of
+                        properties for a collection.
+            database (str): The name of the database the collection resides
+                            in [current database].
+        Returns:
+            A message if the index was successfully created.
+        Raises:
+            GeoDBError if the index already exists.
+        """
+
+        database = database or self.database
+        dn = f'{database}_{collection}'
+
+        path = '/rpc/geodb_create_index'
+        payload = {
+            'collection': dn,
+            'property': prop,
+        }
+
+        self._post(path=path, payload=payload)
+        self._log_event(EventType.INDEX_CREATED,
+                        'table {dn} and property {prop}')
+        return Message(f'Created new index on table {dn} and property {prop}.')
+
+    def show_indexes(self, collection: str, database: str = None) -> DataFrame:
+        """
+        Shows the indexes on the given collection.
+
+        Args:
+            collection (str): The collection's name
+            database (str): The name of the database the collection resides
+                            in [current database].
+        Returns:
+            A dataframe containing the list of indexes for the given
+            collection.
+        """
+
+        database = database or self.database
+        dn = f'{database}_{collection}'
+
+        path = '/rpc/geodb_show_indexes'
+        payload = {
+            'collection': dn,
+        }
+
+        r = self._post(path=path, payload=payload)
+        return DataFrame(r.json())
+
+    def remove_index(self, collection: str, prop: str, database: str = None) \
+            -> Message:
+        """
+        Removes the index on the given collection and the given property.
+
+        Args:
+            collection (str): The collection's name
+            prop (str): The name of the property to add an index to.
+            database (str): The name of the database the collection resides
+                            in [current database].
+        Returns:
+            A message if the index was successfully removed.
+        """
+
+        database = database or self.database
+        dn = f'{database}_{collection}'
+
+        path = '/rpc/geodb_drop_index'
+        payload = {
+            'collection': dn,
+            'property': prop,
+        }
+
+        self._log_event(EventType.INDEX_DROPPED,
+                        'table {dn} and property {prop}')
+
+        self._post(path=path, payload=payload)
+        return Message(f'Removed index from table {dn} and property {prop}.')
 
     @property
     def server_url(self) -> str:

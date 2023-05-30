@@ -2,6 +2,7 @@
 
 ### New Features
 
+- added functions that allow to create/show/remove indexes on collections
 - added functions that allow users to work in user groups
   - those new functions are: `create_group`, `add_user_to_group`, `remove_user_from_group`,
   `publish_collection_to_group`, `unpublish_collection_from_group`, `get_my_groups`, `get_group_users`, and 
