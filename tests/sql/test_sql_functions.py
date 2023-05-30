@@ -40,6 +40,7 @@ class TestInstallationProcedure(unittest.TestCase):
 class GeoDBSqlTest(unittest.TestCase):
     _postgresql = None
     _cursor = None
+    _conn = None
 
     @classmethod
     def setUp(cls) -> None:
@@ -53,8 +54,8 @@ class GeoDBSqlTest(unittest.TestCase):
         if sys.platform == 'win32':
             dsn['port'] = 5432
             dsn['password'] = 'postgres'
-        conn = psycopg2.connect(**dsn)
-        cls._cursor = conn.cursor()
+        cls._conn = psycopg2.connect(**dsn)
+        cls._cursor = cls._conn.cursor()
         app_path = get_app_dir()
         fn = os.path.join(app_path, 'sql', 'geodb.sql')
         with open(fn) as sql_file:
@@ -66,6 +67,7 @@ class GeoDBSqlTest(unittest.TestCase):
         fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup.sql')
         with open(fn) as sql_file:
             cls._cursor.execute(sql_file.read())
+        cls._conn.commit()
 
     def tearDown(self) -> None:
         if sys.platform == 'win32':
@@ -74,23 +76,41 @@ class GeoDBSqlTest(unittest.TestCase):
             self._postgresql.stop()
 
     def manual_cleanup(self):
-        from datetime import datetime
-        from time import sleep
-        import signal
+        import subprocess
+        import shutil
 
         try:
-            self._postgresql.child_process.send_signal(signal.SIGTERM)
-            killed_at = datetime.now()
-            while self._postgresql.child_process.poll() is None:
-                if (datetime.now() - killed_at).seconds > 10.0:
-                    self._postgresql.child_process.kill()
-                    raise RuntimeError(
-                        "*** failed to shutdown postgres ***\n")
-
-                sleep(0.1)
-        except OSError:
-            pass
-        self._postgresql.cleanup()
+            subprocess.call([
+                'taskkill', '/F', '/T', '/PID',
+                str(self._postgresql.child_process.pid)
+            ])
+            self._conn.close()
+            dsn = self._postgresql.dsn()
+            dsn['port'] = 5432
+            dsn['password'] = 'postgres'
+            dsn['database'] = 'postgres'
+            self._conn = psycopg2.connect(**dsn)
+            self._conn.autocommit = True
+            self._cursor = self._conn.cursor()
+            self._cursor.execute('drop database test;')
+            self._cursor.execute('create database test;')
+            self._set_role('postgres')
+            self._cursor.execute(
+                'DROP ROLE IF EXISTS geodb_user ; '
+                'DROP ROLE IF EXISTS "geodb_user-with-hyphens" ; '
+                'DROP ROLE IF EXISTS test_group ; '
+                'DROP ROLE IF EXISTS new_group ; '
+                'DROP ROLE IF EXISTS test_admin ; '
+                'DROP ROLE IF EXISTS test_noadmin ; '
+                'DROP ROLE IF EXISTS test_member ; '
+                'DROP ROLE IF EXISTS test_member_2 ; '
+                'DROP ROLE IF EXISTS test_nomember ;'
+            )
+            self._conn.commit()
+            self._conn.close()
+        except OSError as e:
+            raise e
+        shutil.rmtree(self._postgresql.base_dir, ignore_errors=True)
 
     def tearDownModule(self):
         # clear cached database at end of tests
@@ -381,6 +401,32 @@ class GeoDBSqlTest(unittest.TestCase):
         res = self._cursor.fetchone()
         self.assertEqual('BOX(-6.054999828338623 8.989999771118164,'
                          '5.054999828338623 11.010000228881836)', res[0])
+
+    def test_index_functions(self):
+        self.execute("SELECT geodb_show_indexes('geodb_user_land_use')")
+        self.assertListEqual([('geodb_user_land_use_pkey',)], self._cursor.fetchall())
+
+        self.execute("SELECT geodb_create_index('geodb_user_land_use', 'geometry')")
+        self.execute("SELECT geodb_show_indexes('geodb_user_land_use')")
+        self.assertListEqual([('geodb_user_land_use_pkey',), ('idx_geometry_geodb_user_land_use',)],
+                             self._cursor.fetchall())
+
+        self.execute("SELECT geodb_drop_index('geodb_user_land_use', 'geometry')")
+        self.execute("SELECT geodb_show_indexes('geodb_user_land_use')")
+        self.assertListEqual([('geodb_user_land_use_pkey',)], self._cursor.fetchall())
+
+    def test_cant_create_index_twice(self):
+        self.execute("SELECT geodb_create_index('geodb_user_land_use', 'geometry')")
+        with self.assertRaises(psycopg2.errors.DuplicateTable):
+            self.execute("SELECT geodb_create_index('geodb_user_land_use', 'geometry')")
+        self._conn.commit()
+        self._cursor = self._conn.cursor()
+        self.execute("SELECT geodb_drop_index('geodb_user_land_use', 'geometry')")
+        self.execute("SELECT geodb_create_index('geodb_user_land_use', 'geometry')")
+
+    def execute(self, sql):
+        self._cursor.execute(sql)
+        self._conn.commit()
 
     # noinspection SpellCheckingInspection
     def test_issue_35_unpublish(self):

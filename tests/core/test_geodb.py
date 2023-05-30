@@ -58,6 +58,9 @@ class GeoDBClientTest(unittest.TestCase):
         url = f"{self._base_url}/rpc/geodb_get_collection_srid"
         m.post(url, json=[{"src": [{"srid": 4326}]}])
 
+        url = f'{self._base_url}/rpc/geodb_log_event'
+        m.post(url, text=json.dumps(''))
+
     def set_auth_change_mocks(self, m):
         m.post(self._server_test_auth_domain + "/oauth/token", json={
             "access_token": "A long lived token but a different user",
@@ -1463,3 +1466,33 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual('heisterkamp',
                          result.iloc[0]['username'])
 
+    def test_create_index(self, m):
+        self.set_global_mocks(m)
+        url = f"{self._base_url}/rpc/geodb_create_index"
+        m.post(url, text='')
+
+        m = self._api.create_index('my_collection', 'geometry')
+
+        self.check_message(m, {'Message': 'Created new index on table helge_my_collection and property geometry.'})
+
+    def test_remove_index(self, m):
+        self.set_global_mocks(m)
+        url = f"{self._base_url}/rpc/geodb_drop_index"
+        m.post(url, text='')
+
+        m = self._api.remove_index('my_collection', 'geometry')
+
+        self.check_message(m, {'Message': 'Removed index from table helge_my_collection and property geometry.'})
+
+    def test_show_indexes(self, m):
+        self.set_global_mocks(m)
+        url = f"{self._base_url}/rpc/geodb_show_indexes"
+        m.post(url, json=[
+            {'indexname': 'idx_database_my_collection_prop'},
+            {'indexname': 'idx_database_my_collection_prop2'}
+        ])
+
+        result = self._api.show_indexes('my_collection')
+        expected = pd.DataFrame(
+            [{'indexname': 'idx_database_my_collection_prop'}, {'indexname': 'idx_database_my_collection_prop2'}])
+        self.assertEqual(expected.to_json(), result.to_json())
