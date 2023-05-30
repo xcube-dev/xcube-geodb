@@ -92,13 +92,14 @@ jobs:
       - name: install papermill
         if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
-        run: pip install papermill[all]
+        run: |
+          conda install ipykernel
+          pip install papermill[all]
       - name: test-notebooks
         if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
         working-directory: notebooks
         run: |
-          jupyter kernelspec list
           for nb in $(ls *.ipynb | grep -v publish_collection)
           do
             papermill $nb  $(basename -s .ipynb $nb)_out.ipynb
