@@ -17,6 +17,7 @@ The feature data is stored in a custom PostgreSQL database provided by
    notebooks/geodb_manage_collections.ipynb
    notebooks/geodb_share_collections.ipynb
    notebooks/geodb_explore_collections.ipynb
+   notebooks/geodb_group_management.ipynb
    notebooks/geoservice.ipynb
 
 
