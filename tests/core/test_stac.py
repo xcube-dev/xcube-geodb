@@ -1,13 +1,18 @@
 import unittest
 
 from xcube_geodb.core.stac import StacTransformer
+import importlib.resources as resources
 
 
 class StacTest(unittest.TestCase):
 
     def test_transform_stac_catalog(self):
         si = StacTransformer()
-        collections = si.transform_stac_catalog('./res/stac/catalog.json')
+        catalog_resource = resources \
+            .files('tests.core.res.stac') \
+            .joinpath('catalog.json')
+        with resources.as_file(catalog_resource) as catalog_file:
+            collections = si.transform_stac_catalog(str(catalog_file.absolute()))
         self.assertEqual(collections[0].name, 'test_collection')
         self.assertEqual(22, len(collections[0].properties))
 
