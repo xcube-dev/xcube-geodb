@@ -40,6 +40,7 @@ class TestInstallationProcedure(unittest.TestCase):
 class GeoDBSqlTest(unittest.TestCase):
     _postgresql = None
     _cursor = None
+    _conn = None
 
     @classmethod
     def setUp(cls) -> None:
@@ -66,6 +67,7 @@ class GeoDBSqlTest(unittest.TestCase):
         fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup.sql')
         with open(fn) as sql_file:
             cls._cursor.execute(sql_file.read())
+        cls._conn.commit()
 
     def tearDown(self) -> None:
         if sys.platform == 'win32':
@@ -97,7 +99,9 @@ class GeoDBSqlTest(unittest.TestCase):
                 'DROP ROLE IF EXISTS geodb_user ; '
                 'DROP ROLE IF EXISTS "geodb_user-with-hyphens" ; '
                 'DROP ROLE IF EXISTS test_group ; '
+                'DROP ROLE IF EXISTS new_group ; '
                 'DROP ROLE IF EXISTS test_admin ; '
+                'DROP ROLE IF EXISTS test_noadmin ; '
                 'DROP ROLE IF EXISTS test_member ; '
                 'DROP ROLE IF EXISTS test_member_2 ; '
                 'DROP ROLE IF EXISTS test_nomember ;'

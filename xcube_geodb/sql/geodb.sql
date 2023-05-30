@@ -140,6 +140,7 @@ EXECUTE PROCEDURE public.notify_ddl_postgrest();
 
 -- DROP FUNCTION public.geodb_create_collection(text, json, text);
 
+-- ensures that database of collection belongs to user
 CREATE OR REPLACE FUNCTION public.geodb_user_allowed(
     collection text,
     usr text)
@@ -1511,3 +1512,127 @@ BEGIN
     RETURN idx_name;
 END
 $BODY$;
+
+-- group functions
+
+CREATE OR REPLACE FUNCTION public.geodb_create_role(user_name text, user_group text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    SECURITY DEFINER
+    -- see https://www.cybertec-postgresql.com/en/abusing-security-definer-functions/
+    SET search_path = public,pg_temp
+AS
+$BODY$
+DECLARE
+    manage integer;
+BEGIN
+    EXECUTE format('SELECT COUNT(*) FROM geodb_user_info WHERE user_name = ''%s'' AND subscription LIKE ''%%manage%%''', user_name) INTO manage;
+    IF manage = 0 THEN
+        RAISE EXCEPTION 'Insufficient subscription for user %', user_name;
+    END IF;
+
+    EXECUTE format('CREATE ROLE %I NOLOGIN
+                                   NOSUPERUSER
+                                   NOCREATEDB
+                                   NOCREATEROLE
+                                   NOREPLICATION', user_group);
+    EXECUTE format('GRANT %I TO %I WITH ADMIN OPTION;', user_group, user_name);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_group_publish_collection(collection text, user_group text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    EXECUTE format('GRANT ALL ON TABLE %I TO %I', collection, user_group);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_group_unpublish_collection(collection text, user_group text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    EXECUTE format('REVOKE ALL ON TABLE %I FROM %I', collection, user_group);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_get_user_roles(user_name text)
+    RETURNS TABLE
+        (
+            src json
+        )
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    RETURN QUERY EXECUTE format(
+        'SELECT JSON_AGG(src) FROM
+            (SELECT rolname FROM pg_roles
+                WHERE pg_has_role(''%s'', oid, ''MEMBER'')
+            ) as src', user_name);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_get_group_users(group_name text)
+    RETURNS TABLE
+            (
+                res json
+            )
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    RETURN QUERY EXECUTE format(
+            'SELECT JSON_AGG(res) FROM
+                (SELECT rolname from pg_catalog.pg_roles
+                    WHERE oid in
+                        (SELECT member FROM pg_catalog.pg_roles AS roles JOIN pg_catalog.pg_auth_members m ON m.roleid = roles.oid
+                            WHERE roles.rolname = ''%s'')) as res;', group_name);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_group_grant(user_group text, user_name text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    EXECUTE format('GRANT %I TO %I;', user_group, user_name);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_group_revoke(user_group text, user_name text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    EXECUTE format('REVOKE %I FROM %I;', user_group, user_name);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_get_grants(collection text)
+    RETURNS TABLE
+        (
+            res json
+        )
+        LANGUAGE 'plpgsql'
+    AS
+    $BODY$
+    BEGIN
+        RETURN QUERY EXECUTE format(
+            'SELECT JSON_AGG(res) FROM
+                (SELECT grantee::varchar, privilege_type::varchar
+                    FROM information_schema.role_table_grants
+                    WHERE table_name=''%s''
+                    AND (grantee = current_user
+                        OR grantee in
+                            (SELECT rolname FROM pg_roles WHERE pg_has_role(current_user, oid, ''member''))
+                        )
+                ) as res', collection);
+    END
+    $BODY$;
