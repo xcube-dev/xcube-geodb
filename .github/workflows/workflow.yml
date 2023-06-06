@@ -92,9 +92,7 @@ jobs:
       - name: install papermill
         if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
-        run: |
-          conda install ipykernel
-          pip install papermill[all]
+        run: conda install -c conda-forge ipykernel papermill
       - name: test-notebooks
         if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
