@@ -2,6 +2,9 @@
 
 ### New Features
 
+- added function that allows users to retrieve the geometry types from their 
+  collections
+
 ### Fixes
 
 ## v1.0.6

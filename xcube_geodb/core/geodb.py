@@ -337,6 +337,36 @@ class GeoDBClient(object):
         except GeoDBError as e:
             self._maybe_raise(e)
 
+    def get_geometry_types(self, collection: str, aggregate: bool = True,
+                           database: Optional[str] = None) -> List[str]:
+        """
+        Retrieves the geometry types of the given collection, either as an
+        extensive list of the geometry types for each collection entry, or
+        as aggregated list of the types that appear in the collection.
+
+        Args:
+            collection (str):  The collection to list geometry types for
+            aggregate (bool):  If the result shall be an aggregated list
+            database (str):    The database that contains the collection
+        Returns:
+            List[str]: A list of the geometry types, either for each
+                       collection entry or aggregated.
+        Raises:
+            GeoDBError: If the database raises an error
+        """
+
+        try:
+            database = database or self._database
+            dn = f"{database}_{collection}"
+
+            payload = {'collection': dn,
+                       'aggregate': 'true' if aggregate else 'false'}
+            r = self._post(path='/rpc/geodb_geometry_types', payload=payload)
+            types = r.json()['types']
+            return [a['geometrytype'] for a in types]
+        except GeoDBError as e:
+            self._maybe_raise(e)
+
     def get_my_collections(self, database: Optional[str] = None) -> Sequence:
         """
 

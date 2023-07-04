@@ -3,7 +3,6 @@
 Checklist:
 
 * [ ] Issue has been created for change
-* [ ] Added unit tests and/or doctests in docstrings
 * [ ] Added docstrings and API docs for any new/modified user-facing classes and functions
 * [ ] New/modified features documented in `docs/source/*`
 * [ ] Changes documented in `CHANGES.md`
