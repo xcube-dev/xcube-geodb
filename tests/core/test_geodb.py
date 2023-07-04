@@ -236,9 +236,9 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         url = f"{self._base_url}/rpc/geodb_geometry_types"
-        m.post(url, json={'types': [{'geometrytype': 'POLYGON'},
+        m.post(url, json=[{'types': [{'geometrytype': 'POLYGON'},
                                     {'geometrytype': 'POLYGON'},
-                                    {'geometrytype': 'POINT'}]})
+                                    {'geometrytype': 'POINT'}]}])
 
         res = self._api.get_geometry_types('test', aggregate=False,
                                            database='test_db')
@@ -246,8 +246,8 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertListEqual(res, expected)
 
         url = f"{self._base_url}/rpc/geodb_geometry_types"
-        m.post(url, json={'types': [{'geometrytype': 'POINT'},
-                                    {'geometrytype': 'POLYGON'}]})
+        m.post(url, json=[{'types': [{'geometrytype': 'POINT'},
+                                    {'geometrytype': 'POLYGON'}]}])
 
         res = self._api.get_geometry_types('test', aggregate=True,
                                            database='test_db')
