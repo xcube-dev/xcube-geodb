@@ -121,6 +121,43 @@ CREATE TABLE IF NOT EXISTS public.geodb_user_databases
     )
     TABLESPACE pg_default;
 
+CREATE TABLE IF NOT EXISTS public."geodb_bbox_lut"
+(
+    table_name text PRIMARY KEY,
+    bbox text
+);
+
+CREATE OR REPLACE FUNCTION update_bbox_lut()
+    RETURNS void
+    LANGUAGE plpgsql
+AS
+$$
+DECLARE
+  tbl_name text;
+BEGIN
+  -- Truncate the existing metadata table
+  TRUNCATE public."geodb_bbox_lut";
+
+  -- Iterate over the tables
+  FOR tbl_name IN (SELECT t.table_name FROM information_schema.tables t
+                     WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE') LOOP
+    -- Check if the table has a geometry column
+    IF EXISTS (
+      SELECT 1
+      FROM information_schema.columns c
+      WHERE c.table_schema = 'public'
+        AND c.table_name = tbl_name
+        AND c.column_name = 'geometry'
+    ) THEN
+      -- Insert into the metadata table
+      EXECUTE format('
+        INSERT INTO "geodb_bbox_lut" (table_name, bbox)
+        SELECT %L, ST_AsText(ST_Extent(geometry))
+        FROM %I', tbl_name, tbl_name);
+    END IF;
+  END LOOP;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.notify_ddl_postgrest()
     RETURNS event_trigger
