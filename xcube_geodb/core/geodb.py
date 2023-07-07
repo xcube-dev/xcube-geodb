@@ -360,7 +360,7 @@ class GeoDBClient(object):
             dn = f"{database}_{collection}"
 
             payload = {'collection': dn,
-                       'aggregate': 'true' if aggregate else 'false'}
+                       'aggregate': 'TRUE' if aggregate else 'FALSE'}
             r = self._post(path='/rpc/geodb_geometry_types', payload=payload)
             types = r.json()[0]['types']
             return [a['geometrytype'] for a in types]
