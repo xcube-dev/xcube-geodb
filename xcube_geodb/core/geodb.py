@@ -346,7 +346,7 @@ class GeoDBClient(object):
 
         Args:
             collection (str):  The collection to list geometry types for
-            aggregate (bool):  If the result shall be an aggregated list
+            aggregate (bool):  If the result shall be an aggregated list, default is set to "True"
             database (str):    The database that contains the collection
         Returns:
             List[str]: A list of the geometry types, either for each
