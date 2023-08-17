@@ -926,9 +926,12 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_filter_raw(self, m):
         m.get(url=self._base_url + '/helge_test?limit=10', json={'test': 1})
-        m.get(url=self._base_url + '/helge_tesdsct?limit=10', json={}, status_code=404)
-        m.get(url=self._base_url + "/", text=json.dumps({'definitions': ['helge_test'],
-                                                                    'paths': ['/rpc/geodb_get_pg']}))
+        m.get(url=self._base_url + '/helge_tesdsct?limit=10', json={},
+              status_code=404)
+        m.get(url=self._base_url + "/", text=json.dumps(
+            {'definitions': {'test_col': {}},
+             'paths': {'/rpc/geodb_get_pg': {}}}
+        ))
 
         expected_result = {'src': []}
         m.post(self._base_url + '/rpc/geodb_get_pg', json=expected_result)
@@ -936,14 +939,18 @@ class GeoDBClientTest(unittest.TestCase):
         self.set_global_mocks(m)
 
         with self.assertRaises(GeoDBError) as e:
-            self._api.get_collection_pg('tesdsct', select='min(tt)', group='tt', limit=1, offset=2)
+            self._api.get_collection_pg('tesdsct', select='min(tt)',
+                                        group='tt', limit=1, offset=2)
 
-        self.assertEqual("Collection tesdsct does not exist", str(e.exception))
+        self.assertEqual("Collection tesdsct does not exist",
+                         str(e.exception))
 
-        expected_result = {'src': [{'count': 142, 'D_OD': '2019-03-21'}, {'count': 114, 'D_OD': '2019-02-20'}]}
+        expected_result = {'src': [{'count': 142, 'D_OD': '2019-03-21'},
+                                   {'count': 114, 'D_OD': '2019-02-20'}]}
         m.post(self._base_url + '/rpc/geodb_get_pg', json=expected_result)
 
-        r = self._api.get_collection_pg('test', select='count(D_OD)', group='D_OD', limit=1, offset=2)
+        r = self._api.get_collection_pg('test', select='count(D_OD)',
+                                        group='D_OD', limit=1, offset=2)
         self.assertIsInstance(r, pd.DataFrame)
         self.assertEqual((2, 2), r.shape)
 
@@ -951,13 +958,17 @@ class GeoDBClientTest(unittest.TestCase):
             'id': 11,
             'created_at': '2020-01-20T14:45:30.763162+00:00',
             'modified_at': None,
-            'geometry': '0103000020D20E0000010000001100000046B6F3FDA7151C417D3F355ECE58F740DD2406013C151C410E2DB29DC'
-                        '35BF740C74B3709E6141C41F6285C8F1C5EF740BE9F1A2F40141C417F6ABC748562F740894160E583141C417B14A'
-                        'E472363F740EC51B81EB0141C415EBA490CE061F7405EBA498CCE141C41E5D022DB1961F7404E621058EA141C41AA'
-                        'F1D24D6860F7402FDD248612151C41FED478E9585FF7404A0C022B1E151C4114AE47E1045FF7405839B4C860151C4'
-                        '1DBF97E6A2A5DF74021B072E881151C41D122DBF9425CF74093180456A2151C41FED478E9845BF74075931884C3151'
-                        'C415839B4C8B45AF7405EBA498CF3151C4191ED7C3FA159F740C3F528DCF1151C41F6285C8F7659F74046B6F3FDA71'
-                        '51C417D3F355ECE58F740',
+            'geometry': '0103000020D20E0000010000001100000046B6F3FDA7151C417D3'
+                        'F355ECE58F740DD2406013C151C410E2DB29DC35BF740C74B3709'
+                        'E6141C41F6285C8F1C5EF740BE9F1A2F40141C417F6ABC748562F'
+                        '740894160E583141C417B14AE472363F740EC51B81EB0141C415E'
+                        'BA490CE061F7405EBA498CCE141C41E5D022DB1961F7404E62105'
+                        '8EA141C41AAF1D24D6860F7402FDD248612151C41FED478E9585F'
+                        'F7404A0C022B1E151C4114AE47E1045FF7405839B4C860151C41D'
+                        'BF97E6A2A5DF74021B072E881151C41D122DBF9425CF740931804'
+                        '56A2151C41FED478E9845BF74075931884C3151C415839B4C8B45'
+                        'AF7405EBA498CF3151C4191ED7C3FA159F740C3F528DCF1151C4'
+                        '1F6285C8F7659F74046B6F3FDA7151C417D3F355ECE58F740',
             'RABA_PID': 5983161,
             'RABA_ID': 1100,
             'D_OD': '2019-03-11'}]}
@@ -981,7 +992,8 @@ class GeoDBClientTest(unittest.TestCase):
         with self.assertRaises(GeoDBError) as e:
             self._api.get_collection_pg('test', limit=1, offset=2)
 
-        self.assertEqual("Stored procedure geodb_get_pg does not exist", str(e.exception))
+        self.assertEqual("Stored procedure geodb_get_pg does not exist",
+                         str(e.exception))
 
     def test_init(self, m):
         with self.assertRaises(NotImplementedError) as e:
@@ -1031,15 +1043,17 @@ class GeoDBClientTest(unittest.TestCase):
         m.post(self._base_url + '/rpc/geodb_get_raw', json=expected_result)
 
         expected_result = {'id': 'integer'}
-        m.get(url=self._base_url + "/", text=json.dumps({'definitions': {'helge_test': expected_result},
-                                                                    'paths': ['/']}))
+        m.get(url=self._base_url + "/", text=json.dumps(
+            {'definitions': {'helge_test': expected_result},
+             'paths': ['/']}))
         res = self._api.get_collection_info('test')
         self.assertDictEqual(expected_result, res)
 
         with self.assertRaises(ValueError) as e:
             self._api.get_collection_info('test_not_exist')
 
-        self.assertEqual("Table helge_test_not_exist does not exist.", str(e.exception))
+        self.assertEqual("Table helge_test_not_exist does not exist.",
+                         str(e.exception))
 
     def test_namespace(self, m):
         self.set_global_mocks(m)

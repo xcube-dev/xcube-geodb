@@ -7,10 +7,8 @@ from typing import Dict, Optional, Union, Sequence, Tuple, List
 import functools
 import geopandas as gpd
 import requests
-import warnings
 
 from dotenv import load_dotenv, find_dotenv
-from functools import cached_property
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkb
@@ -286,7 +284,7 @@ class GeoDBClient(object):
         if collection in capabilities['definitions']:
             return capabilities['definitions'][collection]
         else:
-            self._maybe_raise(GeoDBError(f'Table {collection}'
+            self._maybe_raise(GeoDBError(f'Table {collection} '
                                          f'does not exist.'))
 
     def get_collection_bbox(self, collection: str,
@@ -444,7 +442,7 @@ class GeoDBClient(object):
         """
         return self._whoami or self._get(path='/rpc/geodb_whoami').json()
 
-    @cached_property
+    @property
     def capabilities(self) -> Dict:
         """
 
@@ -452,10 +450,12 @@ class GeoDBClient(object):
             A dictionary of the geoDB PostGrest REST API service's capabilities
 
         """
-        capabilities = self._get(path='/').json()
-        capabilities['definitions'] = dict(sorted(
-            capabilities['definitions'].items()))
-        return capabilities
+        if self._capabilities:
+            return self._capabilities
+        self._capabilities = self._get(path='/').json()
+        self._capabilities['definitions'] = dict(sorted(
+            self._capabilities['definitions'].items()))
+        return self._capabilities
 
     def _refresh_capabilities(self):
         self._capabilities = None
