@@ -232,6 +232,28 @@ class GeoDBClientTest(unittest.TestCase):
         bbox = self._api.get_collection_bbox('any')
         self.assertIsNone(bbox)
 
+    def test_get_geometry_types(self, m):
+        self.set_global_mocks(m)
+
+        url = f"{self._base_url}/rpc/geodb_geometry_types"
+        m.post(url, json=[{'types': [{'geometrytype': 'POLYGON'},
+                                    {'geometrytype': 'POLYGON'},
+                                    {'geometrytype': 'POINT'}]}])
+
+        res = self._api.get_geometry_types('test', aggregate=False,
+                                           database='test_db')
+        expected = ['POLYGON', 'POLYGON', 'POINT']
+        self.assertListEqual(res, expected)
+
+        url = f"{self._base_url}/rpc/geodb_geometry_types"
+        m.post(url, json=[{'types': [{'geometrytype': 'POINT'},
+                                    {'geometrytype': 'POLYGON'}]}])
+
+        res = self._api.get_geometry_types('test', aggregate=True,
+                                           database='test_db')
+        expected = ['POINT', 'POLYGON']
+        self.assertListEqual(res, expected)
+
     def test_rename_collection(self, m):
         self.set_global_mocks(m)
 

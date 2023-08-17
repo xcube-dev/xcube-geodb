@@ -465,6 +465,30 @@ BEGIN
 END
 $BODY$;
 
+CREATE OR REPLACE FUNCTION public.geodb_geometry_types(collection text, aggregate boolean DEFAULT true)
+    RETURNS TABLE
+        (
+            types json
+        )
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+DECLARE
+    qry TEXT;
+BEGIN
+    IF aggregate THEN
+        qry := format('SELECT JSON_AGG(temp) AS types FROM (
+                        SELECT DISTINCT GeometryType(geometry) FROM %I) AS temp',
+                        collection);
+    ELSE
+        qry := format('SELECT JSON_AGG(temp) AS types FROM (
+                        SELECT GeometryType(geometry) FROM %I) AS temp',
+                        collection);
+    END IF;
+    RETURN QUERY EXECUTE qry;
+END
+$BODY$;
+
 CREATE OR REPLACE FUNCTION public.geodb_get_my_collections(
     database text DEFAULT NULL::text)
     RETURNS TABLE
