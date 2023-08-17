@@ -376,6 +376,39 @@ class GeoDBSqlTest(unittest.TestCase):
         res = self._cursor.fetchone()
         self.assertEqual('BOX(-6 9,5 11)', res[0])
 
+    def test_get_geometry_types(self):
+        user_name = "geodb_user"
+        self._set_role(user_name)
+        user_table = user_name + "_test"
+
+        props = {}
+        sql = f"SELECT geodb_create_collection('{user_table}', " \
+              f"'{json.dumps(props)}', '4326')"
+        self._cursor.execute(sql)
+
+        sql = f"INSERT INTO \"{user_table}\" (id, geometry) " \
+              "VALUES (1, 'POLYGON((-5 10, -5 11, 5 11, 5 10, -5 10))');"
+        self._cursor.execute(sql)
+        sql = f"INSERT INTO \"{user_table}\" (id, geometry) " \
+              "VALUES (2, 'POLYGON((-6 9, -6 10, 3 10, 3 9, -6 9))');"
+        self._cursor.execute(sql)
+        sql = f"INSERT INTO \"{user_table}\" (id, geometry) " \
+              "VALUES (3, 'POINT(-6 9)');"
+        self._cursor.execute(sql)
+
+        sql = f"SELECT geodb_geometry_types('{user_table}', 'false')"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+        self.assertListEqual([{'geometrytype': 'POLYGON'},
+                              {'geometrytype': 'POLYGON'},
+                              {'geometrytype': 'POINT'}], res[0])
+
+        sql = f"SELECT geodb_geometry_types('{user_table}', 'true')"
+        self._cursor.execute(sql)
+        res = self._cursor.fetchone()
+        self.assertListEqual([{'geometrytype': 'POINT'},
+                              {'geometrytype': 'POLYGON'}], res[0])
+
     def test_estimate_collection_bbox(self):
         user_name = "geodb_user-with-hyphens"
         user_table = user_name + "_test"
