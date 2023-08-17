@@ -4,9 +4,13 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import Dict, Optional, Union, Sequence, Tuple, List
 
+import functools
 import geopandas as gpd
 import requests
+import warnings
+
 from dotenv import load_dotenv, find_dotenv
+from functools import cached_property
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkb
@@ -16,7 +20,6 @@ from xcube_geodb.core.message import Message
 from xcube_geodb.defaults import GEODB_DEFAULTS
 from xcube_geodb.version import version
 import warnings
-import functools
 
 
 def warn(msg: str):
@@ -283,7 +286,8 @@ class GeoDBClient(object):
         if collection in capabilities['definitions']:
             return capabilities['definitions'][collection]
         else:
-            self._maybe_raise(GeoDBError(f"Table {collection} does not exist."))
+            self._maybe_raise(GeoDBError(f'Table {collection}'
+                                         f'does not exist.'))
 
     def get_collection_bbox(self, collection: str,
                             database: Optional[str] = None,
@@ -410,7 +414,7 @@ class GeoDBClient(object):
         """
         return self._whoami or self._get(path='/rpc/geodb_whoami').json()
 
-    @property
+    @cached_property
     def capabilities(self) -> Dict:
         """
 
@@ -418,7 +422,10 @@ class GeoDBClient(object):
             A dictionary of the geoDB PostGrest REST API service's capabilities
 
         """
-        return self._capabilities or self._get(path='/').json()
+        capabilities = self._get(path='/').json()
+        capabilities['definitions'] = dict(sorted(
+            capabilities['definitions'].items()))
+        return capabilities
 
     def _refresh_capabilities(self):
         self._capabilities = None
