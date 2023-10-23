@@ -10,6 +10,7 @@ from dotenv import load_dotenv, find_dotenv
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkb
+from shapely.geometry import shape
 
 from xcube_geodb.const import MINX, MINY, MAXX, MAXY
 from xcube_geodb.core.message import Message
@@ -2042,7 +2043,7 @@ class GeoDBClient(object):
         if js is None:
             return DataFrame()
 
-        data = [self._load_geo(d) for d in js]
+        data = [self._convert_geo(row) for row in js]
 
         gpdf = gpd.GeoDataFrame(data)
 
@@ -2076,19 +2077,25 @@ class GeoDBClient(object):
             return f"{server_url}{path}"
 
     # noinspection PyMethodMayBeStatic
-    def _load_geo(self, d: Dict) -> Dict:
+    def _convert_geo(self, row: Dict) -> Dict:
         """
 
         Args:
-            d: A row of the PostgREST result
+            row: A row of the PostgREST result
 
         Returns:
-            Dict: A row of the PostgREST result with its geometry converted from wkb to wkt
+            Dict: The input row of the PostgREST result with its geometry
+                  converted to wkt
         """
 
-        if 'geometry' in d:
-            d['geometry'] = wkb.loads(d['geometry'], hex=True)
-        return d
+        if 'geometry' in row:
+            if (type(row['geometry']) == dict and
+                    'coordinates' in row['geometry']):
+                geom = shape(row['geometry'])
+                row['geometry'] = geom
+            else:
+                row['geometry'] = wkb.loads(row['geometry'], hex=True)
+        return row
 
     def publish_gs(self, collection: str, database: Optional[str] = None):
         """

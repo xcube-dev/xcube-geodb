@@ -4,6 +4,7 @@
 
 - added function that allows users to retrieve the geometry types from their 
   collections
+- made client support PostGIS > 3.0.0
 
 ### Fixes
 

@@ -8,7 +8,7 @@ import requests
 import requests_mock
 from geopandas import GeoDataFrame
 from psycopg2 import OperationalError
-from shapely import wkt
+from shapely import wkt, Polygon
 
 from tests.utils import del_env
 from xcube_geodb.core.geodb import GeoDBClient, GeoDBError, warn, check_crs, \
@@ -1422,6 +1422,44 @@ class GeoDBClientTest(unittest.TestCase):
         res = self._api._df_from_json(js=None)
         self.assertIsInstance(res, pd.DataFrame)
         self.assertEqual(0, len(res))
+
+    def test_load_geo(self, m):
+        row = {'geometry': TEST_GEOM}
+        self._api._convert_geo(row)
+        self.assertEqual(Polygon([
+            [453952.629, 91124.177],
+            [453952.696, 91118.803],
+            [453946.938, 91116.326],
+            [453945.208, 91114.225],
+            [453939.904, 91115.388],
+            [453936.114, 91115.388],
+            [453935.32, 91120.269],
+            [453913.121, 91128.983],
+            [453916.212, 91134.782],
+            [453917.51, 91130.887],
+            [453922.704, 91129.156],
+            [453927.194, 91130.75],
+            [453932.821, 91129.452],
+            [453937.636, 91126.775],
+            [453944.994, 91123.529],
+            [453950.133, 91123.825],
+            [453952.629, 91124.177]]), row['geometry'])
+
+        row = {'geometry': {'type': 'Polygon',
+                            'crs': {'type': 'name',
+                                    'properties': {'name': 'EPSG:25832'}},
+                            'coordinates': [[[52.87, 57.83],
+                                             [52.82, 57.53],
+                                             [52.68, 57.78],
+                                             [52.96, 57.19],
+                                             [52.87, 57.83]]]}}
+        self._api._convert_geo(row)
+        self.assertEqual(Polygon([[52.87, 57.83],
+                                  [52.82, 57.53],
+                                  [52.68, 57.78],
+                                  [52.96, 57.19],
+                                  [52.87, 57.83]]),
+                         row['geometry'])
 
     def test_crs(self, m):
         with self.assertRaises(GeoDBError) as e:
