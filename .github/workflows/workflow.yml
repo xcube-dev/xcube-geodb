@@ -107,6 +107,7 @@ jobs:
       PUSH: 1
     runs-on: ubuntu-latest
     name: update-tag
+    needs: [unittest, nb-test]
     steps:
       - name: Get installation token
         id: get_installation_token
