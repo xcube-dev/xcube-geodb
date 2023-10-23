@@ -102,64 +102,6 @@ jobs:
           do
             papermill $nb  $(basename -s .ipynb $nb)_out.ipynb
           done
-  build-docker-image:
-    runs-on: ubuntu-latest
-    needs: [nb-test, unittest]
-    name: build-docker-image
-    steps:
-      - name: git-checkout
-        uses: actions/checkout@v2
-      # Get the base release tag used in docker images
-      - name: get-release-tag
-        id: release
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-      # The docker backend image always needs the version as in version.py
-      - name: get-xcube-geodb-version
-        id: real-version
-        run: |
-          VERSION=$(echo "`cat xcube_geodb/version.py | cut -d "'" -f2`")
-          echo ::set-output name=version::${VERSION}
-      # Determine the deployment phase (dev/stage/prod) will be 'ignore' if a dev branch is processed
-      - name: deployment-phase
-        id: deployment-phase
-        uses: bc-org/gha-determine-phase@v0.1
-        with:
-          event_name: ${{ github.event_name }}
-          tag: ${{ steps.release.outputs.tag }}
-      - name: info
-        id: info
-        run: |
-          echo "TAG: ${{ steps.release.outputs.tag }}"
-          echo "DEPLOYMENT_PHASE: ${{ steps.deployment-phase.outputs.phase }}"
-          echo "REAL_VERSION: ${{ steps.real-version.outputs.version }}"
-          echo "EVENT: ${{ github.event_name }}"
-      # Build jupyter lab docker image
-      - uses: mr-smithers-excellent/docker-build-push@v5.5
-        name: build-push-docker-image-latest
-        # Build the image only for dev/stage/prod phases or if DOCKER_BUILD_MY_BRANCH is set to '1'
-        if: ${{ steps.deployment-phase.outputs.phase != 'ignore' || env.DOCKER_BUILD_MY_BRANCH == '1' }}
-        with:
-          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-lab
-          # Adds 'latest' tag when main is built (see: https://github.com/mr-smithers-excellent/docker-build-push#tagging-the-image-using-gitops)
-          addLatest: true
-          dockerfile: docker/jupyterlab/Dockerfile
-          registry: quay.io
-          username: ${{ secrets.QUAY_REG_USERNAME }}
-          password: ${{ secrets.QUAY_REG_PASSWORD }}
-      # Build PostGIS docker image
-      - uses: mr-smithers-excellent/docker-build-push@v5.5
-        name: build-push-docker-backend-image-latest
-        if: ${{ steps.deployment-phase.outputs.phase != 'ignore'  || env.DOCKER_BUILD_MY_BRANCH == '1' }}
-        with:
-          image: ${{ env.ORG_NAME }}/${{ env.APP_NAME }}-backend
-          directory: xcube_geodb/sql
-          dockerfile: docker/postgis/Dockerfile
-          # Adds 'latest' tag when main is built (see: https://github.com/mr-smithers-excellent/docker-build-push#tagging-the-image-using-gitops)
-          addLatest: true
-          registry: quay.io
-          buildArgs: GEODB_VERSION=${{ steps.real-version.outputs.tag }}
-          username: ${{ secrets.QUAY_REG_USERNAME }}
-          password: ${{ secrets.QUAY_REG_PASSWORD }}
   update-version-deployment:
     env:
       PUSH: 1
