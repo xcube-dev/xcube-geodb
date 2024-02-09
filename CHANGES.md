@@ -8,6 +8,8 @@
 
 ### Fixes
 
+- fixed bug ["geoDB not installable using conda"](https://github.com/dcs4cop/xcube-geodb/issues/87)
+
 ## v1.0.6
 
 ### New Features
