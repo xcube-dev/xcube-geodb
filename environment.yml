@@ -12,7 +12,6 @@ dependencies:
   - ipyleaflet
   - python-fastjsonschema
   - python-dotenv
+  - requests-mock
   - pip:
-    - postgis
-    - requests_mock
-    - testing.postgresql
+    - testing.postgresql  # not available from conda
