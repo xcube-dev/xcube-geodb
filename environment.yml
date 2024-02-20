@@ -3,15 +3,15 @@ channels:
   - conda-forge
 
 dependencies:
-  # Python
   - python >=3.6
-  # Required
   - pip
   - geopandas
   - matplotlib-base
   - psycopg2
-  - postgis
   - requests
   - ipyleaflet
   - python-fastjsonschema
   - python-dotenv
+  - requests-mock
+  - pip:
+    - testing.postgresql  # not available from conda

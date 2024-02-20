@@ -8,6 +8,8 @@
 
 ### Fixes
 
+- Fixed issue where geoDB was not installable using conda. [#87]
+
 ## v1.0.6
 
 ### New Features
