@@ -18,7 +18,13 @@ env:
   # Unfortunately, you cannot set an if statement on job level. Hence, these variables are used in each step
   # of a unittest/nb-test job.
   RUN_UNITTESTS: "1"
-  RUN_NB_TESTS: "1"
+  #  todo - switch the notebook tests back on after xcube-hub has been replaced
+  # Currently, the notebooks under test use xcube-hub, which uses an HS256 key to
+  # authenticate at PostGREST. The switch from xcube-hub to a Keycloak-based solution
+  # enforces the use of an RS256 key. Therefore, dev-PostGREST is already configured
+  # with an RS256 key, but as we do not want to change xcube-hub in that respect, we
+  # switch off the notebook-tests.
+  RUN_NB_TESTS: "0"
 
   # Determines whether the dev branch ouy are working on shall have a docker image (default 0)
   DOCKER_BUILD_MY_BRANCH: "0"
