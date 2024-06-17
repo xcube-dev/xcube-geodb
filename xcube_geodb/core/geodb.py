@@ -18,6 +18,7 @@ from xcube_geodb.defaults import GEODB_DEFAULTS
 from xcube_geodb.version import version
 import warnings
 import functools
+from functools import cached_property
 
 
 def warn(msg: str):
@@ -2071,6 +2072,10 @@ class GeoDBClient(object):
             server_url = self._gs_server_url
             server_port = self._gs_server_port
 
+        if self._use_winchester and "geodb_geoserver" in path:
+            server_url = self._gs_server_url
+            server_port = None
+
         if server_port:
             return f"{server_url}:{server_port}{path}"
         else:
@@ -2114,9 +2119,13 @@ class GeoDBClient(object):
         database = database or self.database
 
         try:
-            r = self._put(path=f'/api/v2/services/xcube_geoserv/databases/'
-                               f'{database}/collections',
-                          payload={'collection_id': collection})
+            if self._use_winchester:
+                r = self._put(path=f'/geodb_geoserver/{database}/collections/',
+                              payload={"collection_id": collection})
+            else:
+                r = self._put(path=f'/api/v2/services/xcube_geoserv/databases/'
+                                   f'{database}/collections',
+                              payload={'collection_id': collection})
             self._log_event(EventType.PUBLISHED_GS,
                             f'collection {database}_{collection}')
             return r.json()
@@ -2165,7 +2174,10 @@ class GeoDBClient(object):
 
         database = database or self._database
 
-        path = f'/api/v2/services/xcube_geoserv/databases/{database}/collections'
+        if self._use_winchester:
+            path = f'/geodb_geoserver/{database}/collections'
+        else:
+            path = f'/api/v2/services/xcube_geoserv/databases/{database}/collections'
 
         try:
             r = self._get(path=path)
@@ -2192,9 +2204,15 @@ class GeoDBClient(object):
 
         """
 
+        database = database or self._database
+
         try:
-            self._delete(path=f'/api/v2/services/xcube_geoserv/databases/'
-                              f'{database}/collections/{collection}')
+            if self._use_winchester:
+                self._delete(path=f"/geodb_geoserver/"
+                                  f"{database}/collections/{collection}")
+            else:
+                self._delete(path=f'/api/v2/services/xcube_geoserv/databases/'
+                                  f'{database}/collections/{collection}')
             self._log_event(EventType.UNPUBLISHED_GS,
                             f'collection {database}_{collection}')
             return Message(f'Collection {collection} in database {database} '
@@ -2440,6 +2458,19 @@ class GeoDBClient(object):
 
         return self._auth_access_token or self._get_geodb_client_credentials_access_token(token_uri=access_token_uri)
 
+    @cached_property
+    def _use_winchester(self) -> bool:
+        try:
+            url = self._auth_domain.replace("winchester", "")
+            r = requests.get(url)
+            apis = json.loads(r.content.decode())['apis']
+            for api in apis:
+                if "winchester" in api["name"]:
+                    return True
+        except:
+            pass
+        return False
+
     def refresh_auth_access_token(self):
         """
         Refresh the authentication token.
@@ -2500,12 +2531,18 @@ class GeoDBClient(object):
 
         if self._auth_mode == "client-credentials":
             self._raise_for_invalid_client_credentials_cfg()
-            payload = {
-                "client_id": self._auth_client_id,
-                "client_secret": self._auth_client_secret,
-                "audience": self._auth_aud,
-                "grant_type": "client_credentials"
-            }
+            if self._use_winchester:
+                payload = {
+                    "username": self._auth_client_id,
+                    "password": self._auth_client_secret,
+                }
+            else:
+                payload = {
+                    "client_id": self._auth_client_id,
+                    "client_secret": self._auth_client_secret,
+                    "audience": self._auth_aud,
+                    "grant_type": "client_credentials"
+                }
             headers = {'content-type': "application/json"} if is_json else None
             r = requests.post(self._auth_domain + token_uri, json=payload, headers=headers)
         elif self._auth_mode == "password":
