@@ -2531,18 +2531,12 @@ class GeoDBClient(object):
 
         if self._auth_mode == "client-credentials":
             self._raise_for_invalid_client_credentials_cfg()
-            if self._use_winchester:
-                payload = {
-                    "username": self._auth_client_id,
-                    "password": self._auth_client_secret,
-                }
-            else:
-                payload = {
-                    "client_id": self._auth_client_id,
-                    "client_secret": self._auth_client_secret,
-                    "audience": self._auth_aud,
-                    "grant_type": "client_credentials"
-                }
+            payload = {
+                "client_id": self._auth_client_id,
+                "client_secret": self._auth_client_secret,
+                "audience": self._auth_aud,
+                "grant_type": "client_credentials"
+            }
             headers = {'content-type': "application/json"} if is_json else None
             r = requests.post(self._auth_domain + token_uri, json=payload, headers=headers)
         elif self._auth_mode == "password":
