@@ -40,6 +40,8 @@ class GeoDBClientTest(unittest.TestCase):
         self._base_url = self._server_test_url
         if self._server_test_port:
             self._base_url += ':' + str(self._server_test_port)
+        self._gs_server_url = self._api._gs_server_url
+        self._gs_server_port = self._api._gs_server_port
 
         self._server_test_auth_domain = "https://auth"
 
@@ -1152,6 +1154,37 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual("Error", str(e.exception))
         self.assertIsInstance(e.exception, GeoDBError)
 
+    def test_publish_to_geoserver_winchester(self, m):
+        self.set_global_mocks(m)
+        m.get("https://auth", json={"apis": [{"name": "winchester"}]})
+        url = self._gs_server_url + "/geodb_geoserver/geodb_admin/collections/"
+        m.put(url=url, json={'name': 'land_use'})
+
+        url = f'{self._base_url}/rpc/geodb_log_event'
+        log_event_endpoint = m.post(url, text=json.dumps(''))
+
+        self.assertEqual(0, log_event_endpoint.call_count)
+
+        res = self._api.publish_gs(collection="land_use",
+                                   database="geodb_admin")
+
+        self.assertEqual(1, log_event_endpoint.call_count)
+        self.assertDictEqual({'event_type': 'published to geoserver',
+                              'message': 'collection geodb_admin_land_use',
+                              'user': 'helge'},
+                             json.loads(log_event_endpoint.last_request.text))
+
+        self.assertDictEqual({'name': 'land_use'}, res)
+
+        url = self._gs_server_url + "/geodb_geoserver/geodb_admin/collections/"
+        m.put(url=url, text='Error', status_code=400)
+
+        with self.assertRaises(GeoDBError) as e:
+            self._api.publish_gs(collection="land_use", database="geodb_admin")
+
+        self.assertEqual("Error", str(e.exception))
+        self.assertIsInstance(e.exception, GeoDBError)
+
     def test_gs_url(self, m):
         geodb = GeoDBClient(server_url='https://test_geodb', server_port=3000, gs_server_url='https://test_geoserv',
                             gs_server_port=4000)
@@ -1174,6 +1207,41 @@ class GeoDBClientTest(unittest.TestCase):
         self.maxDiff = None
         self.set_global_mocks(m)
         url = self._base_url + "/api/v2/services/xcube_geoserv/databases/geodb_admin/collections"
+
+        server_response = {
+            'collection_id': ['land_use'],
+            'database': ['geodb_admin'],
+            'default_style': [None],
+            'geojson_url': [
+                'https://test/geoserver/geodb_admin/ows?service=WFS&version=1.0.0'],
+            'href': [None],
+            'name': ['land_use'],
+            'preview_url': [
+                'https://test/geoserver/geodb_admin/wms?service=WMS&version=1.1.0'
+            ],
+            'wfs_url': [
+                'https://test/geoserver/geodb_admin/wms?service=WMS&version=1.1.0'
+            ]
+        }
+
+        m.get(url=url, json=server_response)
+
+        res = self._api.get_published_gs('geodb_admin')
+        self.assertIsInstance(res, pd.DataFrame)
+        self.assertEqual(1, len(res))
+
+        m.get(url=url, json={})
+
+        res = self._api.get_published_gs('geodb_admin')
+        self.assertIsInstance(res, pd.DataFrame)
+        self.assertEqual(0, len(res))
+
+
+    def test_get_published_gs_winchester(self, m):
+        self.maxDiff = None
+        self.set_global_mocks(m)
+        m.get("https://auth", json={"apis": [{"name": "winchester"}]})
+        url = self._gs_server_url + "/geodb_geoserver/geodb_admin/collections"
 
         server_response = {
             'collection_id': ['land_use'],
@@ -1260,6 +1328,40 @@ class GeoDBClientTest(unittest.TestCase):
 
         url = self._base_url + '/api/v2/services/xcube_geoserv/databases/' \
                                'geodb_admin/collections/land_use'
+        m.delete(url=url, text='Error', status_code=400)
+
+        with self.assertRaises(GeoDBError) as e:
+            self._api.unpublish_gs(collection='land_use',
+                                   database='geodb_admin')
+
+        self.assertEqual('Error', str(e.exception))
+        self.assertIsInstance(e.exception, GeoDBError)
+
+    def test_unpublish_from_geoserver_winchester(self, m):
+        self.set_global_mocks(m)
+        m.get("https://auth", json={"apis": [{"name": "winchester"}]})
+        url = self._gs_server_url + "/geodb_geoserver/geodb_admin/collections/land_use"
+
+        m.delete(url=url)
+
+        url = f'{self._base_url}/rpc/geodb_log_event'
+        log_event_endpoint = m.post(url, text=json.dumps(''))
+
+        self.assertEqual(0, log_event_endpoint.call_count)
+
+        res = self._api.unpublish_gs(collection='land_use',
+                                     database='geodb_admin')
+
+        self.assertEqual(1, log_event_endpoint.call_count)
+        self.assertDictEqual({'event_type': 'unpublished from geoserver',
+                              'message': 'collection geodb_admin_land_use',
+                              'user': 'helge'},
+                             json.loads(log_event_endpoint.last_request.text))
+
+        self.assertTrue(res)
+
+        url = self._gs_server_url + "/geodb_geoserver/geodb_admin/collections/land_use"
+
         m.delete(url=url, text='Error', status_code=400)
 
         with self.assertRaises(GeoDBError) as e:
