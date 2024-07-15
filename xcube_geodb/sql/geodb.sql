@@ -121,6 +121,8 @@ CREATE TABLE IF NOT EXISTS public.geodb_user_databases
     )
     TABLESPACE pg_default;
 
+GRANT SELECT, INSERT, UPDATE ON geodb_user_databases TO PUBLIC;
+GRANT SELECT, UPDATE, USAGE ON geodb_user_databases_seq TO PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.notify_ddl_postgrest()
     RETURNS event_trigger
