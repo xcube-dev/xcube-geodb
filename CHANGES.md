@@ -1,10 +1,11 @@
-## v1.0.7 (in development)
+## v1.0.7
 
 ### New Features
 
 - added function that allows users to retrieve the geometry types from their 
   collections
 - made client support PostGIS > 3.0.0
+- made client compatible with Winchester authentication module
 
 ### Fixes
 
