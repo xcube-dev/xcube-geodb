@@ -2,10 +2,9 @@
 
 ### New Features
 
-
 ### Fixes
 
-
+- Fixed issue where the client threw errors if Winchester was used with Geoserver. [#92]
 
 ## v1.0.7
 

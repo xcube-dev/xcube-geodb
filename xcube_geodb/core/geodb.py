@@ -11,6 +11,7 @@ from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkb
 from shapely.geometry import shape
+from urllib.parse import urlparse
 
 from xcube_geodb.const import MINX, MINY, MAXX, MAXY
 from xcube_geodb.core.message import Message
@@ -2461,7 +2462,8 @@ class GeoDBClient(object):
     @cached_property
     def _use_winchester(self) -> bool:
         try:
-            url = self._auth_domain.replace("winchester", "")
+            p = urlparse(self._auth_domain)
+            url = f"{p.scheme}://{p.netloc}"
             r = requests.get(url)
             apis = json.loads(r.content.decode())['apis']
             for api in apis:
