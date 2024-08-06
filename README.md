@@ -1,5 +1,5 @@
 [![Documentation Status](https://readthedocs.org/projects/xcube-geodb/badge/?version=latest)](https://xcube-geodb.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/dcs4cop/xcube-geodb/branch/master/graph/badge.svg)](https://codecov.io/gh/dcs4cop/xcube-geodb)
+[![codecov](https://codecov.io/gh/xcube-dev/xcube-geodb/branch/main/graph/badge.svg)](https://codecov.io/gh/dcs4cop/xcube-geodb)
 
 # xcube geoDB
 
