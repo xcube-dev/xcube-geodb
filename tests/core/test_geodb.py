@@ -1156,7 +1156,12 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_publish_to_geoserver_winchester(self, m):
         self.set_global_mocks(m)
-        m.get("https://auth", json={"apis": [{"name": "winchester"}]})
+        m.get("https://some.winchester.deployment",
+              json={"apis": [{"name": "winchester"}]})
+
+        self._gs_server_url = "https://some.winchester.deployment"
+        self._api._gs_server_url = "https://some.winchester.deployment"
+
         url = self._gs_server_url + "/geodb_geoserver/geodb_admin/collections/"
         m.put(url=url, json={'name': 'land_use'})
 
