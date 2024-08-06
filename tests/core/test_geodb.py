@@ -1245,8 +1245,11 @@ class GeoDBClientTest(unittest.TestCase):
     def test_get_published_gs_winchester(self, m):
         self.maxDiff = None
         self.set_global_mocks(m)
-        m.get("https://auth", json={"apis": [{"name": "winchester"}]})
-        url = self._gs_server_url + "/geodb_geoserver/geodb_admin/collections"
+
+        self._api._gs_server_url = "https://winchester.deployment"
+        m.get(self._api._gs_server_url, json={"apis": [{"name": "winchester"}]})
+        url = (self._api._gs_server_url +
+               "/geodb_geoserver/geodb_admin/collections")
 
         server_response = {
             'collection_id': ['land_use'],
@@ -1344,8 +1347,11 @@ class GeoDBClientTest(unittest.TestCase):
 
     def test_unpublish_from_geoserver_winchester(self, m):
         self.set_global_mocks(m)
-        m.get("https://auth", json={"apis": [{"name": "winchester"}]})
-        url = self._gs_server_url + "/geodb_geoserver/geodb_admin/collections/land_use"
+
+        self._api._gs_server_url = "https://winchester.deployment"
+        m.get(self._api._gs_server_url, json={"apis": [{"name": "winchester"}]})
+        url = (self._api._gs_server_url +
+               "/geodb_geoserver/geodb_admin/collections/land_use")
 
         m.delete(url=url)
 
@@ -1365,7 +1371,8 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertTrue(res)
 
-        url = self._gs_server_url + "/geodb_geoserver/geodb_admin/collections/land_use"
+        url = (self._api._gs_server_url +
+               "/geodb_geoserver/geodb_admin/collections/land_use")
 
         m.delete(url=url, text='Error', status_code=400)
 
