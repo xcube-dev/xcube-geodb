@@ -1,4 +1,4 @@
-## v1.0.8 (in development)
+## v1.0.8
 
 ### New Features
 
