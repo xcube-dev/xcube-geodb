@@ -11,6 +11,7 @@ from geopandas import GeoDataFrame
 from pandas import DataFrame
 from shapely import wkb
 from shapely.geometry import shape
+from urllib.parse import urlparse
 
 from xcube_geodb.const import MINX, MINY, MAXX, MAXY
 from xcube_geodb.core.message import Message
@@ -2072,7 +2073,7 @@ class GeoDBClient(object):
             server_url = self._gs_server_url
             server_port = self._gs_server_port
 
-        if self._use_winchester and "geodb_geoserver" in path:
+        if self._use_winchester_gs and "geodb_geoserver" in path:
             server_url = self._gs_server_url
             server_port = None
 
@@ -2119,7 +2120,7 @@ class GeoDBClient(object):
         database = database or self.database
 
         try:
-            if self._use_winchester:
+            if self._use_winchester_gs:
                 r = self._put(path=f'/geodb_geoserver/{database}/collections/',
                               payload={"collection_id": collection})
             else:
@@ -2174,7 +2175,7 @@ class GeoDBClient(object):
 
         database = database or self._database
 
-        if self._use_winchester:
+        if self._use_winchester_gs:
             path = f'/geodb_geoserver/{database}/collections'
         else:
             path = f'/api/v2/services/xcube_geoserv/databases/{database}/collections'
@@ -2207,7 +2208,7 @@ class GeoDBClient(object):
         database = database or self._database
 
         try:
-            if self._use_winchester:
+            if self._use_winchester_gs:
                 self._delete(path=f"/geodb_geoserver/"
                                   f"{database}/collections/{collection}")
             else:
@@ -2459,9 +2460,15 @@ class GeoDBClient(object):
         return self._auth_access_token or self._get_geodb_client_credentials_access_token(token_uri=access_token_uri)
 
     @cached_property
-    def _use_winchester(self) -> bool:
+    def _use_winchester_gs(self) -> bool:
         try:
-            url = self._auth_domain.replace("winchester", "")
+            # check if Winchester is the interface to the Geoserver:
+            # extract base URL from the Geoserver URL and retrieve the server's meta
+            # information, look for 'winchester' in its list of APIs. Returns "False" if
+            # the meta information is structured differently, or does not contain
+            # the 'winchester'-API.
+            p = urlparse(self._gs_server_url)
+            url = f"{p.scheme}://{p.netloc}"
             r = requests.get(url)
             apis = json.loads(r.content.decode())['apis']
             for api in apis:
