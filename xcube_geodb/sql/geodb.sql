@@ -798,7 +798,7 @@ DECLARE
 BEGIN
     usr := current_setting('request.jwt.claim.clientId', true);
     BEGIN
-        EXECUTE format('CREATE ROLE %I LOGIN', user_name);
+        EXECUTE format('CREATE ROLE %I LOGIN ROLE %I', user_name, current_user);
     EXCEPTION
         WHEN duplicate_object THEN RAISE NOTICE '%, skipping', SQLERRM USING ERRCODE = SQLSTATE;
     END;
