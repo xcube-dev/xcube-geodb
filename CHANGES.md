@@ -2,6 +2,8 @@
 
 ### New Features
 
+- geodb_admin is allowed to create user groups on registration. [#96]
+
 ### Fixes
 
 
