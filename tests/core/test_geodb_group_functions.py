@@ -1,4 +1,3 @@
-import json
 import unittest
 
 import requests_mock
@@ -83,6 +82,48 @@ class GeoDBClientGroupsTest(unittest.TestCase):
         expected = {'Message': f'Published collection {collection} in '
                                f'database {database} to group {group}.'}
         self.base_test.check_message(r, expected)
+
+    def test_publish_database_to_group(self, m):
+        self.base_test.set_global_mocks(m)
+
+        url = f'{self.base_test._base_url}/rpc/geodb_group_publish_database'
+        m.post(url, text='')
+        url = f'{self.base_test._base_url}/rpc/geodb_user_allowed'
+        m.post(url, text='1')  # user is owner of database
+
+        database = 'test_db'
+        group = 'test_group'
+
+        r = self.base_test._api.publish_database_to_group(group, database)
+
+        expected = {'Message': f'Published database {database} to group {group}.'}
+        self.base_test.check_message(r, expected)
+
+        url = f'{self.base_test._base_url}/rpc/geodb_user_allowed'
+        m.post(url, text='0')  # user is NOT owner of database
+        with self.assertRaises(GeoDBError):
+            self.base_test._api.publish_database_to_group(group, database)
+
+    def test_unpublish_database_from_group(self, m):
+        self.base_test.set_global_mocks(m)
+
+        url = f'{self.base_test._base_url}/rpc/geodb_group_unpublish_database'
+        m.post(url, text='')
+        url = f'{self.base_test._base_url}/rpc/geodb_user_allowed'
+        m.post(url, text='1')  # user is owner of database
+
+        database = 'test_db'
+        group = 'test_group'
+
+        r = self.base_test._api.unpublish_database_from_group(group, database)
+
+        expected = {'Message': f'Unpublished database {database} from group {group}.'}
+        self.base_test.check_message(r, expected)
+
+        url = f'{self.base_test._base_url}/rpc/geodb_user_allowed'
+        m.post(url, text='0')  # user is NOT owner of database
+        with self.assertRaises(GeoDBError):
+            self.base_test._api.unpublish_database_from_group(group, database)
 
     def test_publish_collection_to_group_fails(self, m):
         self.base_test.set_global_mocks(m)

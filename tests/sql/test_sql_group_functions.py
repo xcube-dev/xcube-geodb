@@ -31,19 +31,28 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         cls.member_2 = "test_member_2"
         cls.nomember = "test_nomember"
         cls.table_name = "test_member_table_for_group"
+        cls.table_name_2 = "test_member_table2_for_group"
+        cls.table_name_3 = "test_member_table3_for_group"
+        cls.database_name = "test_member"
         cls.test_group = "test_group"
 
     def tearDown(self) -> None:
         self.base_test.tearDown()
 
-    def test_basic_group_actions(self):
+    def test_group_actions(self):
         self.grant_group_to(self.member)
         self.grant_group_to(self.member_2)
 
-        self.create_table_as_user(self.member)
+        self.create_database_and_table_as_user(self.member)
         self.access_table_with_user_fail(self.member_2)
         self.access_table_with_user_fail(self.nomember)
         self.publish_table_to_group(self.member)
+
+        self.publish_database_to_group(self.member)
+        self.create_table_as_user(self.member_2, self.table_name_2)
+        self.unpublish_database_from_group(self.member)
+        self.create_table_as_user_fails(self.member_2, self.table_name_3)
+
         self.access_table_with_user_success(self.member_2)
         self.access_table_with_user_fail(self.nomember)
 
@@ -83,7 +92,7 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
     def test_get_grants(self):
         self.grant_group_to(self.member)
-        self.create_table_as_user(self.member)
+        self.create_database_and_table_as_user(self.member)
         self.publish_table_to_group(self.member)
         self._set_role(self.member)
         self.execute(f"SELECT geodb_get_grants('{self.table_name}')")
@@ -170,6 +179,18 @@ class GeoDBSQLGroupTest(unittest.TestCase):
               f"'{self.test_group}')"
         self.execute(sql)
 
+    def publish_database_to_group(self, user):
+        self._set_role(user)
+        sql = f"SELECT geodb_group_publish_database('{self.database_name}'," \
+              f"'{self.test_group}')"
+        self.execute(sql)
+
+    def unpublish_database_from_group(self, user):
+        self._set_role(user)
+        sql = f"SELECT geodb_group_unpublish_database('{self.database_name}'," \
+              f"'{self.test_group}')"
+        self.execute(sql)
+
     def access_table_with_user_fail(self, user):
         self._set_role(user)
         sql = f"SELECT geodb_get_collection_bbox('{self.table_name}')"
@@ -183,12 +204,30 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         sql = f"SELECT geodb_get_collection_bbox('{self.table_name}')"
         self.execute(sql)
 
-    def create_table_as_user(self, user):
+    def create_database_and_table_as_user(self, user):
         self._set_role(user)
-        sql = f"SELECT geodb_create_database('test_member')"
+        sql = f"SELECT geodb_create_database('{self.database_name}')"
         self.execute(sql)
         self._set_role(user)
         props = {}
         sql = f"SELECT geodb_create_collection('{self.table_name}', " \
               f"'{json.dumps(props)}', '4326')"
         self.execute(sql)
+
+    def create_table_as_user(self, user, table_name):
+        self._set_role(user)
+        props = {}
+        sql = f"SELECT geodb_create_collection('{table_name}', " \
+              f"'{json.dumps(props)}', '4326')"
+        self.execute(sql)
+
+
+    def create_table_as_user_fails(self, user, table_name):
+        self._set_role(user)
+        props = {}
+        sql = f"SELECT geodb_create_collection('{table_name}', " \
+              f"'{json.dumps(props)}', '4326')"
+        with self.assertRaises(psycopg2.errors.RaiseException):
+            self.execute(sql)
+        # necessary so we can keep using the connection after the failed query
+        self._conn.rollback()

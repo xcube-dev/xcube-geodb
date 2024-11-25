@@ -4,6 +4,8 @@ import sys
 import unittest
 import json
 import psycopg2
+import signal
+from time import sleep
 
 from tests.utils import make_install_geodb
 import xcube_geodb.version as version
@@ -33,7 +35,7 @@ class TestInstallationProcedure(unittest.TestCase):
         make_install_geodb()
 
 
-# noinspection SqlNoDataSourceInspection
+# noinspection SqlNoDataSourceInspection,SqlResolve
 @unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '0') == '1',
                  'DB Tests skipped')
 # noinspection SqlInjection
@@ -46,13 +48,35 @@ class GeoDBSqlTest(unittest.TestCase):
     def setUp(cls) -> None:
         import psycopg2
         import testing.postgresql
+
+        # for Windows, in case there are multiple installations of Postgres
+        # which makes psycopg find initdb like this:
+        # c:\path\to\installation-1\initdb.exe\r\nc:\path\to\installation-2\initdb.exe
+        # therefore, we split, and use the first installation that has "PostgreSQL" in its path
+        # because the PostGIS extension cannot be installed via conda nor pip in a compatible way
+
+        def find_program(name: str) -> str:
+            program = testing.postgresql.find_program(name, [])
+            return program.split("\r\n")[0]
+
+        if os.name == 'nt':
+            path = os.environ["PATH"].split(os.pathsep)
+            dirs = [directory for directory in path if "PostgreSQL" in directory]
+            dirs.extend([directory for directory in path if not "PostgreSQL" in directory])
+            os.environ["PATH"] = os.pathsep.join(dirs)
+
+        initdb = find_program('initdb')
+        postgres = find_program('postgres')
+
+        # special windows treatment end
+
         postgresql = testing.postgresql.PostgresqlFactory(
-            cache_initialized_db=False)
+            cache_initialized_db=False, initdb=initdb, postgres=postgres, port=50777)
 
         cls._postgresql = postgresql()
         dsn = cls._postgresql.dsn()
         if sys.platform == 'win32':
-            dsn['port'] = 5432
+            dsn['port'] = 50777
             dsn['password'] = 'postgres'
         cls._conn = psycopg2.connect(**dsn)
         cls._cursor = cls._conn.cursor()
@@ -76,17 +100,12 @@ class GeoDBSqlTest(unittest.TestCase):
             self._postgresql.stop()
 
     def manual_cleanup(self):
-        import subprocess
         import shutil
 
         try:
-            subprocess.call([
-                'taskkill', '/F', '/T', '/PID',
-                str(self._postgresql.child_process.pid)
-            ])
             self._conn.close()
             dsn = self._postgresql.dsn()
-            dsn['port'] = 5432
+            dsn['port'] = 50777
             dsn['password'] = 'postgres'
             dsn['database'] = 'postgres'
             self._conn = psycopg2.connect(**dsn)
@@ -108,6 +127,15 @@ class GeoDBSqlTest(unittest.TestCase):
             )
             self._conn.commit()
             self._conn.close()
+            self._postgresql.child_process.send_signal(signal.CTRL_BREAK_EVENT)
+            killed_at = datetime.datetime.now()
+            while self._postgresql.child_process.poll() is None:
+                if (datetime.datetime.now() - killed_at).seconds > 10.0:
+                    self._postgresql.child_process.kill()
+                    raise RuntimeError("*** failed to shutdown postgres (timeout) ***\n")
+
+                sleep(0.1)
+
         except OSError as e:
             raise e
         shutil.rmtree(self._postgresql.base_dir, ignore_errors=True)

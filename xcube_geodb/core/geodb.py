@@ -103,6 +103,9 @@ class EventType:
     GROUP_REMOVED = 'removed from group'
     PUBLISHED_GROUP = 'published to group'
     UNPUBLISHED_GROUP = 'unpublished from group'
+    PUBLISHED_DATABASE = 'published database to group'
+    UNPUBLISHED_DATABASE = 'unpublished database from group'
+
 
 
 # noinspection PyShadowingNames,PyUnusedLocal
@@ -1332,7 +1335,7 @@ class GeoDBClient(object):
             collection (str): The name of the collection to delete rows from
             database (str): The name of the database to be checked
             query (str): Filter which records to delete. Follow the
-            http://postgrest.org/en/v6.0/api.html query convention.
+                         https://postgrest.org/en/v6.0/api.html query convention.
         Returns:
             Message: Whether the operation has succeeded
 
@@ -2385,6 +2388,54 @@ class GeoDBClient(object):
         self._log_event(EventType.UNPUBLISHED_GROUP, f'{collection}, {group}')
         return Message(f'Unpublished collection {collection} in database '
                        f'{database} from group {group}.')
+
+    def publish_database_to_group(self, group: str, database: Optional[str] = None) -> Message:
+        """
+        Publishes the database to the given group.
+
+        Args:
+            database (str): The name of the database to publish. Default: the username.
+            group (str): Name of the group.
+        """
+        database = database or self.database
+        dn = f'{database}_dummy'
+        if not self._is_owner_of(dn):
+            raise GeoDBError(f'User {self.whoami} must be owner of database '
+                             f'{database} to publish.')
+
+        path = '/rpc/geodb_group_publish_database'
+        payload = {
+            "database": database,
+            "user_group": group,
+        }
+
+        self._post(path=path, payload=payload)
+        self._log_event(EventType.PUBLISHED_DATABASE, f'{database}, {group}')
+        return Message(f'Published database {database} to group {group}.')
+
+    def unpublish_database_from_group(self, group: str, database: Optional[str] = None) -> Message:
+        """
+        Unpublishes the database from the given group.
+
+        Args:
+            database (str): The name of the database to unpublish. Default: the username.
+            group (str): Name of the group.
+        """
+        database = database or self.database
+        dn = f'{database}_dummy'
+        if not self._is_owner_of(dn):
+            raise GeoDBError(f'User {self.whoami} must be owner of database '
+                             f'{database} to unpublish.')
+
+        path = '/rpc/geodb_group_unpublish_database'
+        payload = {
+            "database": database,
+            "user_group": group,
+        }
+
+        self._post(path=path, payload=payload)
+        self._log_event(EventType.UNPUBLISHED_DATABASE, f'{database}, {group}')
+        return Message(f'Unpublished database {database} from group {group}.')
 
     def get_my_groups(self):
         """
