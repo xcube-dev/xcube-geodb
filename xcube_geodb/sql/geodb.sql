@@ -1554,9 +1554,8 @@ $BODY$
 DECLARE
     manage integer;
 BEGIN
-    EXECUTE format('SELECT COUNT(*) FROM geodb_user_info WHERE user_name = ''%s'' AND subscription LIKE ''%%manage%%''',
-                   user_name) INTO manage;
-    IF manage = 0 THEN
+    EXECUTE format('SELECT COUNT(*) FROM geodb_user_info WHERE user_name = ''%s'' AND subscription LIKE ''%%manage%%''', user_name) INTO manage;
+    IF NOT current_setting('role') = 'geodb_admin' AND manage = 0 THEN
         RAISE EXCEPTION 'Insufficient subscription for user %', user_name;
     END IF;
 
