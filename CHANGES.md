@@ -2,10 +2,10 @@
 
 ### New Features
 
+- formatted codebase [#100]
 - geodb_admin is allowed to create user groups on registration. [#96]
 
 ### Fixes
-
 
 ## v1.0.8
 
@@ -19,7 +19,7 @@
 
 ### New Features
 
-- added function that allows users to retrieve the geometry types from their 
+- added function that allows users to retrieve the geometry types from their
   collections
 - made client support PostGIS > 3.0.0
 - made client compatible with Winchester authentication module
@@ -34,13 +34,13 @@
 
 - added functions that allow to create/show/remove indexes on collections
 - added functions that allow users to work in user groups
-  - those new functions are: `create_group`, `add_user_to_group`, 
-    `remove_user_from_group`, `publish_collection_to_group`, 
-    `unpublish_collection_from_group`, `get_my_groups`, `get_group_users`, and 
-    `get_access_rights`.
-  - see the respective
-    [notebook](https://xcube-geodb.readthedocs.io/en/latest/notebooks/geodb_group_management.html) 
-    for usage examples
+    - those new functions are: `create_group`, `add_user_to_group`,
+      `remove_user_from_group`, `publish_collection_to_group`,
+      `unpublish_collection_from_group`, `get_my_groups`, `get_group_users`, and
+      `get_access_rights`.
+    - see the respective
+      [notebook](https://xcube-geodb.readthedocs.io/en/latest/notebooks/geodb_group_management.html)
+      for usage examples
 
 ### Fixes
 
@@ -80,9 +80,9 @@
 ### New Features
 
 - Added a new auth mode `none`. The aim of this mode is enabling users
-  installing xcube geoDB infrastructure without oauth2 for e.g. testing 
+  installing xcube geoDB infrastructure without oauth2 for e.g. testing
   purposes.
-- A new xcube geoDB docker backend image has been added. This image can be used 
+- A new xcube geoDB docker backend image has been added. This image can be used
   to set
   up a postgis database with a pre-installed xcube geoDB database extension
 - Added a new `count_by_bbox` filter function
@@ -126,8 +126,8 @@
 - Fixed version naming issue in the extension's Makefile
 - Fixed create database. Does not allow users anymore to write collections
   to other users' databases.
-  Closes [#164](https://github.com/bcdev/service-eurodatacube/issues/164), 
-  [#165](https://github.com/bcdev/service-eurodatacube/issues/165), 
+  Closes [#164](https://github.com/bcdev/service-eurodatacube/issues/164),
+  [#165](https://github.com/bcdev/service-eurodatacube/issues/165),
   [#166](https://github.com/bcdev/service-eurodatacube/issues/166)
 - Fixed that admin users have access to users' collections
 - Collections are now always reported as 'collection' and not 'table_name'
@@ -135,8 +135,8 @@
 ### New Features
 
 - EPSG code strings e.g. 'epsg:4326' or 'EPSG:4326' are now accepted as CRS
-  definition by `geodb.create_collection*` functions as well as 
-  `geodb.insert_into_collection`, `geodb.transform_bbox_crs`, 
+  definition by `geodb.create_collection*` functions as well as
+  `geodb.insert_into_collection`, `geodb.transform_bbox_crs`,
   `geodb.get_collection_by_bbox`.
   Before only integers were accepted. This ensures alignment with xcube
   software.
@@ -148,7 +148,7 @@
 - Ensured that the rest URL of the geoserver for publishing to WMS is
   configurable
 - Messages are handled by class Message allowing to nicer print them in Jupyter
-  notebooks. The user can also choose whether an error will be raised or 
+  notebooks. The user can also choose whether an error will be raised or
   just printed.
 - Added method `geodb.get_all_published_gs` to get all gs published collections
 
@@ -271,7 +271,7 @@
 ## v0.1.5
 
 - Updated the exploring Jupyter Notebook and
-- Assured that someone can use the client from a custom environment (i.e. 
+- Assured that someone can use the client from a custom environment (i.e.
   outside EDC)
 - Bug fixes
 

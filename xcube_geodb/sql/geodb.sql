@@ -22,37 +22,40 @@ CREATE TABLE IF NOT EXISTS public."geodb_user_info"
 
 CREATE TABLE IF NOT EXISTS public."geodb_version_info"
 (
-    id           SERIAL              PRIMARY KEY,
-    version      TEXT                   NOT NULL,
-    date         DATE                   NOT NULL
+    id      SERIAL PRIMARY KEY,
+    version TEXT NOT NULL,
+    date    DATE NOT NULL
 );
 GRANT SELECT ON TABLE geodb_version_info TO PUBLIC;
-INSERT INTO geodb_version_info VALUES (DEFAULT, 'VERSION_PLACEHOLDER', now());
+INSERT INTO geodb_version_info
+VALUES (DEFAULT, 'VERSION_PLACEHOLDER', now());
 -- if manually setting up the database, this might be necessary to clean up:
-DELETE FROM geodb_version_info WHERE version like '%ERSION_PLACEHOLDER';
+DELETE
+FROM geodb_version_info
+WHERE version like '%ERSION_PLACEHOLDER';
 
 CREATE TABLE IF NOT EXISTS public."geodb_eventlog"
 (
-    event_type   TEXT                NOT NULL,
-    message      TEXT                NOT NULL,
-    username     TEXT                NOT NULL,
-    date         TIMESTAMP           NOT NULL
+    event_type TEXT      NOT NULL,
+    message    TEXT      NOT NULL,
+    username   TEXT      NOT NULL,
+    date       TIMESTAMP NOT NULL
 );
 GRANT ALL ON TABLE geodb_eventlog TO PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_log_event(event json)
     RETURNS void
     LANGUAGE 'plpgsql'
-    AS
-    $BODY$
-    BEGIN
-        INSERT INTO public."geodb_eventlog"
-        VALUES (event ->> 'event_type',
-                event ->> 'message',
-                event ->> 'user',
-                now());
-    END
-    $BODY$;
+AS
+$BODY$
+BEGIN
+    INSERT INTO public."geodb_eventlog"
+    VALUES (event ->> 'event_type',
+            event ->> 'message',
+            event ->> 'user',
+            now());
+END
+$BODY$;
 
 CREATE OR REPLACE FUNCTION public.get_geodb_eventlog(
     "event_type" text DEFAULT '%',
@@ -439,7 +442,7 @@ CREATE OR REPLACE FUNCTION public.geodb_get_collection_bbox(collection text)
 AS
 $BODY$
 DECLARE
-    qry TEXT;
+    qry  TEXT;
     bbox TEXT;
 BEGIN
     qry := format('SELECT text(ST_Extent(geometry)) from %I AS src',
@@ -456,7 +459,7 @@ CREATE OR REPLACE FUNCTION public.geodb_estimate_collection_bbox(collection text
 AS
 $BODY$
 DECLARE
-    qry TEXT;
+    qry  TEXT;
     bbox TEXT;
 BEGIN
     qry := format('SELECT ST_EstimatedExtent(%L, ''geometry'') AS src',
@@ -469,9 +472,9 @@ $BODY$;
 
 CREATE OR REPLACE FUNCTION public.geodb_geometry_types(collection text, aggregate boolean DEFAULT true)
     RETURNS TABLE
-        (
-            types json
-        )
+            (
+                types json
+            )
     LANGUAGE 'plpgsql'
 AS
 $BODY$
@@ -481,11 +484,11 @@ BEGIN
     IF aggregate THEN
         qry := format('SELECT JSON_AGG(temp) AS types FROM (
                         SELECT DISTINCT GeometryType(geometry) FROM %I) AS temp',
-                        collection);
+                      collection);
     ELSE
         qry := format('SELECT JSON_AGG(temp) AS types FROM (
                         SELECT GeometryType(geometry) FROM %I) AS temp',
-                        collection);
+                      collection);
     END IF;
     RETURN QUERY EXECUTE qry;
 END
@@ -625,8 +628,8 @@ BEGIN
     usr := (SELECT geodb_whoami());
 
     RETURN QUERY EXECUTE format(
-                'SELECT JSON_AGG(src) as js FROM(' ||
-                'SELECT * FROM geodb_user_databases WHERE owner = ''%s'') as src', usr);
+            'SELECT JSON_AGG(src) as js FROM(' ||
+            'SELECT * FROM geodb_user_databases WHERE owner = ''%s'') as src', usr);
 END
 $$;
 
@@ -703,10 +706,9 @@ $BODY$;
 DO
 $do$
     BEGIN
-        IF NOT EXISTS(
-                SELECT
-                FROM pg_catalog.pg_roles -- SELECT list can be empty for this
-                WHERE rolname = 'authenticator') THEN
+        IF NOT EXISTS(SELECT
+                      FROM pg_catalog.pg_roles -- SELECT list can be empty for this
+                      WHERE rolname = 'authenticator') THEN
             CREATE ROLE authenticator NOINHERIT;
             ALTER ROLE authenticator SET search_path = public;
         END IF;
@@ -717,10 +719,9 @@ $do$;
 DO
 $do$
     BEGIN
-        IF NOT EXISTS(
-                SELECT
-                FROM pg_catalog.pg_roles -- SELECT list can be empty for this
-                WHERE rolname = 'geodb_admin') THEN
+        IF NOT EXISTS(SELECT
+                      FROM pg_catalog.pg_roles -- SELECT list can be empty for this
+                      WHERE rolname = 'geodb_admin') THEN
             CREATE ROLE geodb_admin NOINHERIT;
             ALTER ROLE geodb_admin SET search_path = public;
         END IF;
@@ -742,7 +743,11 @@ $BODY$;
 CREATE OR REPLACE FUNCTION public.geodb_get_geodb_sql_version()
     RETURNS text
     LANGUAGE SQL
-    AS $$ SELECT version from geodb_version_info $$;
+AS
+$$
+SELECT version
+from geodb_version_info
+$$;
 
 
 -- FUNCTION: public.geodb_log_sizes()
@@ -764,22 +769,18 @@ BEGIN
          , pg_size_pretty(index_bytes) AS "index"
          , pg_size_pretty(toast_bytes) AS "toast"
          , pg_size_pretty(table_bytes) AS "table"
-    FROM (
-             SELECT *, total_bytes - index_bytes - COALESCE(toast_bytes, 0) AS table_bytes
-             FROM (
-                      SELECT c.oid
-                           , nspname                               AS table_schema
-                           , relname                               AS "collection"
-                           , c.reltuples                           AS row_estimate
-                           , pg_total_relation_size(c.oid)         AS total_bytes
-                           , pg_indexes_size(c.oid)                AS index_bytes
-                           , pg_total_relation_size(reltoastrelid) AS toast_bytes
-                      FROM pg_class c
-                               LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
-                      WHERE relkind = 'r'
-                  ) a
-             WHERE table_schema = 'public'
-         ) a;
+    FROM (SELECT *, total_bytes - index_bytes - COALESCE(toast_bytes, 0) AS table_bytes
+          FROM (SELECT c.oid
+                     , nspname                               AS table_schema
+                     , relname                               AS "collection"
+                     , c.reltuples                           AS row_estimate
+                     , pg_total_relation_size(c.oid)         AS total_bytes
+                     , pg_indexes_size(c.oid)                AS index_bytes
+                     , pg_total_relation_size(reltoastrelid) AS toast_bytes
+                FROM pg_class c
+                         LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE relkind = 'r') a
+          WHERE table_schema = 'public') a;
 END
 $BODY$;
 
@@ -924,12 +925,10 @@ AS
 $BODY$
 BEGIN
     RETURN QUERY SELECT JSON_AGG(vals) as src
-                 FROM (
-                          SELECT SUM(pg_total_relation_size(quote_ident(table_name))) AS "usage"
-                          FROM information_schema.tables
-                          WHERE table_schema = 'public'
-                            AND table_name LIKE user_name || '%'
-                      ) AS vals;
+                 FROM (SELECT SUM(pg_total_relation_size(quote_ident(table_name))) AS "usage"
+                       FROM information_schema.tables
+                       WHERE table_schema = 'public'
+                         AND table_name LIKE user_name || '%') AS vals;
 END
 $BODY$;
 
@@ -952,12 +951,10 @@ AS
 $BODY$
 BEGIN
     RETURN QUERY SELECT JSON_AGG(vals) as src
-                 FROM (
-                          SELECT pg_size_pretty(SUM(pg_total_relation_size(quote_ident(table_name)))) AS "usage"
-                          FROM information_schema.tables
-                          WHERE table_schema = 'public'
-                            AND table_name LIKE user_name || '%'
-                      ) AS vals;
+                 FROM (SELECT pg_size_pretty(SUM(pg_total_relation_size(quote_ident(table_name)))) AS "usage"
+                       FROM information_schema.tables
+                       WHERE table_schema = 'public'
+                         AND table_name LIKE user_name || '%') AS vals;
 END
 $BODY$;
 
@@ -1084,24 +1081,16 @@ DECLARE
     qry       text;
 BEGIN
     CASE comparison_mode
-        WHEN 'within' THEN
-            bbox_func := 'ST_Within';
-        WHEN 'contains' THEN
-            bbox_func := 'ST_Contains';
-        WHEN 'intersects' THEN
-            bbox_func := 'ST_Intersects';
-        WHEN 'touches' THEN
-            bbox_func := 'ST_Touches';
-        WHEN 'overlaps' THEN
-            bbox_func := 'ST_Overlaps';
-        WHEN 'crosses' THEN
-            bbox_func := 'ST_Crosses';
-        WHEN 'disjoint' THEN
-            bbox_func := 'ST_Disjoint';
-        WHEN 'equals' THEN
-            bbox_func := 'ST_Equals';
+        WHEN 'within' THEN bbox_func := 'ST_Within';
+        WHEN 'contains' THEN bbox_func := 'ST_Contains';
+        WHEN 'intersects' THEN bbox_func := 'ST_Intersects';
+        WHEN 'touches' THEN bbox_func := 'ST_Touches';
+        WHEN 'overlaps' THEN bbox_func := 'ST_Overlaps';
+        WHEN 'crosses' THEN bbox_func := 'ST_Crosses';
+        WHEN 'disjoint' THEN bbox_func := 'ST_Disjoint';
+        WHEN 'equals' THEN bbox_func := 'ST_Equals';
         ELSE RAISE EXCEPTION 'comparison mode % does not exist. Use ''within'' | ''contains''', comparison_mode USING ERRCODE = 'data_exception';
-    END CASE;
+        END CASE;
 
     lmt_str := '';
 
@@ -1134,7 +1123,7 @@ BEGIN
                   "op",
                   "bbox_func",
                   "bbox_crs"
-        );
+           );
 
     RETURN QUERY EXECUTE qry;
 
@@ -1148,12 +1137,13 @@ $BODY$;
 
 CREATE OR REPLACE FUNCTION public.geodb_count_collection(collection text)
     RETURNS BIGINT
-    LANGUAGE 'plpgsql' STRICT
+    LANGUAGE 'plpgsql'
+    STRICT
 AS
 $$
 DECLARE
-    row_ct    int;
-    qry       text;
+    row_ct int;
+    qry    text;
 BEGIN
     qry := format('SELECT COUNT(*) from %I', collection);
     EXECUTE qry INTO row_ct;
@@ -1164,7 +1154,8 @@ $$;
 -- see https://stackoverflow.com/a/7945274/2043113
 CREATE OR REPLACE FUNCTION public.geodb_estimate_collection_count(collection text)
     RETURNS BIGINT
-    LANGUAGE 'plpgsql' STRICT
+    LANGUAGE 'plpgsql'
+    STRICT
 AS
 $$
 DECLARE
@@ -1172,7 +1163,8 @@ DECLARE
     row_ct     int;
     qry        text;
 BEGIN
-    qry := format('SELECT relpages FROM pg_class WHERE oid = (SELECT oid FROM pg_class WHERE relname = ''%s'');', collection);
+    qry := format('SELECT relpages FROM pg_class WHERE oid = (SELECT oid FROM pg_class WHERE relname = ''%s'');',
+                  collection);
     EXECUTE qry into pages_size;
     IF pages_size > 0 then
         qry := format('SELECT (reltuples / relpages * (pg_relation_size(oid) / 8192))::bigint
@@ -1213,22 +1205,14 @@ DECLARE
     qry       text;
 BEGIN
     CASE comparison_mode
-        WHEN 'within' THEN
-            bbox_func := 'ST_Within';
-        WHEN 'contains' THEN
-            bbox_func := 'ST_Contains';
-        WHEN 'intersects' THEN
-            bbox_func := 'ST_Intersects';
-        WHEN 'touches' THEN
-            bbox_func := 'ST_Touches';
-        WHEN 'overlaps' THEN
-            bbox_func := 'ST_Overlaps';
-        WHEN 'crosses' THEN
-            bbox_func := 'ST_Crosses';
-        WHEN 'disjoint' THEN
-            bbox_func := 'ST_Disjoint';
-        WHEN 'equals' THEN
-            bbox_func := 'ST_Equals';
+        WHEN 'within' THEN bbox_func := 'ST_Within';
+        WHEN 'contains' THEN bbox_func := 'ST_Contains';
+        WHEN 'intersects' THEN bbox_func := 'ST_Intersects';
+        WHEN 'touches' THEN bbox_func := 'ST_Touches';
+        WHEN 'overlaps' THEN bbox_func := 'ST_Overlaps';
+        WHEN 'crosses' THEN bbox_func := 'ST_Crosses';
+        WHEN 'disjoint' THEN bbox_func := 'ST_Disjoint';
+        WHEN 'equals' THEN bbox_func := 'ST_Equals';
         ELSE RAISE EXCEPTION 'comparison mode % does not exist. Use ''within'' | ''contains''', comparison_mode USING ERRCODE = 'data_exception';
         END CASE;
 
@@ -1252,7 +1236,7 @@ BEGIN
                   "op",
                   "bbox_func",
                   "bbox_crs"
-        );
+           );
 
     RETURN QUERY EXECUTE qry;
 
@@ -1299,7 +1283,7 @@ BEGIN
                 %I
             ',
             "select", point_crs, x, y, collection
-        );
+           );
 
     IF "where" IS NOT NULL THEN
         qry := qry || format('WHERE %s ', "where");
@@ -1461,27 +1445,28 @@ AS
 $BODY$
 BEGIN
     RETURN QUERY SELECT JSON_AGG(vals) as src
-                 FROM (
-                          SELECT usename AS role_name,
-                                 CASE
-                                     WHEN usesuper AND usecreatedb THEN
-                                         CAST('superuser, create database' AS pg_catalog.text)
-                                     WHEN usesuper THEN
-                                         CAST('superuser' AS pg_catalog.text)
-                                     WHEN usecreatedb THEN
-                                         CAST('create database' AS pg_catalog.text)
-                                     ELSE
-                                         CAST('' AS pg_catalog.text)
-                                     END    role_attributes
-                          FROM pg_catalog.pg_user
-                          WHERE usename LIKE 'geodb_%'
-                          ORDER BY role_name desc
-                      ) as vals;
+                 FROM (SELECT usename AS role_name,
+                              CASE
+                                  WHEN usesuper AND usecreatedb THEN
+                                      CAST('superuser, create database' AS pg_catalog.text)
+                                  WHEN usesuper THEN
+                                      CAST('superuser' AS pg_catalog.text)
+                                  WHEN usecreatedb THEN
+                                      CAST('create database' AS pg_catalog.text)
+                                  ELSE
+                                      CAST('' AS pg_catalog.text)
+                                  END    role_attributes
+                       FROM pg_catalog.pg_user
+                       WHERE usename LIKE 'geodb_%'
+                       ORDER BY role_name desc) as vals;
 END
 $BODY$;
 
 CREATE OR REPLACE FUNCTION public.geodb_show_indexes(collection text)
-    RETURNS TABLE(indexname name)
+    RETURNS TABLE
+            (
+                indexname name
+            )
     LANGUAGE 'plpgsql'
 AS
 $BODY$
@@ -1526,15 +1511,16 @@ CREATE OR REPLACE FUNCTION public.geodb_get_index_name(collection text, property
 AS
 $BODY$
 DECLARE
-    idx_name text;
+    idx_name             text;
     collection_shortened text;
 BEGIN
     idx_name := format('idx_%s_%s', property, collection);
     collection_shortened := collection;
-    WHILE LENGTH(idx_name) > 63 LOOP
-        collection_shortened := SUBSTR(collection_shortened, 2, LENGTH(collection_shortened));
-        idx_name := format('idx_%s_%s', property, collection_shortened);
-    END LOOP;
+    WHILE LENGTH(idx_name) > 63
+        LOOP
+            collection_shortened := SUBSTR(collection_shortened, 2, LENGTH(collection_shortened));
+            idx_name := format('idx_%s_%s', property, collection_shortened);
+        END LOOP;
     RETURN idx_name;
 END
 $BODY$;
@@ -1552,7 +1538,8 @@ $BODY$
 DECLARE
     manage integer;
 BEGIN
-    EXECUTE format('SELECT COUNT(*) FROM geodb_user_info WHERE user_name = ''%s'' AND subscription LIKE ''%%manage%%''', user_name) INTO manage;
+    EXECUTE format('SELECT COUNT(*) FROM geodb_user_info WHERE user_name = ''%s'' AND subscription LIKE ''%%manage%%''',
+                   user_name) INTO manage;
     IF NOT current_setting('role') = 'geodb_admin' AND manage = 0 THEN
         RAISE EXCEPTION 'Insufficient subscription for user %', user_name;
     END IF;
@@ -1588,18 +1575,18 @@ $BODY$;
 
 CREATE OR REPLACE FUNCTION public.geodb_get_user_roles(user_name text)
     RETURNS TABLE
-        (
-            src json
-        )
+            (
+                src json
+            )
     LANGUAGE 'plpgsql'
 AS
 $BODY$
 BEGIN
     RETURN QUERY EXECUTE format(
-        'SELECT JSON_AGG(src) FROM
-            (SELECT rolname FROM pg_roles
-                WHERE pg_has_role(''%s'', oid, ''MEMBER'')
-            ) as src', user_name);
+            'SELECT JSON_AGG(src) FROM
+                (SELECT rolname FROM pg_roles
+                    WHERE pg_has_role(''%s'', oid, ''MEMBER'')
+                ) as src', user_name);
 END
 $BODY$;
 
@@ -1643,14 +1630,14 @@ $BODY$;
 
 CREATE OR REPLACE FUNCTION public.geodb_get_grants(collection text)
     RETURNS TABLE
-        (
-            res json
-        )
-        LANGUAGE 'plpgsql'
-    AS
-    $BODY$
-    BEGIN
-        RETURN QUERY EXECUTE format(
+            (
+                res json
+            )
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    RETURN QUERY EXECUTE format(
             'SELECT JSON_AGG(res) FROM
                 (SELECT grantee::varchar, privilege_type::varchar
                     FROM information_schema.role_table_grants
@@ -1660,5 +1647,5 @@ CREATE OR REPLACE FUNCTION public.geodb_get_grants(collection text)
                             (SELECT rolname FROM pg_roles WHERE pg_has_role(current_user, oid, ''member''))
                         )
                 ) as res', collection);
-    END
-    $BODY$;
+END
+$BODY$;
