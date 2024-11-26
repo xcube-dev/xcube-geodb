@@ -2391,7 +2391,12 @@ class GeoDBClient(object):
 
     def publish_database_to_group(self, group: str, database: Optional[str] = None) -> Message:
         """
-        Publishes the database to the given group.
+        Publishes the database to the given group and enables group users to write into the same database.
+        For example, if some user A creates the database `someproject`, users that share a group G with A are
+        allowed to create new collections in that database (like `someproject_insitudata`) if A publishes the database
+        to the group G. Group users shall not, however, be allowed to read or write any existing collection in the
+        database; this needs extra permission by the group admin, using the already existing function
+        `publish_collection_to_group`.
 
         Args:
             database (str): The name of the database to publish. Default: the username.
