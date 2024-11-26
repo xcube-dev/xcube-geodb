@@ -1,5 +1,7 @@
+from time import sleep
 import datetime
 import os
+import signal
 import sys
 import unittest
 import json
@@ -484,6 +486,21 @@ class GeoDBSqlTest(unittest.TestCase):
         self._cursor = self._conn.cursor()
         self.execute("SELECT geodb_drop_index('geodb_user_land_use', 'geometry')")
         self.execute("SELECT geodb_create_index('geodb_user_land_use', 'geometry')")
+
+    def test_geodb_create_role(self):
+        user_name = "geodb_user"
+        self._set_role(user_name)
+
+        with self.assertRaises(psycopg2.errors.RaiseException):
+            self.execute(f"SELECT geodb_create_role('{user_name}', 'some_group')")
+
+        self._conn.commit()
+        self._cursor = self._conn.cursor()
+
+        user_name = "geodb_admin"
+        self._set_role(user_name)
+        self.execute(f"SELECT geodb_create_role('{user_name}', 'some_group')")
+
 
     def execute(self, sql):
         self._cursor.execute(sql)
