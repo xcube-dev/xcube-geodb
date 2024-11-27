@@ -20,7 +20,7 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         cls._conn = cls.base_test._conn
 
         app_path = get_app_dir()
-        fn = os.path.join(app_path, '..', 'tests', 'sql', 'setup-groups.sql')
+        fn = os.path.join(app_path, "..", "tests", "sql", "setup-groups.sql")
         with open(fn) as sql_file:
             cls.base_test._cursor.execute(sql_file.read())
 
@@ -62,24 +62,24 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         role_names = self.retrieve_role_names()
         self.assertEqual(2, len(role_names))
         self.assertEqual(role_names[0], self.test_group)
-        self.assertEqual(role_names[1], 'test_member')
+        self.assertEqual(role_names[1], "test_member")
 
         self.execute(f"SELECT geodb_get_user_roles('{self.member_2}')")
         role_names = self.retrieve_role_names()
         self.assertEqual(1, len(role_names))
-        self.assertEqual(role_names[0], 'test_member_2')
+        self.assertEqual(role_names[0], "test_member_2")
 
         self.grant_group_to(self.member_2)
         self.execute(f"SELECT geodb_get_user_roles('{self.member_2}')")
         role_names = self.retrieve_role_names()
         self.assertEqual(2, len(role_names))
         self.assertEqual(role_names[0], self.test_group)
-        self.assertEqual(role_names[1], 'test_member_2')
+        self.assertEqual(role_names[1], "test_member_2")
 
         self.execute(f"SELECT geodb_get_user_roles('{self.nomember}')")
         role_names = self.retrieve_role_names()
         self.assertEqual(1, len(role_names))
-        self.assertEqual(role_names[0], 'test_nomember')
+        self.assertEqual(role_names[0], "test_nomember")
 
     def test_get_grants(self):
         self.grant_group_to(self.member)
@@ -92,11 +92,11 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         self.assertEqual(2, len(grants))
         self.assertTrue(self.member in grants)
         self.assertTrue(self.test_group in grants)
-        self.assertTrue('SELECT' in grants[self.member])
-        self.assertTrue('UPDATE' in grants[self.member])
+        self.assertTrue("SELECT" in grants[self.member])
+        self.assertTrue("UPDATE" in grants[self.member])
 
     def test_create_role(self):
-        new_group_name = 'new_group'
+        new_group_name = "new_group"
         with self.assertRaises(psycopg2.errors.InvalidParameterValue):
             self._set_role(new_group_name)
         self._conn.commit()
@@ -113,35 +113,35 @@ class GeoDBSQLGroupTest(unittest.TestCase):
     def test_get_group_users(self):
         self.execute(f"SELECT geodb_get_group_users('{self.test_group}')")
         users = self.get_group_users()
-        self.assertListEqual(['test_admin'], users)
+        self.assertListEqual(["test_admin"], users)
 
         self.grant_group_to(self.member)
         self.grant_group_to(self.member_2)
         self.execute(f"SELECT geodb_get_group_users('{self.test_group}')")
         users = self.get_group_users()
-        self.assertListEqual(['test_admin', self.member, self.member_2], users)
+        self.assertListEqual(["test_admin", self.member, self.member_2], users)
 
         self.revoke_group_from(self.member_2)
         self.execute(f"SELECT geodb_get_group_users('{self.test_group}')")
         users = self.get_group_users()
-        self.assertListEqual(['test_admin', self.member], users)
+        self.assertListEqual(["test_admin", self.member], users)
 
     def get_group_users(self):
         result = self._cursor.fetchall()
         df = pd.DataFrame(result[0][0])
-        users = sorted(df['rolname'].tolist())
+        users = sorted(df["rolname"].tolist())
         return users
 
     def retrieve_grants(self):
         result = self._cursor.fetchall()
         df = pd.DataFrame(result[0][0])
-        df = df.groupby('grantee')['privilege_type'].apply(list)
+        df = df.groupby("grantee")["privilege_type"].apply(list)
         return df.to_dict()
 
     def retrieve_role_names(self):
         result = self._cursor.fetchone()
         df = pd.DataFrame(result[0])
-        role_names = sorted(list(df['rolname']))
+        role_names = sorted(list(df["rolname"]))
         return role_names
 
     def execute(self, sql):
@@ -160,14 +160,18 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
     def unpublish_from_group(self, user):
         self._set_role(user)
-        sql = f"SELECT geodb_group_unpublish_collection('{self.table_name}'," \
-              f" '{self.test_group}')"
+        sql = (
+            f"SELECT geodb_group_unpublish_collection('{self.table_name}',"
+            f" '{self.test_group}')"
+        )
         self.execute(sql)
 
     def publish_table_to_group(self, user):
         self._set_role(user)
-        sql = f"SELECT geodb_group_publish_collection('{self.table_name}'," \
-              f"'{self.test_group}')"
+        sql = (
+            f"SELECT geodb_group_publish_collection('{self.table_name}',"
+            f"'{self.test_group}')"
+        )
         self.execute(sql)
 
     def access_table_with_user_fail(self, user):
@@ -189,6 +193,8 @@ class GeoDBSQLGroupTest(unittest.TestCase):
         self.execute(sql)
         self._set_role(user)
         props = {}
-        sql = f"SELECT geodb_create_collection('{self.table_name}', " \
-              f"'{json.dumps(props)}', '4326')"
+        sql = (
+            f"SELECT geodb_create_collection('{self.table_name}', "
+            f"'{json.dumps(props)}', '4326')"
+        )
         self.execute(sql)
