@@ -110,6 +110,8 @@ class EventType:
     GROUP_REMOVED = "removed from group"
     PUBLISHED_GROUP = "published to group"
     UNPUBLISHED_GROUP = "unpublished from group"
+    PUBLISHED_DATABASE = "published database to group"
+    UNPUBLISHED_DATABASE = "unpublished database from group"
 
 # noinspection PyShadowingNames,PyUnusedLocal
 def check_crs(crs):
