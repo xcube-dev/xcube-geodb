@@ -1,3 +1,5 @@
+-- noinspection SqlResolveForFile
+
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 CREATE SCHEMA IF NOT EXISTS geodb_user_info;
@@ -141,12 +143,9 @@ DROP EVENT TRIGGER IF EXISTS ddl_postgrest;
 CREATE EVENT TRIGGER ddl_postgrest ON ddl_command_end
 EXECUTE PROCEDURE public.notify_ddl_postgrest();
 
--- FUNCTION: public.geodb_create_collection(text, json, text)
-
--- DROP FUNCTION public.geodb_create_collection(text, json, text);
-
--- ensures that database of collection belongs to user
-CREATE OR REPLACE FUNCTION public.geodb_user_allowed(
+-- ensures that database of collection belongs to user or group
+CREATE
+    OR REPLACE FUNCTION public.geodb_user_allowed(
     collection text,
     usr text)
     RETURNS INT
@@ -156,7 +155,8 @@ CREATE OR REPLACE FUNCTION public.geodb_user_allowed(
 AS
 $BODY$
 DECLARE
-    ct INT;
+    ct        INT;
+    groupname varchar;
 BEGIN
     -- noinspection SqlAggregates
 
@@ -165,12 +165,28 @@ BEGIN
     WHERE collection LIKE name || '_%'
       AND owner = usr
     INTO ct;
-
     if ct > 0 then
         return 1;
-    else
-        return 0;
     end if;
+
+    -- User is also allowed if any of the groups he is in is allowed
+
+    FOR groupname IN
+        (SELECT rolname
+         FROM pg_roles
+         WHERE pg_has_role(usr, oid, 'member'))
+        LOOP
+            if groupname != usr then
+                SELECT geodb_user_allowed(collection, groupname)
+                INTO ct;
+                if ct > 0 then
+                    return 1;
+                end if;
+            end if;
+        END LOOP;
+
+    return 0;
+
 END
 $BODY$;
 
@@ -1570,6 +1586,26 @@ AS
 $BODY$
 BEGIN
     EXECUTE format('REVOKE ALL ON TABLE %I FROM %I', collection, user_group);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_group_publish_database(database text, user_group text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    EXECUTE format('INSERT INTO geodb_user_databases(name, owner) VALUES(''%s'', ''%s'')', database, user_group);
+END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION public.geodb_group_unpublish_database(database text, user_group text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$BODY$
+BEGIN
+    EXECUTE format('DELETE FROM geodb_user_databases WHERE name = ''%s'' AND owner = ''%s''', database, user_group);
 END
 $BODY$;
 

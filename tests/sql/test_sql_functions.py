@@ -6,6 +6,8 @@ import sys
 import unittest
 import json
 import psycopg2
+import signal
+from time import sleep
 
 from tests.utils import make_install_geodb
 import xcube_geodb.version as version
@@ -35,9 +37,9 @@ class TestInstallationProcedure(unittest.TestCase):
         make_install_geodb()
 
 
-# noinspection SqlNoDataSourceInspection
-@unittest.skipIf(os.environ.get("SKIP_PSQL_TESTS", "0") == "1", "DB Tests skipped")
-# noinspection SqlInjection
+# noinspection SqlInjection,SqlNoDataSourceInspection,SqlResolve
+@unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '0') == '1',
+                 'DB Tests skipped')
 class GeoDBSqlTest(unittest.TestCase):
     _postgresql = None
     _cursor = None
