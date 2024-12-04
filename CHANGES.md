@@ -8,6 +8,8 @@
 
 ### Fixes
 
+- fixed wrong message on unpublishing collections [#89]
+
 ## v1.0.8
 
 ### New Features

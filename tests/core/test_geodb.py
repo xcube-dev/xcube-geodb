@@ -1340,7 +1340,7 @@ class GeoDBClientTest(unittest.TestCase):
             json.loads(log_event_endpoint.last_request.text),
         )
 
-        expected = {"Message": "Access revoked from helge on helge_test"}
+        expected = {"Message": "Access revoked from public on helge_test"}
         self.check_message(res, expected)
 
         m.post(
