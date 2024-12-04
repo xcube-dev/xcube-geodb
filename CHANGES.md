@@ -2,6 +2,7 @@
 
 ### New Features
 
+- formatted codebase [#100]
 - geoDB now allows to share a database with an entire group. [#98]
 - geodb_admin is allowed to create user groups on registration. [#96]
 

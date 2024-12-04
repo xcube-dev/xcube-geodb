@@ -66,5 +66,7 @@ GRANT SELECT, UPDATE, USAGE ON SEQUENCE public.geodb_user_databases_seq TO "test
 
 GRANT "test_group" TO "test_admin" WITH ADMIN OPTION;
 
-INSERT INTO geodb_user_info VALUES(100, 'test_admin', '2020-12-08', 'geodb-manage', '');
-INSERT INTO geodb_user_info VALUES(101, 'test_noadmin', '2020-12-08', 'freetrial', '');
+INSERT INTO geodb_user_info
+VALUES (100, 'test_admin', '2020-12-08', 'geodb-manage', '');
+INSERT INTO geodb_user_info
+VALUES (101, 'test_noadmin', '2020-12-08', 'freetrial', '');
