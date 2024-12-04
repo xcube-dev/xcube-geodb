@@ -113,6 +113,7 @@ class EventType:
     PUBLISHED_DATABASE = "published database to group"
     UNPUBLISHED_DATABASE = "unpublished database from group"
 
+
 # noinspection PyShadowingNames,PyUnusedLocal
 def check_crs(crs):
     """This function is needed in order to ensure xcube_geodb to understand EPSG crs as well as ensure backward
@@ -1154,9 +1155,8 @@ class GeoDBClient(object):
             return self._maybe_raise(e)
 
     def revoke_access_from_collection(
-        self, collection: str, usr: str, database: Optional[str] = None, **kwargs
+        self, collection: str, usr: str, database: Optional[str] = None
     ) -> Message:
-        #  todo - deprecate **kwargs argument
         """
         Revoke access from a collection.
 
@@ -1179,7 +1179,7 @@ class GeoDBClient(object):
                 payload={"collection": dn, "usr": usr},
             )
             self._log_event(EventType.UNPUBLISHED, f"collection {dn}")
-            return Message(f"Access revoked from {self.whoami} on {dn}")
+            return Message(f"Access revoked from public on {dn}")
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -2606,7 +2606,9 @@ class GeoDBClient(object):
             f"{database} from group {group}."
         )
 
-    def publish_database_to_group(self, group: str, database: Optional[str] = None) -> Message:
+    def publish_database_to_group(
+        self, group: str, database: Optional[str] = None
+    ) -> Message:
         """
         Publishes the database to the given group and enables group users to write into the same database.
         For example, if some user A creates the database `someproject`, users that share a group G with A are
@@ -2620,22 +2622,26 @@ class GeoDBClient(object):
             group (str): Name of the group.
         """
         database = database or self.database
-        dn = f'{database}_dummy'
+        dn = f"{database}_dummy"
         if not self._is_owner_of(dn):
-            raise GeoDBError(f'User {self.whoami} must be owner of database '
-                             f'{database} to publish.')
+            raise GeoDBError(
+                f"User {self.whoami} must be owner of database "
+                f"{database} to publish."
+            )
 
-        path = '/rpc/geodb_group_publish_database'
+        path = "/rpc/geodb_group_publish_database"
         payload = {
             "database": database,
             "user_group": group,
         }
 
         self._post(path=path, payload=payload)
-        self._log_event(EventType.PUBLISHED_DATABASE, f'{database}, {group}')
-        return Message(f'Published database {database} to group {group}.')
+        self._log_event(EventType.PUBLISHED_DATABASE, f"{database}, {group}")
+        return Message(f"Published database {database} to group {group}.")
 
-    def unpublish_database_from_group(self, group: str, database: Optional[str] = None) -> Message:
+    def unpublish_database_from_group(
+        self, group: str, database: Optional[str] = None
+    ) -> Message:
         """
         Unpublishes the database from the given group.
 
@@ -2644,20 +2650,22 @@ class GeoDBClient(object):
             group (str): Name of the group.
         """
         database = database or self.database
-        dn = f'{database}_dummy'
+        dn = f"{database}_dummy"
         if not self._is_owner_of(dn):
-            raise GeoDBError(f'User {self.whoami} must be owner of database '
-                             f'{database} to unpublish.')
+            raise GeoDBError(
+                f"User {self.whoami} must be owner of database "
+                f"{database} to unpublish."
+            )
 
-        path = '/rpc/geodb_group_unpublish_database'
+        path = "/rpc/geodb_group_unpublish_database"
         payload = {
             "database": database,
             "user_group": group,
         }
 
         self._post(path=path, payload=payload)
-        self._log_event(EventType.UNPUBLISHED_DATABASE, f'{database}, {group}')
-        return Message(f'Unpublished database {database} from group {group}.')
+        self._log_event(EventType.UNPUBLISHED_DATABASE, f"{database}, {group}")
+        return Message(f"Unpublished database {database} from group {group}.")
 
     def get_my_groups(self):
         """
