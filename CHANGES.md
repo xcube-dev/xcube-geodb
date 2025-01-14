@@ -9,6 +9,7 @@
 ### Fixes
 
 - fixed wrong message on unpublishing collections [#89]
+- updated default value for `auth_aud` [#80]
 
 ## v1.0.8
 
