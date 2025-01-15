@@ -9,6 +9,7 @@
 ### Fixes
 
 - fixed wrong message on unpublishing collections [#89]
+- fixed wrong usage of `auth_domain` [#103]
 
 ## v1.0.8
 
