@@ -168,6 +168,7 @@ class GeoDBClient(object):
         access_token: Optional[str] = None,
         dotenv_file: str = ".env",
         auth_mode: str = None,
+        auth_domain: str = None,
         auth_aud: Optional[str] = None,
         config_file: str = str(Path.home()) + "/.geodb",
         database: Optional[str] = None,
@@ -211,7 +212,7 @@ class GeoDBClient(object):
         self._auth_password = password or self._auth_password
         self._auth_mode = auth_mode or self._auth_mode
         self._auth_aud = auth_aud or self._auth_aud
-        self._auth_domain = auth_aud or self._auth_domain
+        self._auth_domain = auth_domain or self._auth_domain
         self._auth_access_token = access_token or self._auth_access_token
         self._auth_access_token_uri = access_token_uri or self._auth_access_token_uri
 
@@ -698,14 +699,12 @@ class GeoDBClient(object):
 
         r = None
         try:
-            print(self._get_full_url(path=path))
             r = requests.put(
                 self._get_full_url(path=path),
                 json=payload,
                 params=params,
                 headers=headers,
             )
-            print(str(r.text))
             r.raise_for_status()
             return r
         except requests.HTTPError:
@@ -1614,6 +1613,9 @@ class GeoDBClient(object):
         crs = crs or srid
         total_rows = 0
 
+        database = database or self.database
+        dn = database + "_" + collection
+
         if isinstance(values, GeoDataFrame):
             # headers = {'Content-type': 'text/csv'}
             # values = self._gdf_prepare_geom(values, crs)
@@ -1641,9 +1643,6 @@ class GeoDBClient(object):
 
                 ngdf.columns = map(str.lower, ngdf.columns)
                 js = self._gdf_to_json(ngdf, crs)
-
-                database = database or self.database
-                dn = database + "_" + collection
 
                 if upsert:
                     headers = {"Prefer": "resolution=merge-duplicates"}
@@ -2751,11 +2750,11 @@ class GeoDBClient(object):
     def _use_winchester_gs(self) -> bool:
         try:
             # check if Winchester is the interface to the Geoserver:
-            # extract base URL from the Geoserver URL and retrieve the server's meta
+            # extract base URL from the authentication URL and retrieve the server's meta
             # information, look for 'winchester' in its list of APIs. Returns "False" if
             # the meta information is structured differently, or does not contain
             # the 'winchester'-API.
-            p = urlparse(self._gs_server_url)
+            p = urlparse(self._auth_domain)
             url = f"{p.scheme}://{p.netloc}"
             r = requests.get(url)
             apis = json.loads(r.content.decode())["apis"]

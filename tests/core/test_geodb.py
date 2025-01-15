@@ -48,7 +48,7 @@ class GeoDBClientTest(unittest.TestCase):
         self._gs_server_url = self._api._gs_server_url
         self._gs_server_port = self._api._gs_server_port
 
-        self._server_test_auth_domain = "https://auth"
+        self._server_test_auth_domain = "https://winchester.deployment"
 
     def tearDown(self) -> None:
         del_env(dotenv_path="tests/envs/.env_test")
@@ -1395,17 +1395,17 @@ class GeoDBClientTest(unittest.TestCase):
     def test_publish_to_geoserver_winchester(self, m):
         self.set_global_mocks(m)
         m.get(
-            "https://some.winchester.deployment",
+            self._api._auth_domain,
             json={"apis": [{"name": "winchester"}]},
         )
 
-        self._gs_server_url = "https://some.winchester.deployment"
-        self._api._gs_server_url = "https://some.winchester.deployment"
+        self._gs_server_url = self._server_test_url
+        self._api._gs_server_url = self._server_test_url
 
         url = self._gs_server_url + "/geodb_geoserver/geodb_admin/collections/"
         m.put(url=url, json={"name": "land_use"})
 
-        url = f"{self._base_url}/rpc/geodb_log_event"
+        url = f"{self._server_test_url}:3000/rpc/geodb_log_event"
         log_event_endpoint = m.post(url, text=json.dumps(""))
 
         self.assertEqual(0, log_event_endpoint.call_count)
@@ -1496,6 +1496,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.maxDiff = None
         self.set_global_mocks(m)
 
+        self._api._auth_domain = "https://winchester.deployment"
         self._api._gs_server_url = "https://winchester.deployment"
         m.get(self._api._gs_server_url, json={"apis": [{"name": "winchester"}]})
         url = self._api._gs_server_url + "/geodb_geoserver/geodb_admin/collections"
@@ -1605,8 +1606,8 @@ class GeoDBClientTest(unittest.TestCase):
     def test_unpublish_from_geoserver_winchester(self, m):
         self.set_global_mocks(m)
 
-        self._api._gs_server_url = "https://winchester.deployment"
-        m.get(self._api._gs_server_url, json={"apis": [{"name": "winchester"}]})
+        self._api._gs_server_url = self._server_test_url
+        m.get(self._server_test_auth_domain, json={"apis": [{"name": "winchester"}]})
         url = (
             self._api._gs_server_url
             + "/geodb_geoserver/geodb_admin/collections/land_use"
