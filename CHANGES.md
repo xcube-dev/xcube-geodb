@@ -1,3 +1,11 @@
+## v1.0.10dev
+
+### New Features
+
+### Fixes
+
+- fixed caching of capabilities [#108]
+
 ## v1.0.9
 
 ### New Features
