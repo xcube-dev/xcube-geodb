@@ -2001,3 +2001,20 @@ class GeoDBClientTest(unittest.TestCase):
             ]
         )
         self.assertEqual(expected.to_json(), result.to_json())
+
+    def test_capabilities_are_cached(self, m):
+        self.set_global_mocks(m)
+        server_response = [
+            {"collection": "geodb_admin_land_use", "grantee": "geodb_admin"},
+            {"collection": "geodb_admin_land_use", "grantee": "PUBLIC"},
+        ]
+
+        server_response = [{"src": server_response}]
+
+        url = f"{self._server_test_url}:{self._server_test_port}/"
+        m.get(url, text=json.dumps(server_response))
+
+        cap = self._api.capabilities
+        cap2 = self._api.capabilities
+
+        self.assertIs(cap, cap2)
