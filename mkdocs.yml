@@ -1,0 +1,15 @@
+site_name: xcube geoDB
+nav:
+  - Home: index.md
+  - Client usage: client_usage.md
+  - Installation: installation.md
+  - Demo notebooks:
+      - Explore collections: source/notebooks/geodb_explore_collections.ipynb
+      - Manage collections: source/notebooks/geodb_manage_collections.ipynb
+      - Share collections: source/notebooks/geodb_share_collections.ipynb
+      - Group management: source/notebooks/geodb_group_management.ipynb
+      - Index management: source/notebooks/geodb_index_management.ipynb
+      - GeoServer: source/notebooks/geoservice.ipynb
+theme: readthedocs
+plugins:
+  - mkdocs-jupyter
