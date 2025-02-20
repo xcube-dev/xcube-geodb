@@ -5,5 +5,7 @@ channels:
 dependencies:
   - mkdocs
   - mkdocs-jupyter
+  - mkdocstrings
+  - mkdocstrings-python
   - python >=3.6
   - pandoc
