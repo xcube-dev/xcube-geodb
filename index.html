@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="None" />
+      <link rel="shortcut icon" href="img/favicon.ico" />
+    <title>xcube geoDB</title>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Home";
+        var mkdocs_page_input_path = "index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="." class="icon icon-home"> xcube geoDB
+        </a>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Home</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#get-started">Get started</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#technologies">Technologies</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="client_usage/">Client usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="installation/">Installation</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Demo notebooks</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="source/notebooks/geodb_explore_collections/">geoDB Access</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="source/notebooks/geodb_manage_collections/">Manage geoDB Collections</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="source/notebooks/geodb_share_collections/">Share geoDB Collections</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="source/notebooks/geodb_group_management/">geoDB access</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="source/notebooks/geodb_index_management/">geoDB access</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="source/notebooks/geoservice/">Publish your Collection using the EDC / BC Geoservice</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href=".">xcube geoDB</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Home</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <p><img src="logo.png" width="200" height="200" /></p>
+<h1 id="xcube-geodb-a-feature-database-within-the-xcube-eo-datacube-ecosystem">xcube geoDB - A feature database within the xcube EO datacube ecosystem</h1>
+<p>xcube geoDB is actively being developed by
+<a href="https://www.brockmann-consult.de">Brockmann Consult GmbH</a> to generate,
+manipulate, analyze, and publish geospatial feature collections. It provides
+a Python client that offers various functions for classic CRUD operations on
+feature collections. xcube geoDB is implemented as a high-performance,
+cloud-hosted <a href="https://www.postgresql.org/">PostgreSQL</a> /
+<a href="https://postgis.net/">PostGIS</a> DBMS with a
+<a href="https://github.com/PostgREST/postgrest">PostgREST</a> frontend. Its OGC WFS and WMS
+capabilities are provided by an associated GeoServer instance that operates
+directly on the database.</p>
+<hr />
+<h2 id="get-started">Get started</h2>
+<p>There are multiple options to use the xcube geoDB:</p>
+<ul>
+<li>create an account at the ESA EuroDataCube platform</li>
+<li>create an account at the ESA EO-TDL platform</li>
+<li>or install yourself (see the <a href="installation/">installation guide</a>)</li>
+</ul>
+<p>Want your own, tailored and turn-key installation of the xcube geoDB? Contact
+<a href="mailto:xcube-team@brockmann-consult.de">the xcube team</a>.</p>
+<hr />
+<h2 id="technologies">Technologies</h2>
+<ul>
+<li><a href="https://www.python.org/">Python</a></li>
+<li><a href="https://geopandas.org/">GeoPandas</a></li>
+<li><a href="https://www.postgresql.org/">PostgreSQL</a></li>
+<li><a href="http://postgrest.org/">PostgREST</a></li>
+<li><a href="https://www.docker.com/">docker</a></li>
+<li><a href="https://aws.amazon.com/de/rds/">AWS RDS</a></li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="client_usage/" class="btn btn-neutral float-right" title="Client usage">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+      <span><a href="client_usage/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = ".";</script>
+    <script src="js/theme_extra.js"></script>
+    <script src="js/theme.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.6.1
+Build Date UTC : 2025-02-20 09:53:13.420182+00:00
+-->

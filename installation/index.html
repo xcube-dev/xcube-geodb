@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Installation - xcube geoDB</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Installation";
+        var mkdocs_page_input_path = "installation.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> xcube geoDB
+        </a>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../client_usage/">Client usage</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Installation</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#1-installing-the-xcube-geodb-user-client">1. Installing the xcube geoDB user client</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#installation-using-the-condamamba">Installation using the conda/mamba</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#installation-from-source">Installation from source</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2-installation-of-the-database-backend">2. Installation of the Database Backend</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#3-installation-of-the-postgrest-restapi">3. Installation of the Postgrest RestAPI</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#4-authorizationauthentication">4. Authorization/Authentication</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#5-installation-of-the-geoserver">5. Installation of the geoserver</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Demo notebooks</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../source/notebooks/geodb_explore_collections/">geoDB Access</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../source/notebooks/geodb_manage_collections/">Manage geoDB Collections</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../source/notebooks/geodb_share_collections/">Share geoDB Collections</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../source/notebooks/geodb_group_management/">geoDB access</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../source/notebooks/geodb_index_management/">geoDB access</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../source/notebooks/geoservice/">Publish your Collection using the EDC / BC Geoservice</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">xcube geoDB</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Installation</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="installation">Installation</h1>
+<p>In this chapter we describe 1)  how to install the Python client, which is the
+user interface to the xcube geoDB, and 2) how to set up the xcube geoDB
+infrastructure. Steps 2.-4. are only relevant if you wish to install your own
+instance of xcube geoDB. The usual case is that you have acquired access to the
+xcube geoDB via 3rd-party services, such as
+<a href="https://eurodatacube.com/">EuroDataCube</a> or <a href="https://www.eotdl.com/">EO-TDL</a>.</p>
+<p>If any problems occur regarding the installation, please create a new issue
+in the xcube geoDB
+<a href="https://github.com/xcube-dev/xcube-geodb/issues">issue tracker</a>.</p>
+<h2 id="1-installing-the-xcube-geodb-user-client">1. Installing the xcube geoDB user client</h2>
+<p>This chapter describes the installation of the xcube geoDB client, which
+is the user interface and serves as a wrapper to accessing an existing
+xcube geoDB service.</p>
+<h3 id="installation-using-the-condamamba">Installation using the conda/mamba</h3>
+<p>The xcube geoDB client is preferably installed into a conda environment.
+Ensure that you use Python 3 (&gt;=3.6). The xcube geoDB client has not been
+tested with Python 2.</p>
+<p>The client is installed using conda (replace <code>conda</code> with <code>mamba</code> below if you
+are using mamba):</p>
+<pre><code class="language-bash">$ conda install -c conda-forge xcube_geodb
+$ conda activate xcube_geodb
+</code></pre>
+<p>We strongly recommend using
+<a href="https://github.com/mamba-org/mamba"><code>mamba</code></a> instead of <code>conda</code>.</p>
+<h3 id="installation-from-source">Installation from source</h3>
+<p>There are frequent <code>conda</code> releases of the xcube geoDB, so usually it is not
+necessary to install from sources. However, if you want to try the cutting-
+edge version, use the following steps.
+Clone the repository using <code>git</code>:</p>
+<pre><code class="language-bash">$ git clone https://github.com/xcube-dev/xcube-geodb.git
+$ cd xcube-geodb
+</code></pre>
+<p>You need to create the conda environment to install all dependencies
+(replace <code>conda</code> with <code>mamba</code> below if you are using mamba):</p>
+<pre><code class="language-bash">$ conda env create
+</code></pre>
+<p>Once the environment has been created, activate the environment and
+install the xcube geoDB client (replace <code>conda</code> with <code>mamba</code> below if are
+using mamba):</p>
+<pre><code class="language-bash">$ conda activate xcube-geodb
+$ python setup.py develop
+</code></pre>
+<h2 id="2-installation-of-the-database-backend">2. Installation of the Database Backend</h2>
+<p>This section describes how to set up the xcube geoDB database. The
+xcube geoDB core database consists of three software components:</p>
+<ul>
+<li>an installation of a PostgreSQL database (version &gt;= v13.19)</li>
+<li>the PostGIS extension (version 3.x.x), installed in the database</li>
+<li>the xcube geoDB extension, installed in the database</li>
+</ul>
+<p>The easiest way is to install the xcube geoDB extension into an existing PostGIS
+instance. There are ready-to-use PostGIS docker images, see
+<a href="https://registry.hub.docker.com/r/postgis/postgis/">PostGIS docker image</a>.</p>
+<p>To install the xcube geoDB extension, open a PostGreSQL console or a database
+GUI of your choice as super-user. Then copy and paste the contents of the geoDB
+<a href="https://github.com/xcube-dev/xcube-geodb/blob/main/xcube_geodb/sql/geodb.sql">SQL script</a>,
+replacing <code>VERSION_PLACEHOLDER</code> with the version provided in
+<a href="https://github.com/xcube-dev/xcube-geodb/blob/main/xcube_geodb/version.py">version.py</a>.</p>
+<h2 id="3-installation-of-the-postgrest-restapi">3. Installation of the Postgrest RestAPI</h2>
+<p>xcube geoDB offers access to the database via a RestAPI. xcube geoDB takes
+advantage of the wonderful Postgres REST API
+<a href="https://github.com/PostgREST/postgrest">PostgREST</a>. There are ready-to-use
+docker images that provide PostGREST, e.g. at
+https://hub.docker.com/r/postgrest/postgrest. PostGREST does not have many
+version requirements on the Postgres database; however, PostGREST ≥ v12.2.0
+supports only those versions of Postgres that are officially supported
+(i.e., ≥ 13).</p>
+<p>To configure a PostgREST instance please refer to the
+<a href="https://postgrest.org/en/stable/configuration.html">PostgREST configuration documentation</a>.
+The configuration is straightforward; the only part of the configuration that
+is not is the authorization/authentication part, which is covered in detail
+in the next chapter.</p>
+<h2 id="4-authorizationauthentication">4. Authorization/Authentication</h2>
+<p>The xcube geoDB infrastructure was developed to run on the
+<a href="https://eurodatacube.com/">EuroDataCube</a> infrastructure.</p>
+<p>Therefore, we provide an example on how to configure PostgREST for proper
+authorization with an OAuth2-enabled Identity and Access Management (IAM)
+system (like Keycloak) using the <code>client_credentials</code> flow. The example uses
+Keycloak values and wording, but can be transferred to any OAuth2-enabled IAM.</p>
+<p><strong>Step 1</strong>: Create an API in your IAM system</p>
+<p>Create a new API (Keycloak: Realm) in your IAM system. The users registered in
+this API can be enabled to access to your geoDB instance. In Keycloak, be sure
+to create a new Keystore provider of type <code>rsa</code> within the realm, that uses the
+algorithm <code>RS256</code>, and has the highest priority of all existing other
+keystores. Generate public/private Keypair, e.g. like this:</p>
+<pre><code class="language-bash">$ ssh-keygen -t rsa -b 4096 -m PEM -f winchester.key
+$ openssl rsa -in winchester.key -pubout -outform PEM -out winchester.key.pub
+</code></pre>
+<p>Turn the public key into a JWK, e.g. using this
+<a href="https://8gwifi.org/jwkconvertfunctions.jsp">website</a>, and set the private key
+as the key of the Keystore provider you just configured:</p>
+<p><img alt="realm_key_provider.png" src="../realm_key_provider.png" /></p>
+<p><strong>Step 2</strong>: Create an Application in your IAM API</p>
+<p>In Keycloak, create a client, choose Client Protocol <code>openid-connect</code>, and
+Access Type <code>confidential</code>. Enter a redirect URI that matches the URL of your
+service that provides the users with the access tokens. For the existing
+instances of xcube geoDB, this is the dedicated service <code>winchester</code>. In the
+simplest case, you need to set up a service that forwards the user
+login requests to your Keycloak instance, and returns the access token after
+successful login. That service must authenticate at Keycloak with the
+<code>client_id</code> and <code>client_secret</code> that can be retrieved from Keycloak.
+Furthermore, configure a mapper that maps the user role to the token claim
+that has been configured as <code>PGRST_ROLE_CLAIM_KEY</code> in your PostGREST
+configuration in section 3. The user role might be some user attribute. For
+the <code>winchester</code> client, this is done like this:</p>
+<p><img alt="winchester_mapper.png" src="../winchester_mapper.png" /></p>
+<p>Consequently, the PostGREST configuration item <code>PGRST_ROLE_CLAIM_KEY</code> is
+set to <code>'."https://geodb.brockmann-consult.de/dbrole"'</code>. Every user in the
+Realm has an attribute called <code>xcube_geodb_role</code>.</p>
+<p><strong>Step 3</strong>: Use the client to authenticate</p>
+<p>The client can be configured using dotenv for your convenience. Add a .env file
+in your working directory. Add the following entries of you use client
+credentials:</p>
+<pre><code class="language-dotenv">GEODB_AUTH_CLIENT_ID = &quot;the username as stored in Keycloak&quot;
+GEODB_AUTH_CLIENT_SECRET = &quot;the password as stored in Keycloak&quot;
+GEODB_AUTH_MODE = &quot;client-credentials&quot;
+GEODB_AUTH_DOMAIN= &quot;the URL of your login service&quot;
+GEODB_API_SERVER_URL = &quot;The postgrest API server URL&quot;
+GEODB_API_SERVER_PORT = &quot;The postgrest API server port&quot;
+</code></pre>
+<p><strong>Step 4</strong>: Configure the PostgREST Service</p>
+<p>The PostgREST service needs a key to check the signature of the token. This is
+done using the <code>jwt-secret</code> in the PostGREST configuration. You can use
+symmetric encryption and store the key passphrase in <code>jwt-secret</code>, or use
+asymmetric encryption. Keycloak only supports asymmetric encryption. In that
+case, use the public part of the Keypair you generated in step 1 as value for
+<code>jwt-secret</code>. See alsothe
+<a href="https://postgrest.org/en/stable/auth.html#client-auth">PostgREST documentation, section "JWT from Auth0"</a>):</p>
+<pre><code class="language-dotenv">db-uri = &quot;postgres://user:password@localhost:5432/geodb&quot;
+db-schema = &quot;public, geodb_user_info&quot;
+db-anon-role = &quot;anonymous&quot;
+jwt-secret = &quot;&quot;{\&quot;alg\&quot;:\&quot;RS256\&quot;,\&quot;e\&quot;:\&quot;AQAB\&quot;,\&quot;key_ops\&quot;:[\&quot;verify\&quot;],\&quot;kty\&quot;:\&quot;RSA\&quot;,\&quot;n\&quot;:\&quot;aav7svBqEXAw-5D29LO...\&quot;}&quot;&quot;
+</code></pre>
+<h2 id="5-installation-of-the-geoserver">5. Installation of the geoserver</h2>
+<p>Data collections stored in the xcube geoDB can be published to a GeoServer
+instance, which can offer OGC WMS and WCS access to the data. In order to<br />
+access such a server, the login server described section 4, step 2,
+needs access to a GeoServer instance using the credentials of a generic
+GeoServer user. The current xcube geoDB setup uses a custom docker image of
+based on the image <code>terrestris/geoserver:2.19.1</code>, with the <code>vectortiles</code>
+extension installed. It is published at
+<a href="https://quay.io/repository/bcdev/xcube-geoserv">quay.io</a>.</p>
+<p><strong>Careful</strong>: When installing this docker image, you may run into CORS issues,
+and a wrong redirect to a http not https URL after login. Those issues have
+been resolved by adding the following settings to the GeoServer configuration:</p>
+<pre><code class="language-yaml"> geoserver:
+   geoserverCsrfWhitelist: xcube-geodb.brockmann-consult.de
+   proxyBaseUrl: https://xcube-geodb.brockmann-consult.de/geoserver
+</code></pre>
+<p>These values are also configurable in the <code>web.xml</code> in
+<code>${GEOSERVER_DIR}/geoserver/WEB-INF</code>.</p>
+<p>For any more detailed information about installation, please refer to the
+<a href="https://github.com/terrestris/docker-geoserver/blob/master/Dockerfile">Dockerfile</a>
+or the original
+<a href="https://docs.geoserver.org/stable/en/user/installation/index.html">Installation instructions</a>.</p>
+<p>Please be aware that the admin credentials should be changed after installation.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../client_usage/" class="btn btn-neutral float-left" title="Client usage"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../source/notebooks/geodb_explore_collections/" class="btn btn-neutral float-right" title="geoDB Access">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../client_usage/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../source/notebooks/geodb_explore_collections/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

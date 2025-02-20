@@ -1,0 +1,9 @@
+name: docs
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - mkdocs
+  - mkdocs-jupyter
+  - python >=3.6
+  - pandoc
