@@ -5,14 +5,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="shortcut icon" href="../../../img/favicon.ico" />
-    <title>geoDB Access - xcube geoDB</title>
+    <title>Exploring Data - xcube geoDB</title>
     <link rel="stylesheet" href="../../../css/theme.css" />
     <link rel="stylesheet" href="../../../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../../../assets/_mkdocstrings.css" rel="stylesheet" />
     
       <script>
         // Current page data
-        var mkdocs_page_name = "geoDB Access";
+        var mkdocs_page_name = "Exploring Data";
         var mkdocs_page_input_path = "source\\notebooks\\geodb_explore_collections.ipynb";
         var mkdocs_page_url = null;
       </script>
@@ -49,13 +50,11 @@
               </ul>
               <p class="caption"><span class="caption-text">Demo notebooks</span></p>
               <ul class="current">
-                  <li class="toctree-l1 current"><a class="reference internal current" href="#">geoDB Access</a>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Exploring Data</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#exploring-data">Exploring Data</a>
-    </li>
     <li class="toctree-l2"><a class="reference internal" href="#login-from-any-machine">Login from any machine</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#login-in-edc-environment">Login in EDC environment</a>
+    <li class="toctree-l2"><a class="reference internal" href="#login-in-managed-environment">Login in managed environment</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#get-your-user-name">Get your user name</a>
     </li>
@@ -63,15 +62,17 @@
     </li>
     </ul>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../geodb_manage_collections/">Manage geoDB Collections</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_manage_collections/">Manage collections</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../geodb_share_collections/">Share geoDB Collections</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../geodb_group_management/">geoDB access</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_group_management/">geoDB user groups</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../geodb_index_management/">geoDB access</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_index_management/">Index management</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../geoservice/">Publish your Collection using the EDC / BC Geoservice</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_geoservice/">Publish your Collection using the EDC / BC Geoservice</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_eurocrops_demo/">Demonstration of Eurocrops data use in geoDB</a>
                   </li>
               </ul>
       </div>
@@ -89,7 +90,7 @@
   <ul class="wy-breadcrumbs">
     <li><a href="../../.." class="icon icon-home" aria-label="Docs"></a></li>
           <li class="breadcrumb-item">Demo notebooks</li>
-      <li class="breadcrumb-item active">geoDB Access</li>
+      <li class="breadcrumb-item active">Exploring Data</li>
     <li class="wy-breadcrumbs-aside">
     </li>
   </ul>
@@ -540,26 +541,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="geodb-access">geoDB Access<a class="anchor-link" href="#geodb-access">¶</a></h1><p>The geoDB is a service provided by the <a href="https://eurodatacube.com">Euro Data Cube project</a> (EDC) as a payed service. It comes
-with a Python client that provides high level access to your data and a certain amount of space in a PostGreSQL database. For exploring data you will need a geoDB subscription which you can purchase at the <a href="https://eurodatacube.com/marketplace">EDC market place</a>.</p>
-<p>You can access the service in two ways:</p>
-<ul>
-<li>By using the Jupyter Python notebook provided by EDC Marketplace (configuration-free, <code>geodb = GeoDBClient()</code>)</li>
-<li>By using your own Jupyter notebook or Python script by providing a client id and secret to the GeoDBClient (<code>geodb = GeoDBClient(client_id="myid", client_secret="mysecet")</code>)</li>
-</ul>
-<p>The client ID and secret are provided by EDC. You will find them in your EDC Marketplace account section. You can also provide the credentials
-via system environment variables (GEODB_AUTH_CLIENT_ID and GEODB_AUTH_CLIENT_SECRET). These variables can be supplied via a .env file.</p>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="exploring-data">Exploring Data<a class="anchor-link" href="#exploring-data">¶</a></h2>
+<h1 id="exploring-data">Exploring Data<a class="anchor-link" href="#exploring-data">¶</a></h1><p>This notebook demonstrates how to store sample data in the xcube geoDB, and shows basic exploration possibilities.</p>
 </div>
 </div>
 </div>
@@ -621,12 +603,12 @@ via system environment variables (GEODB_AUTH_CLIENT_ID and GEODB_AUTH_CLIENT_SEC
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1">### uncomment if not on EDC</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1">### uncomment if not in managed environment</span>
 <span class="c1">#client_id=YourID</span>
 <span class="c1">#client_secret=YourSecret</span>
 <span class="c1">#geodb = GeoDBClient(client_id=client_id, client_secret=client_secret, auth_mode="client-credentials")</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-2">### uncomment if not on EDC
+<div class="clipboard-copy-txt" id="cell-2">### uncomment if not in managed environment
 #client_id=YourID
 #client_secret=YourSecret
 #geodb = GeoDBClient(client_id=client_id, client_secret=client_secret, auth_mode="client-credentials")</div>
@@ -642,7 +624,7 @@ via system environment variables (GEODB_AUTH_CLIENT_ID and GEODB_AUTH_CLIENT_SEC
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="login-in-edc-environment">Login in EDC environment<a class="anchor-link" href="#login-in-edc-environment">¶</a></h2>
+<h2 id="login-in-managed-environment">Login in managed environment<a class="anchor-link" href="#login-in-managed-environment">¶</a></h2><p>The environment is prepared with your user credentials, so you simply can start the client.</p>
 </div>
 </div>
 </div>
@@ -652,7 +634,7 @@ via system environment variables (GEODB_AUTH_CLIENT_ID and GEODB_AUTH_CLIENT_SEC
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [21]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -665,13 +647,9 @@ via system environment variables (GEODB_AUTH_CLIENT_ID and GEODB_AUTH_CLIENT_SEC
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1">### comment if not on EDC</span>
-
-<span class="n">geodb</span> <span class="o">=</span> <span class="n">GeoDBClient</span><span class="p">()</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">geodb</span> <span class="o">=</span> <span class="n">GeoDBClient</span><span class="p">()</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">### comment if not on EDC
-
-geodb = GeoDBClient()</div>
+<div class="clipboard-copy-txt" id="cell-3">geodb = GeoDBClient()</div>
 </div>
 </div>
 </div>
@@ -826,7 +804,6 @@ geodb = GeoDBClient()</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">geopandas</span>
 
-<span class="c1"># Have a look at fiona feature schema</span>
 <span class="n">collections</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">"land_use"</span><span class="p">:</span>
         <span class="p">{</span>
@@ -845,7 +822,6 @@ geodb = GeoDBClient()</div>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-6">import geopandas
 
-# Have a look at fiona feature schema
 collections = {
         "land_use":
         {
@@ -2118,7 +2094,7 @@ df.head()</div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
         <a href="../../../installation/" class="btn btn-neutral float-left" title="Installation"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../geodb_manage_collections/" class="btn btn-neutral float-right" title="Manage geoDB Collections">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../geodb_manage_collections/" class="btn btn-neutral float-right" title="Manage collections">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>

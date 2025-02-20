@@ -5,14 +5,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="shortcut icon" href="../../../img/favicon.ico" />
-    <title>geoDB access - xcube geoDB</title>
+    <title>geoDB user groups - xcube geoDB</title>
     <link rel="stylesheet" href="../../../css/theme.css" />
     <link rel="stylesheet" href="../../../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../../../assets/_mkdocstrings.css" rel="stylesheet" />
     
       <script>
         // Current page data
-        var mkdocs_page_name = "geoDB access";
+        var mkdocs_page_name = "geoDB user groups";
         var mkdocs_page_input_path = "source\\notebooks\\geodb_group_management.ipynb";
         var mkdocs_page_url = null;
       </script>
@@ -49,25 +50,43 @@
               </ul>
               <p class="caption"><span class="caption-text">Demo notebooks</span></p>
               <ul class="current">
-                  <li class="toctree-l1"><a class="reference internal" href="../geodb_explore_collections/">geoDB Access</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_explore_collections/">Exploring Data</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../geodb_manage_collections/">Manage geoDB Collections</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_manage_collections/">Manage collections</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../geodb_share_collections/">Share geoDB Collections</a>
                   </li>
-                  <li class="toctree-l1 current"><a class="reference internal current" href="#">geoDB access</a>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">geoDB user groups</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#geodb-user-groups">geoDB user groups</a>
+    <li class="toctree-l2"><a class="reference internal" href="#login-from-any-machine">Login from any machine</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#login-from-your-machine">Login from your machine</a>
+    <li class="toctree-l2"><a class="reference internal" href="#login-in-managed-environment">Login in managed environment</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#login-in-edc-environment">Login in EDC environment</a>
+    <li class="toctree-l2"><a class="reference internal" href="#show-current-user-and-the-list-of-groups-it-is-currently-member-of">Show current user, and the list of groups it is currently member of</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#create-a-new-group-and-checking-before-if-it-already-exists-an-error-occurs-if-it-does">Create a new group, and checking before if it already exists (an error occurs if it does)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#add-a-user-and-see-whos-part-of-the-group">Add a user and see who's part of the group</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#create-a-small-test-collection-to-be-shared-with-the-group">Create a small test collection to be shared with the group</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#share-new-collection-with-group">Share new collection with group</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#show-which-users-or-groups-have-which-rights-on-the-collection">Show which users or groups have which rights on the collection</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#unpublish-collection-again">Unpublish collection again</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#verify-that-groups-does-not-have-access-to-the-collection-anymore">Verify that groups does not have access to the collection anymore</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#finally-do-a-clean-up-of-this-notebooks-leftovers">Finally, do a clean-up of this notebook's leftovers</a>
     </li>
     </ul>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../geodb_index_management/">geoDB access</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_index_management/">Index management</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../geoservice/">Publish your Collection using the EDC / BC Geoservice</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_geoservice/">Publish your Collection using the EDC / BC Geoservice</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_eurocrops_demo/">Demonstration of Eurocrops data use in geoDB</a>
                   </li>
               </ul>
       </div>
@@ -85,7 +104,7 @@
   <ul class="wy-breadcrumbs">
     <li><a href="../../.." class="icon icon-home" aria-label="Docs"></a></li>
           <li class="breadcrumb-item">Demo notebooks</li>
-      <li class="breadcrumb-item active">geoDB access</li>
+      <li class="breadcrumb-item active">geoDB user groups</li>
     <li class="wy-breadcrumbs-aside">
     </li>
   </ul>
@@ -530,42 +549,23 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </style>
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=909c0542">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=24f9f9ee">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="geodb-access">geoDB access<a class="anchor-link" href="#geodb-access">¶</a></h1><p>The geoDB is a service provided by the <a href="https://eurodatacube.com">Euro Data Cube project</a> (EDC) as a payed service. It comes
-with a Python client that provides high level access to your data and a certain amount of space in a PostGreSQL database. For exploring data you will need a geoDB subscription which you can purchase at the <a href="https://eurodatacube.com/marketplace">EDC market place</a>.</p>
-<p>You can access the service in two ways:</p>
-<ul>
-<li>By using the Jupyter Python notebook provided by EDC Marketplace (configuration-free, <code>geodb = GeoDBClient()</code>)</li>
-<li>By using your own Jupyter notebook or Python script by providing a client id and secret to the GeoDBClient (<code>geodb = GeoDBClient(client_id="myid", client_secret="mysecet")</code>)</li>
-</ul>
-<p>The client ID and secret are provided by EDC. You will find them in your EDC Marketplace account section. You can also provide the credentials
-via system environment variables (GEODB_AUTH_CLIENT_ID and GEODB_AUTH_CLIENT_SECRET). These variables can be supplied via a .env file.</p>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=55c45892">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="geodb-user-groups">geoDB user groups<a class="anchor-link" href="#geodb-user-groups">¶</a></h2><p>You may define user groups in geoDB, which serve the purpose to allow sharing of collections between project members while not making them publicly available. This notebook will demonstrate how to work with groups.</p>
+<h1 id="geodb-user-groups">geoDB user groups<a class="anchor-link" href="#geodb-user-groups">¶</a></h1><p>You may define user groups in geoDB, which serve the purpose to allow sharing of collections between project members while not making them publicly available. This notebook will demonstrate how to work with groups.</p>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5c2eeb02">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=9a381aa5">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -587,24 +587,24 @@ via system environment variables (GEODB_AUTH_CLIENT_ID and GEODB_AUTH_CLIENT_SEC
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1b8287ed">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7c04bf9e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="login-from-your-machine">Login from your machine<a class="anchor-link" href="#login-from-your-machine">¶</a></h2><p>Install xcube geoDB with the command:</p>
-<pre><code>`conda install xcube_geodb -c conda-forge`</code></pre>
+<h2 id="login-from-any-machine">Login from any machine<a class="anchor-link" href="#login-from-any-machine">¶</a></h2><p>Install xcube geoDB with command:</p>
+<p><code>conda install xcube_geodb -c conda-forge</code></p>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=0b408763">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=b8774468">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [20]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -617,33 +617,33 @@ via system environment variables (GEODB_AUTH_CLIENT_ID and GEODB_AUTH_CLIENT_SEC
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># uncomment the following lines and fill in credentials</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1">### uncomment if not in managed environment</span>
 <span class="c1">#client_id=YourID</span>
 <span class="c1">#client_secret=YourSecret</span>
-<span class="c1">#geodb = GeoDBClient(client_id=client_id, client_secret=client_secret, auth_mode="client-credentials", server_url='https://xcube-geodb.stage.brockmann-consult.de', auth_aud='https://xcube-users.brockmann-consult.de/api/v2')</span>
+<span class="c1">#geodb = GeoDBClient(client_id=client_id, client_secret=client_secret, auth_mode="client-credentials")</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-2"># uncomment the following lines and fill in credentials
+<div class="clipboard-copy-txt" id="cell-2">### uncomment if not in managed environment
 #client_id=YourID
 #client_secret=YourSecret
-#geodb = GeoDBClient(client_id=client_id, client_secret=client_secret, auth_mode="client-credentials", server_url='https://xcube-geodb.stage.brockmann-consult.de', auth_aud='https://xcube-users.brockmann-consult.de/api/v2')</div>
+#geodb = GeoDBClient(client_id=client_id, client_secret=client_secret, auth_mode="client-credentials")</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a4fbc153">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=10d5b351">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="login-in-edc-environment">Login in EDC environment<a class="anchor-link" href="#login-in-edc-environment">¶</a></h2>
+<h2 id="login-in-managed-environment">Login in managed environment<a class="anchor-link" href="#login-in-managed-environment">¶</a></h2><p>The environment is prepared with your user credentials, so you simply can start the client.</p>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=912f7a94">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=58aa17c3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -661,31 +661,27 @@ via system environment variables (GEODB_AUTH_CLIENT_ID and GEODB_AUTH_CLIENT_SEC
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1">### comment if not on EDC</span>
-
-<span class="n">geodb</span> <span class="o">=</span> <span class="n">GeoDBClient</span><span class="p">()</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">geodb</span> <span class="o">=</span> <span class="n">GeoDBClient</span><span class="p">()</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">### comment if not on EDC
-
-geodb = GeoDBClient()</div>
+<div class="clipboard-copy-txt" id="cell-3">geodb = GeoDBClient()</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b2507fd3">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=fe50e51d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Show current user, and the list of groups it is currently member of:</p>
+<h2 id="show-current-user-and-the-list-of-groups-it-is-currently-member-of">Show current user, and the list of groups it is currently member of<a class="anchor-link" href="#show-current-user-and-the-list-of-groups-it-is-currently-member-of">¶</a></h2>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=77c44677">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=0a6b8104">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -714,18 +710,18 @@ geodb.get_my_groups()</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f51ffa55">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=880f193d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Create a new group, and checking before if it already exists (an error occurs if it does):</p>
+<h2 id="create-a-new-group-and-checking-before-if-it-already-exists-an-error-occurs-if-it-does">Create a new group, and checking before if it already exists (an error occurs if it does)<a class="anchor-link" href="#create-a-new-group-and-checking-before-if-it-already-exists-an-error-occurs-if-it-does">¶</a></h2>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=37d5f07f">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=9b300e5c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -759,18 +755,18 @@ if group_name not in geodb.get_my_groups():
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1b006e68">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b712db7c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Add a user and see who's part of the group:</p>
+<h2 id="add-a-user-and-see-whos-part-of-the-group">Add a user and see who's part of the group<a class="anchor-link" href="#add-a-user-and-see-whos-part-of-the-group">¶</a></h2>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=28d473ea">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=85a4e764">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -799,7 +795,7 @@ geodb.get_group_users(group_name)</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=21d89f5d">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=9f241d0d">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -826,18 +822,18 @@ geodb.get_group_users(group_name)</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=75705095">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8c79e241">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Create a small test collection to be shared with the group:</p>
+<h2 id="create-a-small-test-collection-to-be-shared-with-the-group">Create a small test collection to be shared with the group<a class="anchor-link" href="#create-a-small-test-collection-to-be-shared-with-the-group">¶</a></h2>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=e1cf3d6b">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=d2c1d7ab">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -888,18 +884,18 @@ str(m)</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8083f069">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=345ef40e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Share new collection with group:</p>
+<h2 id="share-new-collection-with-group">Share new collection with group<a class="anchor-link" href="#share-new-collection-with-group">¶</a></h2>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=e9c733e3">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5ebe6269">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -928,18 +924,18 @@ str(m)</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c5a18e8a">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b5607bce">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Show which users or groups have which rights on the collection:</p>
+<h2 id="show-which-users-or-groups-have-which-rights-on-the-collection">Show which users or groups have which rights on the collection<a class="anchor-link" href="#show-which-users-or-groups-have-which-rights-on-the-collection">¶</a></h2>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=cc5b93f2">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=68976a69">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -966,18 +962,18 @@ str(m)</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8f9345df">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7be2f588">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Unpublish collection again:</p>
+<h2 id="unpublish-collection-again">Unpublish collection again<a class="anchor-link" href="#unpublish-collection-again">¶</a></h2>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4c3b2782">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=7a45e5f8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1006,18 +1002,18 @@ str(m)</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=83a7fd91">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7c1073c4">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Verify that groups does not have access to the collection anymore:</p>
+<h2 id="verify-that-groups-does-not-have-access-to-the-collection-anymore">Verify that groups does not have access to the collection anymore<a class="anchor-link" href="#verify-that-groups-does-not-have-access-to-the-collection-anymore">¶</a></h2>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4a7d9813">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=6d487f25">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1044,13 +1040,13 @@ str(m)</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3ff316e6">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=18fdcd83">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Finally, do a clean-up of this notebook's leftovers:</p>
+<h2 id="finally-do-a-clean-up-of-this-notebooks-leftovers">Finally, do a clean-up of this notebook's leftovers<a class="anchor-link" href="#finally-do-a-clean-up-of-this-notebooks-leftovers">¶</a></h2>
 </div>
 </div>
 </div>
@@ -1094,7 +1090,7 @@ str(m)</div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
         <a href="../geodb_share_collections/" class="btn btn-neutral float-left" title="Share geoDB Collections"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../geodb_index_management/" class="btn btn-neutral float-right" title="geoDB access">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../geodb_index_management/" class="btn btn-neutral float-right" title="Index management">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>

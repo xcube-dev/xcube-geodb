@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../../../css/theme.css" />
     <link rel="stylesheet" href="../../../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../../../assets/_mkdocstrings.css" rel="stylesheet" />
     
       <script>
         // Current page data
@@ -49,17 +50,15 @@
               </ul>
               <p class="caption"><span class="caption-text">Demo notebooks</span></p>
               <ul class="current">
-                  <li class="toctree-l1"><a class="reference internal" href="../geodb_explore_collections/">geoDB Access</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_explore_collections/">Exploring Data</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../geodb_manage_collections/">Manage geoDB Collections</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_manage_collections/">Manage collections</a>
                   </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Share geoDB Collections</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#sharing-data">Sharing Data</a>
+    <li class="toctree-l2"><a class="reference internal" href="#login-from-any-machine">Login from any machine</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#login-from-any-maschine">Login from any maschine</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#login-in-edc-environment">Login in EDC environment</a>
+    <li class="toctree-l2"><a class="reference internal" href="#login-in-managed-environment">Login in managed environment</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#get-your-user-name">Get your user name</a>
     </li>
@@ -75,11 +74,13 @@
     </li>
     </ul>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../geodb_group_management/">geoDB access</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_group_management/">geoDB user groups</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../geodb_index_management/">geoDB access</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_index_management/">Index management</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../geoservice/">Publish your Collection using the EDC / BC Geoservice</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_geoservice/">Publish your Collection using the EDC / BC Geoservice</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../geodb_eurocrops_demo/">Demonstration of Eurocrops data use in geoDB</a>
                   </li>
               </ul>
       </div>
@@ -548,40 +549,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="share-geodb-collections">Share geoDB Collections<a class="anchor-link" href="#share-geodb-collections">¶</a></h1>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>The geoDB is a service provided by the <a href="https://eurodatacube.com">Euro Data Cube project</a> (EDC) as a paid service. It comes
-with a Python client that provides hugh level access to your data, and a certain amount of space in a PostGreSQL database. For managing (as sharing is)
-your data you will need a management (read/write) account to your database which you can purchase at the <a href="https://hub.eox.at">EDC market place</a>.</p>
-<p>You can access the service in two ways:</p>
-<ul>
-<li>By using the Jupyter Python notebook provided by EOX (configuration free, <code>geodb = GeoDBClient()</code>)</li>
-<li>By using you own Jupyter notebook or Python script by providing a client id and secret to the GeoDBClient (<code>geodb = GeoDBClient(client_id="myid", client_secret="mysecet")</code>)</li>
-</ul>
-<p>The client ID and secret is also provided by EOX in the latter case. You will find them in your EOX hub account section. You can also provide the credentials
-via system environment variables (GEODB_AUTH_CLIENT_ID and GEODB_AUTH_CLIENT_SECRET). These variables can be supplied via a .env file.</p>
-<p>There are two different types of geoDB accounts: a read only, and a management (read/write) access. The system will determine your access right through your
-authentication credentials.</p>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="sharing-data">Sharing Data<a class="anchor-link" href="#sharing-data">¶</a></h2>
+<h1 id="share-geodb-collections">Share geoDB Collections<a class="anchor-link" href="#share-geodb-collections">¶</a></h1><p>This notebook demonstrates how to (un)publish data collections in the xcube geoDB.</p>
 </div>
 </div>
 </div>
@@ -591,7 +559,7 @@ authentication credentials.</p>
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -619,7 +587,7 @@ authentication credentials.</p>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="login-from-any-maschine">Login from any maschine<a class="anchor-link" href="#login-from-any-maschine">¶</a></h2><p>Install xcube geoDB with command:</p>
+<h2 id="login-from-any-machine">Login from any machine<a class="anchor-link" href="#login-from-any-machine">¶</a></h2><p>Install xcube geoDB with command:</p>
 <p><code>conda install xcube_geodb -c conda-forge</code></p>
 </div>
 </div>
@@ -630,7 +598,7 @@ authentication credentials.</p>
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [20]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -643,14 +611,12 @@ authentication credentials.</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1">### uncomment if not on EDC</span>
-
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1">### uncomment if not in managed environment</span>
 <span class="c1">#client_id=YourID</span>
 <span class="c1">#client_secret=YourSecret</span>
 <span class="c1">#geodb = GeoDBClient(client_id=client_id, client_secret=client_secret, auth_mode="client-credentials")</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-2">### uncomment if not on EDC
-
+<div class="clipboard-copy-txt" id="cell-2">### uncomment if not in managed environment
 #client_id=YourID
 #client_secret=YourSecret
 #geodb = GeoDBClient(client_id=client_id, client_secret=client_secret, auth_mode="client-credentials")</div>
@@ -666,7 +632,7 @@ authentication credentials.</p>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="login-in-edc-environment">Login in EDC environment<a class="anchor-link" href="#login-in-edc-environment">¶</a></h2>
+<h2 id="login-in-managed-environment">Login in managed environment<a class="anchor-link" href="#login-in-managed-environment">¶</a></h2><p>The environment is prepared with your user credentials, so you simply can start the client.</p>
 </div>
 </div>
 </div>
@@ -676,7 +642,7 @@ authentication credentials.</p>
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -689,13 +655,9 @@ authentication credentials.</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1">### comment if not on EDC</span>
-
-<span class="n">geodb</span> <span class="o">=</span> <span class="n">GeoDBClient</span><span class="p">()</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">geodb</span> <span class="o">=</span> <span class="n">GeoDBClient</span><span class="p">()</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">### comment if not on EDC
-
-geodb = GeoDBClient()</div>
+<div class="clipboard-copy-txt" id="cell-3">geodb = GeoDBClient()</div>
 </div>
 </div>
 </div>
@@ -1524,33 +1486,6 @@ geodb.whoami
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="CodeMirror cm-s-jupyter">
-<div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-18">
-<div>
-<span class="notice" hidden="">Copied!</span>
-<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
-<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-</clipboard-copy>
-</div>
-<div class="highlight-ipynb hl-python"><pre><span></span>
-</pre></div>
-<div class="clipboard-copy-txt" id="cell-18"></div>
-</div>
-</div>
-</div>
-</div>
-</div>
 </div>
 </div> <!-- jp-Notebook -->
 </div> <!-- jupyter-wrapper -->
@@ -1563,8 +1498,8 @@ geodb.whoami
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../geodb_manage_collections/" class="btn btn-neutral float-left" title="Manage geoDB Collections"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../geodb_group_management/" class="btn btn-neutral float-right" title="geoDB access">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../geodb_manage_collections/" class="btn btn-neutral float-left" title="Manage collections"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../geodb_group_management/" class="btn btn-neutral float-right" title="geoDB user groups">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
