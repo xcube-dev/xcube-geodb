@@ -19,8 +19,8 @@ Get started
 
 There are multiple options to use the xcube geoDB:
 
-- create an account at the ESA EuroDataCube platform
-- create an account at the ESA EO-TDL platform
+- create an account at the ESA [EuroDataCube](https://eurodatacube.com/) platform
+- create an account at the ESA [EO-TDL](https://www.eotdl.com/) platform
 - or install yourself (see the [installation guide](installation.md))
 
 Want your own, tailored and turn-key installation of the xcube geoDB? Contact
@@ -30,6 +30,7 @@ Want your own, tailored and turn-key installation of the xcube geoDB? Contact
 Technologies
 ------------
 
+- [xcube](https://github.com/dcs4cop/xcube)
 - [Python](https://www.python.org/)
 - [GeoPandas](https://geopandas.org/)
 - [PostgreSQL](https://www.postgresql.org/)

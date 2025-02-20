@@ -9,7 +9,15 @@ nav:
       - Share collections: source/notebooks/geodb_share_collections.ipynb
       - Group management: source/notebooks/geodb_group_management.ipynb
       - Index management: source/notebooks/geodb_index_management.ipynb
-      - GeoServer: source/notebooks/geoservice.ipynb
+      - GeoServer: source/notebooks/geodb_geoservice.ipynb
+      - Eurocrops demo: source/notebooks/geodb_eurocrops_demo.ipynb
 theme: readthedocs
 plugins:
   - mkdocs-jupyter
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            filters:
+              - "!^_"
