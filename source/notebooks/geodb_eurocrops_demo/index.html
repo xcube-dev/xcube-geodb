@@ -580,12 +580,16 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="c1">### uncomment if not in managed environment</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">xcube_geodb.core.geodb</span><span class="w"> </span><span class="kn">import</span> <span class="n">GeoDBClient</span>
+
+<span class="c1">### uncomment if not in managed environment</span>
 <span class="c1">#client_id=YourID</span>
 <span class="c1">#client_secret=YourSecret</span>
 <span class="c1">#geodb = GeoDBClient(client_id=client_id, client_secret=client_secret, auth_mode="client-credentials")</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">### uncomment if not in managed environment
+<div class="clipboard-copy-txt" id="cell-1">from xcube_geodb.core.geodb import GeoDBClient
+
+### uncomment if not in managed environment
 #client_id=YourID
 #client_secret=YourSecret
 #geodb = GeoDBClient(client_id=client_id, client_secret=client_secret, auth_mode="client-credentials")</div>
@@ -707,18 +711,18 @@ db = 'geodb_b34bfae7-9265-4a3e-b921-06549d3c6035'</div>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="k">if</span> <span class="n">geodb</span><span class="o">.</span><span class="n">collection_exists</span><span class="p">(</span><span class="s1">'DE_NRW_2021_EC21'</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="n">db</span><span class="p">):</span>
-  <span class="n">tic</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-  <span class="n">df</span> <span class="o">=</span> <span class="n">geodb</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">'DE_NRW_2021_EC21'</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="s1">'or=(code.eq.112,code.eq.115)'</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
-  <span class="n">area_acc</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">'area_ha'</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-  <span class="n">toc</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-  <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Computed the area growing wheat in NRW (Germany): </span><span class="si">{</span><span class="n">area_acc</span><span class="si">:</span><span class="s2">0.0f</span><span class="si">}</span><span class="s2"> ha, within </span><span class="si">{</span><span class="n">toc</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tic</span><span class="si">}</span><span class="s2"> seconds"</span><span class="p">)</span>
+    <span class="n">tic</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">geodb</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">'DE_NRW_2021_EC21'</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="s1">'or=(code.eq.112,code.eq.115)'</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">area_acc</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">'area_ha'</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">toc</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Computed the area growing wheat in NRW (Germany): </span><span class="si">{</span><span class="n">area_acc</span><span class="si">:</span><span class="s2">0.0f</span><span class="si">}</span><span class="s2"> ha, within </span><span class="si">{</span><span class="n">toc</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tic</span><span class="si">}</span><span class="s2"> seconds"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-4">if geodb.collection_exists('DE_NRW_2021_EC21', database=db):
-  tic = time.perf_counter()
-  df = geodb.get_collection('DE_NRW_2021_EC21', query='or=(code.eq.112,code.eq.115)', database=db)
-  area_acc = df['area_ha'].sum()
-  toc = time.perf_counter()
-  print(f"Computed the area growing wheat in NRW (Germany): {area_acc:0.0f} ha, within {toc - tic} seconds")</div>
+    tic = time.perf_counter()
+    df = geodb.get_collection('DE_NRW_2021_EC21', query='or=(code.eq.112,code.eq.115)', database=db)
+    area_acc = df['area_ha'].sum()
+    toc = time.perf_counter()
+    print(f"Computed the area growing wheat in NRW (Germany): {area_acc:0.0f} ha, within {toc - tic} seconds")</div>
 </div>
 </div>
 </div>
@@ -755,18 +759,18 @@ db = 'geodb_b34bfae7-9265-4a3e-b921-06549d3c6035'</div>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="k">if</span> <span class="n">geodb</span><span class="o">.</span><span class="n">collection_exists</span><span class="p">(</span><span class="s1">'BE_VLG_2021_EC21'</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="n">db</span><span class="p">):</span>
-  <span class="n">tic</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-  <span class="n">df</span> <span class="o">=</span> <span class="n">geodb</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">'BE_VLG_2021_EC21'</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="s1">'or=(gwscod_h.eq.311,gwscod_h.eq.312)'</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
-  <span class="n">area_acc</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">'graf_opp'</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-  <span class="n">toc</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-  <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Computed the area growing wheat in Belgium (VLG): </span><span class="si">{</span><span class="n">area_acc</span><span class="si">:</span><span class="s2">0.0f</span><span class="si">}</span><span class="s2"> ha, within </span><span class="si">{</span><span class="n">toc</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tic</span><span class="si">}</span><span class="s2"> seconds"</span><span class="p">)</span>
+    <span class="n">tic</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">geodb</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">'BE_VLG_2021_EC21'</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="s1">'or=(gwscod_h.eq.311,gwscod_h.eq.312)'</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">area_acc</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">'graf_opp'</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">toc</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Computed the area growing wheat in Belgium (VLG): </span><span class="si">{</span><span class="n">area_acc</span><span class="si">:</span><span class="s2">0.0f</span><span class="si">}</span><span class="s2"> ha, within </span><span class="si">{</span><span class="n">toc</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tic</span><span class="si">}</span><span class="s2"> seconds"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-5">if geodb.collection_exists('BE_VLG_2021_EC21', database=db):
-  tic = time.perf_counter()
-  df = geodb.get_collection('BE_VLG_2021_EC21', query='or=(gwscod_h.eq.311,gwscod_h.eq.312)', database=db)
-  area_acc = df['graf_opp'].sum()
-  toc = time.perf_counter()
-  print(f"Computed the area growing wheat in Belgium (VLG): {area_acc:0.0f} ha, within {toc - tic} seconds")</div>
+    tic = time.perf_counter()
+    df = geodb.get_collection('BE_VLG_2021_EC21', query='or=(gwscod_h.eq.311,gwscod_h.eq.312)', database=db)
+    area_acc = df['graf_opp'].sum()
+    toc = time.perf_counter()
+    print(f"Computed the area growing wheat in Belgium (VLG): {area_acc:0.0f} ha, within {toc - tic} seconds")</div>
 </div>
 </div>
 </div>
@@ -803,16 +807,20 @@ db = 'geodb_b34bfae7-9265-4a3e-b921-06549d3c6035'</div>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="k">if</span> <span class="n">geodb</span><span class="o">.</span><span class="n">collection_exists</span><span class="p">(</span><span class="s1">'AT_2021_EC21'</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="n">db</span><span class="p">):</span>
-  <span class="n">tic</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-  <span class="n">df</span> <span class="o">=</span> <span class="n">geodb</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">'AT_2021_EC21'</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="s1">'and=(or(snar_code.eq.140,snar_code.eq.168,snar_code.eq.170),sl_flaeche.gt.1)'</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="n">db</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-  <span class="n">toc</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-  <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Extracted 1000 areas in Austria growing wheat, larger than 1 ha, within </span><span class="si">{</span><span class="n">toc</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tic</span><span class="si">}</span><span class="s2"> seconds"</span><span class="p">)</span>
+    <span class="n">tic</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">geodb</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">'AT_2021_EC21'</span><span class="p">,</span>
+                              <span class="n">query</span><span class="o">=</span><span class="s1">'and=(or(snar_code.eq.140,snar_code.eq.168,snar_code.eq.170),sl_flaeche.gt.1)'</span><span class="p">,</span>
+                              <span class="n">database</span><span class="o">=</span><span class="n">db</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+    <span class="n">toc</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Extracted 1000 areas in Austria growing wheat, larger than 1 ha, within </span><span class="si">{</span><span class="n">toc</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tic</span><span class="si">}</span><span class="s2"> seconds"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-6">if geodb.collection_exists('AT_2021_EC21', database=db):
-  tic = time.perf_counter()
-  df = geodb.get_collection('AT_2021_EC21', query='and=(or(snar_code.eq.140,snar_code.eq.168,snar_code.eq.170),sl_flaeche.gt.1)', database=db, limit=1000)
-  toc = time.perf_counter()
-  print(f"Extracted 1000 areas in Austria growing wheat, larger than 1 ha, within {toc - tic} seconds")</div>
+    tic = time.perf_counter()
+    df = geodb.get_collection('AT_2021_EC21',
+                              query='and=(or(snar_code.eq.140,snar_code.eq.168,snar_code.eq.170),sl_flaeche.gt.1)',
+                              database=db, limit=1000)
+    toc = time.perf_counter()
+    print(f"Extracted 1000 areas in Austria growing wheat, larger than 1 ha, within {toc - tic} seconds")</div>
 </div>
 </div>
 </div>
