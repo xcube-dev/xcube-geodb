@@ -1,3 +1,13 @@
+## v1.1.0 (in development)
+
+### New Features
+
+- cleaned up documentation (#110)
+
+### Fixes
+
+- database truncation now works as name suggests (#009)
+
 ## v1.0.9
 
 ### New Features
