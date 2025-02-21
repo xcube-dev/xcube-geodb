@@ -844,8 +844,6 @@ class GeoDBClient(object):
                 except GeoDBError:
                     pass
 
-        self._refresh_capabilities()
-
         database = database or self.database
 
         if not self.database_exists(database):
@@ -860,6 +858,7 @@ class GeoDBClient(object):
             self._post(path="/rpc/geodb_create_collections", payload=collections)
             for collection in collections["collections"]:
                 self._log_event(EventType.CREATED, f"collection {collection}")
+            self._refresh_capabilities()
             return Message(collections)
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -892,8 +891,6 @@ class GeoDBClient(object):
         """
         crs = check_crs(crs)
         collections = {collection: {"properties": properties, "crs": str(crs)}}
-
-        self._refresh_capabilities()
 
         return self.create_collections(
             collections=collections, database=database, clear=clear
@@ -943,8 +940,6 @@ class GeoDBClient(object):
             >>> geodb.drop_collections(collections=['[MyCollection1]', '[MyCollection2]'])
         """
 
-        self._refresh_capabilities()
-
         database = database or self.database
         collections = [database + "_" + collection for collection in collections]
         payload = {
@@ -956,6 +951,7 @@ class GeoDBClient(object):
             self._post(path="/rpc/geodb_drop_collections", payload=payload)
             for collection in collections:
                 self._log_event(EventType.DROPPED, f"collection {collection}")
+            self._refresh_capabilities()
             return Message(f"Collection {str(collections)} deleted")
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -1254,8 +1250,6 @@ class GeoDBClient(object):
                                    properties=properties)
         """
 
-        self._refresh_capabilities()
-
         database = database or self.database
         dn = database + "_" + collection
 
@@ -1270,7 +1264,8 @@ class GeoDBClient(object):
                     EventType.PROPERTY_ADDED,
                     f"{{name: {prop_name}, " f"type: {prop_type}}} to collection {dn}",
                 )
-            return Message(f"Properties added")
+            self._refresh_capabilities()
+            return Message("Properties added")
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -1320,7 +1315,6 @@ class GeoDBClient(object):
                                                   'MyProperty2'])
         """
 
-        self._refresh_capabilities()
         database = database or self.database
         collection = database + "_" + collection
 
@@ -1337,7 +1331,7 @@ class GeoDBClient(object):
                 self._log_event(
                     EventType.PROPERTY_DROPPED, f"{prop} from collection {collection}"
                 )
-
+            self._refresh_capabilities()
             return Message(
                 f"Properties {str(properties)} dropped from " f"{collection}"
             )
