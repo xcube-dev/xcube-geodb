@@ -1,3 +1,11 @@
+## v1.1.0 (in development)
+
+### New Features
+
+- the geoDB client correctly refreshes the capabilities of the PostGREST server
+
+### Fixes
+
 ## v1.0.9
 
 ### New Features
