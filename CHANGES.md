@@ -1,3 +1,11 @@
+## v1.1.0 (in development)
+
+### New Features
+
+- geoDB now logs collection read events, if deliberately triggered by the user
+
+### Fixes
+
 ## v1.0.9
 
 ### New Features
