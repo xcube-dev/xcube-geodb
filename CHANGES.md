@@ -3,6 +3,7 @@
 ### New Features
 
 - geoDB now logs collection read events, if deliberately triggered by the user
+- cleaned up documentation (#110)
 
 ### Fixes
 
