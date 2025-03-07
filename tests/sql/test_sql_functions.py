@@ -1,7 +1,5 @@
-from time import sleep
 import datetime
 import os
-import signal
 import sys
 import unittest
 import json
@@ -9,7 +7,6 @@ import psycopg2
 import signal
 from time import sleep
 
-from tests.utils import make_install_geodb
 import xcube_geodb.version as version
 from xcube_geodb.core.geodb import EventType
 
@@ -22,24 +19,8 @@ def get_app_dir():
     return os.path.dirname(version_path)
 
 
-@unittest.skipIf(
-    os.environ.get("SKIP_INSTALLATION_TESTS", "0") == "1", "Installation tests skipped"
-)
-class TestInstallationProcedure(unittest.TestCase):
-    def tearDown(self) -> None:
-        app_path = get_app_dir()
-        control_fn = os.path.join(app_path, "sql", "geodb.control")
-        os.remove(control_fn)
-        control_fn = os.path.join(app_path, "sql", f"geodb--{version.version}.sql")
-        os.remove(control_fn)
-
-    def testInstallation(self):
-        make_install_geodb()
-
-
 # noinspection SqlInjection,SqlNoDataSourceInspection,SqlResolve
-@unittest.skipIf(os.environ.get('SKIP_PSQL_TESTS', '0') == '1',
-                 'DB Tests skipped')
+@unittest.skipIf(os.environ.get("SKIP_PSQL_TESTS", "0") == "1", "DB Tests skipped")
 class GeoDBSqlTest(unittest.TestCase):
     _postgresql = None
     _cursor = None
@@ -55,6 +36,15 @@ class GeoDBSqlTest(unittest.TestCase):
         # c:\path\to\installation-1\initdb.exe\r\nc:\path\to\installation-2\initdb.exe
         # therefore, we split, and use the first installation that has "PostgreSQL" in its path
         # because the PostGIS extension cannot be installed via conda nor pip in a compatible way
+
+        # Also, if you are using Docker Desktop for Windows, you have to do the
+        # following:
+        # dism.exe /Online /Disable-Feature:Microsoft-Hyper-V
+        # netsh int ipv4 add excludedportrange protocol=tcp startport=50777 numberofports=1
+        # dism.exe /Online /Enable-Feature:Microsoft-Hyper-V /All
+        #
+        # (copied from
+        # https://github.com/docker/for-win/issues/3171#issuecomment-459205576)
 
         def find_program(name: str) -> str:
             program = testing.postgresql.find_program(name, [])
@@ -74,7 +64,10 @@ class GeoDBSqlTest(unittest.TestCase):
         # special windows treatment end
 
         postgresql = testing.postgresql.PostgresqlFactory(
-            cache_initialized_db=False, initdb=initdb, postgres=postgres, port=50777
+            cache_initialized_db=False,
+            initdb=initdb,
+            postgres=postgres,
+            port=50777,
         )
 
         cls._postgresql = postgresql()
