@@ -1,3 +1,11 @@
+## v1.1.0 (in development)
+
+### New Features
+
+- cleaned up documentation (#110)
+
+### Fixes
+
 ## v1.0.9
 
 ### New Features
