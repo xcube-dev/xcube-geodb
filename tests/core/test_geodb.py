@@ -462,6 +462,18 @@ class GeoDBClientTest(unittest.TestCase):
 
         url = (
             f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?owner=eq.{username}"
+        )
+        m.get(
+            url,
+            json=[
+                {"id": 3, "name": database, "owner": username, "iss": None},
+            ],
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
             f"/rpc/geodb_get_my_collections"
         )
         collections = [
@@ -636,6 +648,18 @@ class GeoDBClientTest(unittest.TestCase):
 
         url = (
             f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?owner=eq.{username}"
+        )
+        m.get(
+            url,
+            json=[
+                {"id": 3, "name": database, "owner": username, "iss": None},
+            ],
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
             f"/rpc/geodb_get_my_collections"
         )
         m.post(
@@ -661,7 +685,7 @@ class GeoDBClientTest(unittest.TestCase):
             self._api.truncate_database(database=database)
         self.assertEqual(
             f"The database {database} is not empty, and can therefore not be dropped. "
-            f"No action has been taken."
+            f"No action has been taken. "
             f"If you wish to drop the database and all the collections inside, use "
             f"`force=True`. Warning: this action cannot be reverted!",
             str(context.exception),
