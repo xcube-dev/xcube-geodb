@@ -562,6 +562,57 @@ class GeoDBClientTest(unittest.TestCase):
             str(context.exception),
         )
 
+    def test_cannot_truncate_nonowned_database(self, m: Mocker):
+        self.set_global_mocks(m)
+        username = "memyselfi"
+        database = "some_database_i_dont_own"
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_collection_srid"
+        )
+        m.post(url, json={}, status_code=400)
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?owner=eq.{username}"
+        )
+        m.get(
+            url,
+            json=[
+                {"id": 3, "name": "some_db_i_own", "owner": username, "iss": None},
+            ],
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?name=eq.{database}"
+        )
+        m.get(
+            url,
+            json=[
+                {
+                    "id": 4,
+                    "name": database,
+                    "owner": "some_user_that_is_not_me",
+                    "iss": None,
+                },
+            ],
+            status_code=200,
+        )
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_whoami"
+        m.get(url, json=username)
+
+        with self.assertRaises(GeoDBError) as context:
+            self._api.truncate_database(database=database)
+        self.assertEqual(
+            f"You can only delete databases you own. You are not the owner of "
+            f"database {database}.",
+            str(context.exception),
+        )
+
     def test_cannot_truncate_nonempty_database(self, m: Mocker):
         self.set_global_mocks(m)
         username = "memyselfi"

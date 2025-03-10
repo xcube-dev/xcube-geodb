@@ -1419,13 +1419,20 @@ class GeoDBClient(object):
 
         if database == self.whoami:
             raise GeoDBError(
-                f"The default database {database} cannot be dropped. No action has been taken."
+                f"The default database {database} cannot be dropped. No action has "
+                f"been taken."
+            )
+
+        if database not in list(self.get_my_databases()["name"]):
+            raise GeoDBError(
+                f"You can only delete databases you own. You are not the owner of "
+                f"database {database}."
             )
 
         if len(self.get_my_collections(database)) > 0 and not force:
             raise GeoDBError(
-                f"The database {database} is not empty, and can therefore not be dropped. "
-                f"No action has been taken."
+                f"The database {database} is not empty, and can therefore not be "
+                f"dropped. No action has been taken. "
                 f"If you wish to drop the database and all the collections inside, use "
                 f"`force=True`. Warning: this action cannot be reverted!"
             )
