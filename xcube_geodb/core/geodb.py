@@ -88,12 +88,14 @@ class GeoDBError(ValueError):
 
 
 class EventType:
-
     CREATED = "created"
+    DATABASE_CREATED = "created database"
     DROPPED = "dropped"
+    DATABASE_DROPPED = "dropped database"
     RENAMED = "renamed"
     COPIED = "copied"
     MOVED = "moved"
+    READ = "read"
     PUBLISHED = "published"
     UNPUBLISHED = "unpublished"
     PUBLISHED_GS = "published to geoserver"
@@ -177,11 +179,12 @@ class GeoDBClient(object):
         gs_server_port: Optional[int] = None,
         raise_it: bool = True,
     ):
-
         self._use_auth_cache = True
         self._dotenv_file = dotenv_file
         self._database = None
         self._raise_it = raise_it
+        self._do_log_read = True
+
         # Access token is set here or on request
 
         # defaults
@@ -409,7 +412,9 @@ class GeoDBClient(object):
         except GeoDBError as e:
             self._maybe_raise(e)
 
-    def get_my_collections(self, database: Optional[str] = None) -> Sequence:
+    def get_my_collections(
+        self, database: Optional[str] = None
+    ) -> DataFrame | GeoDataFrame | None:
         """
 
         Args:
@@ -849,8 +854,6 @@ class GeoDBClient(object):
                 except GeoDBError:
                     pass
 
-        self._refresh_capabilities()
-
         database = database or self.database
 
         if not self.database_exists(database):
@@ -865,6 +868,7 @@ class GeoDBClient(object):
             self._post(path="/rpc/geodb_create_collections", payload=collections)
             for collection in collections["collections"]:
                 self._log_event(EventType.CREATED, f"collection {collection}")
+            self._refresh_capabilities()
             return Message(collections)
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -897,8 +901,6 @@ class GeoDBClient(object):
         """
         crs = check_crs(crs)
         collections = {collection: {"properties": properties, "crs": str(crs)}}
-
-        self._refresh_capabilities()
 
         return self.create_collections(
             collections=collections, database=database, clear=clear
@@ -948,8 +950,6 @@ class GeoDBClient(object):
             >>> geodb.drop_collections(collections=['[MyCollection1]', '[MyCollection2]'])
         """
 
-        self._refresh_capabilities()
-
         database = database or self.database
         collections = [database + "_" + collection for collection in collections]
         payload = {
@@ -961,6 +961,7 @@ class GeoDBClient(object):
             self._post(path="/rpc/geodb_drop_collections", payload=payload)
             for collection in collections:
                 self._log_event(EventType.DROPPED, f"collection {collection}")
+            self._refresh_capabilities()
             return Message(f"Collection {str(collections)} deleted")
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -1055,7 +1056,7 @@ class GeoDBClient(object):
             )
 
             self._log_event(EventType.MOVED, f"collection {old_dn} to {new_dn}")
-            return Message(f"Collection moved from {database} to " f"{new_database}")
+            return Message(f"Collection moved from {database} to {new_database}")
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -1122,10 +1123,8 @@ class GeoDBClient(object):
             self.grant_access_to_collection(
                 collection=collection, usr="public", database=database
             )
-            self._log_event(
-                EventType.PUBLISHED, f"collection " f"{database}_{collection}"
-            )
-            return Message(f"Access granted on {database}_{collection} to " f"public.")
+            self._log_event(EventType.PUBLISHED, f"collection {database}_{collection}")
+            return Message(f"Access granted on {database}_{collection} to public.")
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -1259,8 +1258,6 @@ class GeoDBClient(object):
                                    properties=properties)
         """
 
-        self._refresh_capabilities()
-
         database = database or self.database
         dn = database + "_" + collection
 
@@ -1273,9 +1270,11 @@ class GeoDBClient(object):
                 prop_type = properties[prop_name]
                 self._log_event(
                     EventType.PROPERTY_ADDED,
-                    f"{{name: {prop_name}, " f"type: {prop_type}}} to collection {dn}",
+                    f"{{name: {prop_name}, type: {prop_type}}} to collection {dn}",
                 )
-            return Message(f"Properties added")
+
+            self._refresh_capabilities()
+            return Message("Properties added")
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -1325,7 +1324,6 @@ class GeoDBClient(object):
                                                   'MyProperty2'])
         """
 
-        self._refresh_capabilities()
         database = database or self.database
         collection = database + "_" + collection
 
@@ -1343,9 +1341,11 @@ class GeoDBClient(object):
                     EventType.PROPERTY_DROPPED, f"{prop} from collection {collection}"
                 )
 
+            self._refresh_capabilities()
             return Message(
                 f"Properties {str(properties)} dropped from " f"{collection}"
             )
+
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -1406,22 +1406,54 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e)
 
-    def truncate_database(self, database: str) -> Message:
+    def truncate_database(self, database: str, force: bool = False) -> Message:
         """
-        Delete all tables in the given database.
+        Delete the given database, if empty. If the database is not empty, it will not
+        be deleted, unless the `force` parameter is True.
 
         Args:
-            database (str): The name of the database to be created
+            database (str): The name of the database to be deleted.
+            force (bool): Drop all collections within the database.
 
         Returns:
-            Message: A message about the success or failure of the operation
-
+            Message: A message that the operation has been successful.
         """
+
+        if not self.database_exists(database):
+            raise GeoDBError(
+                f"Database {database} does not exist. No action has been taken."
+            )
+
+        if database == self.whoami:
+            raise GeoDBError(
+                f"The default database {database} cannot be dropped. No action has "
+                f"been taken."
+            )
+
+        if database not in list(self.get_my_databases()["name"]):
+            raise GeoDBError(
+                f"You can only delete databases you own. You are not the owner of "
+                f"database {database}."
+            )
+
+        if len(self.get_my_collections(database)) > 0 and not force:
+            raise GeoDBError(
+                f"The database {database} is not empty, and can therefore not be "
+                f"dropped. No action has been taken. "
+                f"If you wish to drop the database and all the collections inside, use "
+                f"`force=True`. Warning: this action cannot be reverted!"
+            )
+
+        # we can safely assume here that either the database is empty, or force == True
+        if len(self.get_my_collections(database)) > 0:
+            for collection in list(self.get_my_collections(database)["collection"]):
+                self.drop_collection(collection, database)
 
         try:
             self._post(
                 path="/rpc/geodb_truncate_database", payload={"database": database}
             )
+            self._log_event(EventType.DATABASE_DROPPED, database)
             return Message(f"Database {database} truncated")
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -1434,6 +1466,8 @@ class GeoDBClient(object):
             DataFrame: A list of databases the user owns
 
         """
+
+        self._do_log_read = False
 
         try:
             return self.get_collection(
@@ -1459,6 +1493,7 @@ class GeoDBClient(object):
 
         """
 
+        self._do_log_read = False
         try:
             res = self.get_collection(
                 collection="user_databases",
@@ -1612,7 +1647,7 @@ class GeoDBClient(object):
         crs = check_crs(crs)
         if crs and srid and srid != crs:
             raise GeoDBError(
-                f"crs {crs} is not compatible with collection's " f"crs {srid}"
+                f"crs {crs} is not compatible with collection's crs {srid}"
             )
 
         crs = crs or srid
@@ -1659,10 +1694,11 @@ class GeoDBClient(object):
                 except GeoDBError as e:
                     return self._maybe_raise(e)
                 except requests.exceptions.ConnectionError as e:
-                    if "Connection aborted" in str(
-                        e
-                    ) and "LineTooLong('got more than 65536 bytes " "when reading header line')" in str(
-                        e
+                    if (
+                        "Connection aborted" in str(e)
+                        and "LineTooLong('got more than 65536 bytes "
+                        "when reading header line')"
+                        in str(e)
                     ):
                         # ignore this error - the ingestion has worked.
                         # see https://github.com/dcs4cop/xcube-geodb/issues/60
@@ -1671,7 +1707,7 @@ class GeoDBClient(object):
                         raise e
         else:
             self._maybe_raise(
-                GeoDBError(f"Error: Format {type(values)} not " f"supported.")
+                GeoDBError(f"Error: Format {type(values)} not supported.")
             )
 
         msg = f"{total_rows} rows inserted into "
@@ -1784,23 +1820,26 @@ class GeoDBClient(object):
 
             headers = {"Accept": "application/vnd.pgrst.object+json"}
 
+            payload = {
+                "collection": dn,
+                "minx": bbox[0],
+                "miny": bbox[1],
+                "maxx": bbox[2],
+                "maxy": bbox[3],
+                "comparison_mode": comparison_mode,
+                "bbox_crs": bbox_crs,
+                "limit": limit,
+                "where": where,
+                "op": op,
+                "offset": offset,
+            }
             r = self._post(
                 "/rpc/geodb_get_by_bbox",
                 headers=headers,
-                payload={
-                    "collection": dn,
-                    "minx": bbox[0],
-                    "miny": bbox[1],
-                    "maxx": bbox[2],
-                    "maxy": bbox[3],
-                    "comparison_mode": comparison_mode,
-                    "bbox_crs": bbox_crs,
-                    "limit": limit,
-                    "where": where,
-                    "op": op,
-                    "offset": offset,
-                },
+                payload=payload,
             )
+
+            self._maybe_log_read(collection, database, str(payload))
 
             js = r.json()["src"]
             if js:
@@ -2016,6 +2055,8 @@ class GeoDBClient(object):
             else:
                 r = self._get(f"/{dn}")
 
+            self._maybe_log_read(collection, database, actual_query)
+
             js = r.json()
 
             if js:
@@ -2087,6 +2128,8 @@ class GeoDBClient(object):
 
             js = r.json()["src"]
 
+            self._maybe_log_read(collection, database)
+
             if js:
                 srid = self.get_collection_srid(collection, database)
                 return self._df_from_json(js, srid)
@@ -2094,6 +2137,15 @@ class GeoDBClient(object):
                 return DataFrame(columns=["Empty Result"])
         except GeoDBError as e:
             return self._maybe_raise(e, return_df=True)
+
+    def _maybe_log_read(self, collection, database, query=None):
+        if self._do_log_read:
+            message = f"read from collection {database}_{collection}"
+            if query:
+                message += f": {query}"
+            self._log_event(EventType.READ, message)
+        else:
+            self._do_log_read = True
 
     def create_index(self, collection: str, prop: str, database: str = None) -> Message:
         """
@@ -2422,7 +2474,7 @@ class GeoDBClient(object):
         try:
             if self._use_winchester_gs:
                 self._delete(
-                    path=f"/geodb_geoserver/" f"{database}/collections/{collection}"
+                    path=f"/geodb_geoserver/{database}/collections/{collection}"
                 )
             else:
                 self._delete(
@@ -2552,7 +2604,7 @@ class GeoDBClient(object):
 
         if not self._is_owner_of(dn):
             raise GeoDBError(
-                f"User {self.whoami} must be owner of collection " f"{dn} to publish."
+                f"User {self.whoami} must be owner of collection {dn} to publish."
             )
 
         path = "/rpc/geodb_group_publish_collection"
@@ -2594,7 +2646,7 @@ class GeoDBClient(object):
 
         if not self._is_owner_of(dn):
             raise GeoDBError(
-                f"User {self.whoami} must be owner of " f"collection {dn} to unpublish."
+                f"User {self.whoami} must be owner of collection {dn} to unpublish."
             )
 
         path = "/rpc/geodb_group_unpublish_collection"
@@ -2629,8 +2681,7 @@ class GeoDBClient(object):
         dn = f"{database}_dummy"
         if not self._is_owner_of(dn):
             raise GeoDBError(
-                f"User {self.whoami} must be owner of database "
-                f"{database} to publish."
+                f"User {self.whoami} must be owner of database {database} to publish."
             )
 
         path = "/rpc/geodb_group_publish_database"
@@ -2657,8 +2708,7 @@ class GeoDBClient(object):
         dn = f"{database}_dummy"
         if not self._is_owner_of(dn):
             raise GeoDBError(
-                f"User {self.whoami} must be owner of database "
-                f"{database} to unpublish."
+                f"User {self.whoami} must be owner of database {database} to unpublish."
             )
 
         path = "/rpc/geodb_group_unpublish_database"
@@ -2891,6 +2941,7 @@ class GeoDBClient(object):
         """
         database = database or self.database
 
+        self._do_log_read = False
         try:
             self.head_collection(collection, database=database)
         except GeoDBError:
@@ -3013,7 +3064,7 @@ class GeoDBClient(object):
         )
         cursor = conn.cursor()
 
-        with open(f"xcube_geodb/sql/geodb.sql") as sql_file:
+        with open("xcube_geodb/sql/geodb.sql") as sql_file:
             sql_create = sql_file.read()
             cursor.execute(sql_create)
 

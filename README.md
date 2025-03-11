@@ -1,16 +1,19 @@
-[![Documentation Status](https://readthedocs.org/projects/xcube-geodb/badge/?version=latest)](https://xcube-geodb.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/xcube-dev/xcube-geodb/branch/main/graph/badge.svg)](https://codecov.io/gh/dcs4cop/xcube-geodb)
+[![Documentation Status](https://github.com/xcube-dev/xcube-geodb/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/xcube-dev/xcube-geodb/actions/workflows/pages/pages-build-deployment)
+[![Unittest xcube-geodb](https://github.com/xcube-dev/xcube-geodb/actions/workflows/workflow.yml/badge.svg)](https://github.com/xcube-dev/xcube-geodb/actions/workflows/workflow.yml)
+[![codecov](https://codecov.io/gh/xcube-dev/xcube-geodb/graph/badge.svg?token=67zPacCxuz)](https://codecov.io/gh/xcube-dev/xcube-geodb)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v1.json)](https://github.com/astral-sh/ruff)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/xcube_geodb/badges/version.svg)](https://anaconda.org/conda-forge/xcube_geodb)
 
 # xcube geoDB
 
 xcube geoDB is a geo-spatial database within the [xcube](https://github.com/dcs4cop/xcube) ecosystem.
-xcube geoDB reads features from e.g. Shapefiles in the form of a [GeoDataFrame](http://geopandas.org/) 
+xcube geoDB reads features from e.g. Shapefiles in the form of a [GeoDataFrame](http://geopandas.org/)
 and processes them in a custom PostgreSQL database
 provided by [Brockmann Consult](https://www.brockmann-consult.de) and the
 Euro Data Cube (EDC) consortium. The processed data can be accessed and
 queried via a REST API with full querying capabilities.
 
-Please refer to our [documentation](https://xcube-geodb.readthedocs.io) for
+Please refer to our [documentation](https://xcube-dev.github.io/xcube-geodb) for
 further information.
 
 ## Technologies used:
@@ -18,27 +21,6 @@ further information.
 - [xcube](https://github.com/dcs4cop/xcube)
 - [xarray](http://xarray.pydata.org/en/stable/)
 - [PostgreSQL](https://www.postgresql.org/)
-- [Postgrest](http://postgrest.org/en/v6.0/)
+- [PostgREST](http://postgrest.org/en/v6.0/)
 - [AWS RDS](https://aws.amazon.com/de/rds/)
 - [docker](https://www.docker.com/)
-
-## Deployment Process
-
-1. Local Unittest
-2. Create stage/dev release (tag only. Tag name must include the expression '
-   dev' plus a number, e.g. 0.1.9.dev1)
-3. The stage release will be deployed using GitHub Actions:
-   1. A docker image will be created and pushed to quay.io
-   2. The new version of the image will be deployed to the cluster using a 
-      [helm chart](https://github.com/dcs4cop/xcube-k8s/geodb)
-4. The stage release will be tested:
-   1. An automatic test is run similar to a unit test
-   2. Users will test the new features and fixes
-5. Create release
-6. The release will be deployed using GitHub Actions:
-   1. unittest
-   2. the new version of the xcube geodb image will be created and pushed to 
-      quay.io
-   3. the xcube-geodb helm chart will be deployed using the new version of 
-      the docker image 
- 

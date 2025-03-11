@@ -8,6 +8,7 @@ import requests
 import requests_mock
 from geopandas import GeoDataFrame
 from psycopg2 import OperationalError
+from requests_mock.mocker import Mocker
 from shapely import wkt, Polygon
 
 from tests.utils import del_env
@@ -139,7 +140,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertEqual(len(res), 0)
 
     # noinspection PyTypeChecker
-    def test_get_collection(self, m):
+    def test_get_collection(self, m: Mocker):
         self.set_global_mocks(m)
         global TEST_GEOM
         test_collection = [
@@ -231,6 +232,9 @@ class GeoDBClientTest(unittest.TestCase):
         )
         m.get(url_with_limit_and_query, text=json.dumps([test_collection[9]]))
 
+        url = f"{self._base_url}/rpc/geodb_log_event"
+        log_event_endpoint = m.post(url, text=json.dumps("something"))
+
         r = self._api.get_collection("test")
         self.assertIsInstance(r, GeoDataFrame)
         self.assertTrue("geometry" in r)
@@ -260,6 +264,54 @@ class GeoDBClientTest(unittest.TestCase):
         r = self._api.get_collection("test")
         self.assertIsInstance(r, pd.DataFrame)
         self.assertEqual(len(r), 0)
+
+        self.assertEqual(5, log_event_endpoint.call_count)
+
+    def test_head_collection(self, m: Mocker):
+        self.set_global_mocks(m)
+        global TEST_GEOM
+        test_collection = [
+            {
+                "id": 1,
+                "created_at": "2020-04-08T13:08:06.733626+00:00",
+                "modified_at": None,
+                "geometry": TEST_GEOM,
+                "d_od": "2019-03-26",
+            }
+        ]
+        url = f"{self._server_test_url}:{self._server_test_port}/test_collection"
+        m.get(url, text=json.dumps(test_collection))
+
+        url = f"{self._base_url}/rpc/geodb_log_event"
+        log_event_endpoint = m.post(url, text=json.dumps("something"))
+
+        r = self._api.head_collection("collection", database="test")
+        self.assertIsInstance(r, GeoDataFrame)
+        self.assertTrue("geometry" in r)
+
+        self.assertEqual(1, log_event_endpoint.call_count)
+
+    def test_collection_exists(self, m: Mocker):
+        self.set_global_mocks(m)
+        global TEST_GEOM
+        test_collection = [
+            {
+                "id": 1,
+                "created_at": "2020-04-08T13:08:06.733626+00:00",
+                "modified_at": None,
+                "geometry": TEST_GEOM,
+                "d_od": "2019-03-26",
+            }
+        ]
+        url = f"{self._server_test_url}:{self._server_test_port}/test_collection"
+        m.get(url, text=json.dumps(test_collection))
+
+        url = f"{self._base_url}/rpc/geodb_log_event"
+        log_event_endpoint = m.post(url, text=json.dumps("something"))
+
+        exists = self._api.collection_exists("collection", "test")
+        self.assertTrue(exists)
+        self.assertEqual(0, log_event_endpoint.call_count)
 
     def test_get_collection_bbox(self, m):
         self.set_global_mocks(m)
@@ -438,21 +490,257 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual("Response invalid", str(e.exception))
 
-    def test_truncate_database(self, m):
-        expected_response = True
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_truncate_database"
-        m.post(url, text=json.dumps(expected_response))
+    def test_force_truncate_database(self, m: Mocker):
         self.set_global_mocks(m)
+        username = "memyselfi"
+        database = "andmydatabase"
 
-        res = self._api.truncate_database(database="test")
-        expected = {"Message": "Database test truncated"}
-        self.check_message(res, expected)
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_collection_srid"
+        )
+        m.post(url, json={}, status_code=400)
 
-        m.post(url, text="Response invalid", status_code=400)
-        with self.assertRaises(GeoDBError) as e:
-            self._api.truncate_database(database="test")
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?name=eq.{database}"
+        )
+        m.get(
+            url,
+            json={"id": 3, "name": database, "owner": username, "iss": None},
+            status_code=200,
+        )
 
-        self.assertEqual("Response invalid", str(e.exception))
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?owner=eq.{username}"
+        )
+        m.get(
+            url,
+            json=[
+                {"id": 3, "name": database, "owner": username, "iss": None},
+            ],
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_my_collections"
+        )
+        collections = [
+            {
+                "src": [
+                    {
+                        "collection": "some_collection_I_got",
+                        "database": database,
+                        "owner": username,
+                    },
+                    {
+                        "collection": "another_collection_I_got",
+                        "database": database,
+                        "owner": username,
+                    },
+                ]
+            }
+        ]
+        m.post(
+            url,
+            json=collections,
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_drop_collections"
+        )
+        drop_collections_endpoint = m.post(
+            url,
+            status_code=200,
+        )
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_whoami"
+        m.get(url, json=username)
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_truncate_database"
+        )
+        truncate_database_endpoint = m.post(
+            url,
+            status_code=200,
+        )
+
+        self._api.truncate_database(database=database, force=True)
+
+        self.assertEqual(2, drop_collections_endpoint.call_count)
+        self.assertEqual(1, truncate_database_endpoint.call_count)
+
+    def test_cannot_truncate_nonexisting_database(self, m: Mocker):
+        self.set_global_mocks(m)
+        database = "memyselfi"
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_collection_srid"
+        m.post(url, json={}, status_code=400)
+
+        url = f"{self._server_test_url}:{self._server_test_port}/geodb_user_databases?name=eq.{database}"
+        m.get(url, json={}, status_code=200)
+
+        with self.assertRaises(GeoDBError) as context:
+            self._api.truncate_database(database)
+
+        self.assertEqual(
+            str(context.exception),
+            f"Database {database} does not exist. No action has been taken.",
+        )
+
+    def test_cannot_truncate_default_database(self, m: Mocker):
+        self.set_global_mocks(m)
+        username = "memyselfi"
+        database = username
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_collection_srid"
+        )
+        m.post(url, json={}, status_code=400)
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?name=eq.{database}"
+        )
+        m.get(
+            url,
+            json={"id": 3, "name": database, "owner": username, "iss": None},
+            status_code=200,
+        )
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_whoami"
+        m.get(url, json=username)
+
+        with self.assertRaises(GeoDBError) as context:
+            self._api.truncate_database(database=database)
+        self.assertEqual(
+            f"The default database {database} cannot be dropped. "
+            f"No action has been taken.",
+            str(context.exception),
+        )
+
+    def test_cannot_truncate_nonowned_database(self, m: Mocker):
+        self.set_global_mocks(m)
+        username = "memyselfi"
+        database = "some_database_i_dont_own"
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_collection_srid"
+        )
+        m.post(url, json={}, status_code=400)
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?owner=eq.{username}"
+        )
+        m.get(
+            url,
+            json=[
+                {"id": 3, "name": "some_db_i_own", "owner": username, "iss": None},
+            ],
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?name=eq.{database}"
+        )
+        m.get(
+            url,
+            json=[
+                {
+                    "id": 4,
+                    "name": database,
+                    "owner": "some_user_that_is_not_me",
+                    "iss": None,
+                },
+            ],
+            status_code=200,
+        )
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_whoami"
+        m.get(url, json=username)
+
+        with self.assertRaises(GeoDBError) as context:
+            self._api.truncate_database(database=database)
+        self.assertEqual(
+            f"You can only delete databases you own. You are not the owner of "
+            f"database {database}.",
+            str(context.exception),
+        )
+
+    def test_cannot_truncate_nonempty_database(self, m: Mocker):
+        self.set_global_mocks(m)
+        username = "memyselfi"
+        database = "andmydatabase"
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_collection_srid"
+        )
+        m.post(url, json={}, status_code=400)
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?name=eq.{database}"
+        )
+        m.get(
+            url,
+            json={"id": 3, "name": database, "owner": username, "iss": None},
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?owner=eq.{username}"
+        )
+        m.get(
+            url,
+            json=[
+                {"id": 3, "name": database, "owner": username, "iss": None},
+            ],
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_my_collections"
+        )
+        m.post(
+            url,
+            json=[
+                {
+                    "src": [
+                        {
+                            "collection": "some_collection_I_got",
+                            "database": database,
+                            "owner": username,
+                        }
+                    ]
+                }
+            ],
+            status_code=200,
+        )
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_whoami"
+        m.get(url, json=username)
+
+        with self.assertRaises(GeoDBError) as context:
+            self._api.truncate_database(database=database)
+        self.assertEqual(
+            f"The database {database} is not empty, and can therefore not be dropped. "
+            f"No action has been taken. "
+            f"If you wish to drop the database and all the collections inside, use "
+            f"`force=True`. Warning: this action cannot be reverted!",
+            str(context.exception),
+        )
 
     def test_create_collection_if_not_exist(self, m):
         self.set_global_mocks(m)
@@ -525,6 +813,46 @@ class GeoDBClientTest(unittest.TestCase):
             },
             json.loads(log_event_endpoint.last_request.text),
         )
+
+    # noinspection DuplicatedCode
+    def test_capabilities_cache_on_create(self, m):
+        self.set_global_mocks(m)
+
+        response = "Success"
+        url = f"{self._base_url}/geodb_user_databases?name=eq.helge"
+        m.get(url, text=json.dumps(response))
+        url = f"{self._base_url}/rpc/geodb_create_collections"
+        m.post(url, text=json.dumps(response))
+        url = f"{self._base_url}/"
+        capabilities_endpoint = m.get(
+            url, text=json.dumps({"definitions": {"helge_test": "dummy"}})
+        )
+
+        self.assertEqual(0, capabilities_endpoint.call_count)
+        self._api.create_collection(collection="test", properties={"test_col": "inger"})
+        self._api.get_collection_info(collection="test")
+
+        self.assertEqual(1, capabilities_endpoint.call_count)
+
+    # noinspection DuplicatedCode
+    def test_capabilities_cache_on_drop(self, m):
+        self.set_global_mocks(m)
+
+        response = "Success"
+        url = f"{self._base_url}/geodb_user_databases?name=eq.helge"
+        m.get(url, text=json.dumps(response))
+        url = f"{self._base_url}/rpc/geodb_drop_collections"
+        m.post(url, text=json.dumps(response))
+        url = f"{self._base_url}/"
+        capabilities_endpoint = m.get(
+            url, text=json.dumps({"definitions": {"helge_test": "dummy"}})
+        )
+
+        self.assertEqual(0, capabilities_endpoint.call_count)
+        self._api.drop_collection(collection="test")
+        self._api.get_collection_info(collection="test")
+
+        self.assertEqual(1, capabilities_endpoint.call_count)
 
     def test_create_collections(self, m):
         expected_response = {
@@ -878,7 +1206,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertDictEqual(
             {
                 "event_type": "dropped rows",
-                "message": "from collection helge_tt where " "id=eq.1",
+                "message": "from collection helge_tt where id=eq.1",
                 "user": "helge",
             },
             json.loads(log_event_endpoint.last_request.text),
@@ -1667,7 +1995,7 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertDictEqual(
             {
                 "event_type": "added property",
-                "message": "{name: prop, type: INT} to " "collection helge_col",
+                "message": "{name: prop, type: INT} to collection helge_col",
                 "user": "helge",
             },
             json.loads(log_event_endpoint.last_request.text),
@@ -1695,15 +2023,13 @@ class GeoDBClientTest(unittest.TestCase):
         self.assertDictEqual(
             {
                 "event_type": "dropped property",
-                "message": "test_prop2 from " "collection helge_test_col",
+                "message": "test_prop2 from collection helge_test_col",
                 "user": "helge",
             },
             json.loads(log_event_endpoint.last_request.text),
         )
 
-        expected = {
-            "Message": "Properties ['test_prop'] dropped from " "helge_test_col"
-        }
+        expected = {"Message": "Properties ['test_prop'] dropped from helge_test_col"}
         self.check_message(res, expected)
 
     def test_drop_properties(self, m):
@@ -1730,7 +2056,7 @@ class GeoDBClientTest(unittest.TestCase):
         )
 
         expected = {
-            "Message": "Properties ['raba_id', 'allet'] dropped " "from helge_test"
+            "Message": "Properties ['raba_id', 'allet'] dropped from helge_test"
         }
         self.check_message(res, expected)
 
