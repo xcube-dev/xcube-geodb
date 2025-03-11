@@ -495,7 +495,12 @@ class GeoDBClient(object):
             A dictionary of the geoDB PostGrest REST API service's capabilities
 
         """
-        return self._capabilities or self._get(path="/").json()
+
+        if self._capabilities:
+            return self._capabilities
+
+        self._capabilities = self._get(path="/").json()
+        return self._capabilities
 
     def _refresh_capabilities(self):
         self._capabilities = None

@@ -9,6 +9,7 @@
 
 - database truncation now works as name suggests (#009)
 - cleaned up documentation (#110)
+- fixed caching of capabilities [#108]
 
 ## v1.0.9
 
