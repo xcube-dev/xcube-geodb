@@ -1,6 +1,6 @@
 [![Documentation Status](https://github.com/xcube-dev/xcube-geodb/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/xcube-dev/xcube-geodb/actions/workflows/pages/pages-build-deployment)
 [![Unittest xcube-geodb](https://github.com/xcube-dev/xcube-geodb/actions/workflows/workflow.yml/badge.svg)](https://github.com/xcube-dev/xcube-geodb/actions/workflows/workflow.yml)
-[![codecov](https://codecov.io/gh/xcube-dev/xcube-geodb/branch/main/graph/badge.svg)](https://codecov.io/gh/dcs4cop/xcube-geodb)
+[![codecov](https://codecov.io/gh/xcube-dev/xcube-geodb/graph/badge.svg?token=67zPacCxuz)](https://codecov.io/gh/xcube-dev/xcube-geodb)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v1.json)](https://github.com/astral-sh/ruff)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/xcube_geodb/badges/version.svg)](https://anaconda.org/conda-forge/xcube_geodb)
 

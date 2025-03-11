@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   push:
   release:
-    types: [published]
+    types: [ published ]
 
 
 env:
@@ -18,13 +18,6 @@ env:
   # Unfortunately, you cannot set an if statement on job level. Hence, these variables are used in each step
   # of a unittest/nb-test job.
   RUN_UNITTESTS: "1"
-  #  todo - switch the notebook tests back on after xcube-hub has been replaced
-  # Currently, the notebooks under test use xcube-hub, which uses an HS256 key to
-  # authenticate at PostGREST. The switch from xcube-hub to a Keycloak-based solution
-  # enforces the use of an RS256 key. Therefore, dev-PostGREST is already configured
-  # with an RS256 key, but as we do not want to change xcube-hub in that respect, we
-  # switch off the notebook-tests.
-  RUN_NB_TESTS: "0"
 
   # Determines whether the dev branch ouy are working on shall have a docker image (default 0)
   DOCKER_BUILD_MY_BRANCH: "0"
@@ -84,28 +77,24 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
-        if: ${{ env.RUN_NB_TESTS == '1' }}
         with:
           channels: conda-forge
           activate-environment: xcube-geodb
           environment-file: etc/environment-workflow.linux-64.lock
       - name: setup xcube-geodb
-        if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
         run: |
           conda info
           conda list
           python setup.py develop
       - name: install papermill
-        if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
         run: pip install papermill[all]
       - name: test-notebooks
-        if: ${{ env.RUN_NB_TESTS == '1' }}
         shell: bash -l {0}
-        working-directory: notebooks
+        working-directory: docs/source/notebooks
         run: |
-          for nb in $(ls *.ipynb | grep -v publish_collection)
+          for nb in $(ls *.ipynb)
           do
             papermill $nb  $(basename -s .ipynb $nb)_out.ipynb
           done
@@ -114,7 +103,7 @@ jobs:
       PUSH: 1
     runs-on: ubuntu-latest
     name: update-tag
-    needs: [unittest, nb-test]
+    needs: [ unittest, nb-test ]
     steps:
       - name: Get installation token
         id: get_installation_token
@@ -176,8 +165,8 @@ jobs:
         run: |
           head values-dev.yaml
           head values-stage.yaml
-#          No production deployment at the moment
-#          head values-prod.yaml
+      #          No production deployment at the moment
+      #          head values-prod.yaml
       - name: Pushes to another repository
         # Don't run if run locally and should be ignored
         if: ${{ steps.deployment-phase.outputs.phase != 'ignore' && !env.ACT }}

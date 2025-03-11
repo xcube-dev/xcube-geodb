@@ -95,6 +95,7 @@ class EventType:
     RENAMED = "renamed"
     COPIED = "copied"
     MOVED = "moved"
+    READ = "read"
     PUBLISHED = "published"
     UNPUBLISHED = "unpublished"
     PUBLISHED_GS = "published to geoserver"
@@ -182,6 +183,8 @@ class GeoDBClient(object):
         self._dotenv_file = dotenv_file
         self._database = None
         self._raise_it = raise_it
+        self._do_log_read = True
+
         # Access token is set here or on request
 
         # defaults
@@ -846,8 +849,6 @@ class GeoDBClient(object):
                 except GeoDBError:
                     pass
 
-        self._refresh_capabilities()
-
         database = database or self.database
 
         if not self.database_exists(database):
@@ -862,6 +863,7 @@ class GeoDBClient(object):
             self._post(path="/rpc/geodb_create_collections", payload=collections)
             for collection in collections["collections"]:
                 self._log_event(EventType.CREATED, f"collection {collection}")
+            self._refresh_capabilities()
             return Message(collections)
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -894,8 +896,6 @@ class GeoDBClient(object):
         """
         crs = check_crs(crs)
         collections = {collection: {"properties": properties, "crs": str(crs)}}
-
-        self._refresh_capabilities()
 
         return self.create_collections(
             collections=collections, database=database, clear=clear
@@ -945,8 +945,6 @@ class GeoDBClient(object):
             >>> geodb.drop_collections(collections=['[MyCollection1]', '[MyCollection2]'])
         """
 
-        self._refresh_capabilities()
-
         database = database or self.database
         collections = [database + "_" + collection for collection in collections]
         payload = {
@@ -958,6 +956,7 @@ class GeoDBClient(object):
             self._post(path="/rpc/geodb_drop_collections", payload=payload)
             for collection in collections:
                 self._log_event(EventType.DROPPED, f"collection {collection}")
+            self._refresh_capabilities()
             return Message(f"Collection {str(collections)} deleted")
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -1254,8 +1253,6 @@ class GeoDBClient(object):
                                    properties=properties)
         """
 
-        self._refresh_capabilities()
-
         database = database or self.database
         dn = database + "_" + collection
 
@@ -1270,6 +1267,8 @@ class GeoDBClient(object):
                     EventType.PROPERTY_ADDED,
                     f"{{name: {prop_name}, type: {prop_type}}} to collection {dn}",
                 )
+
+            self._refresh_capabilities()
             return Message("Properties added")
         except GeoDBError as e:
             return self._maybe_raise(e)
@@ -1320,7 +1319,6 @@ class GeoDBClient(object):
                                                   'MyProperty2'])
         """
 
-        self._refresh_capabilities()
         database = database or self.database
         collection = database + "_" + collection
 
@@ -1338,7 +1336,11 @@ class GeoDBClient(object):
                     EventType.PROPERTY_DROPPED, f"{prop} from collection {collection}"
                 )
 
-            return Message(f"Properties {str(properties)} dropped from {collection}")
+            self._refresh_capabilities()
+            return Message(
+                f"Properties {str(properties)} dropped from " f"{collection}"
+            )
+
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -1460,6 +1462,8 @@ class GeoDBClient(object):
 
         """
 
+        self._do_log_read = False
+
         try:
             return self.get_collection(
                 collection="user_databases",
@@ -1484,6 +1488,7 @@ class GeoDBClient(object):
 
         """
 
+        self._do_log_read = False
         try:
             res = self.get_collection(
                 collection="user_databases",
@@ -1810,23 +1815,26 @@ class GeoDBClient(object):
 
             headers = {"Accept": "application/vnd.pgrst.object+json"}
 
+            payload = {
+                "collection": dn,
+                "minx": bbox[0],
+                "miny": bbox[1],
+                "maxx": bbox[2],
+                "maxy": bbox[3],
+                "comparison_mode": comparison_mode,
+                "bbox_crs": bbox_crs,
+                "limit": limit,
+                "where": where,
+                "op": op,
+                "offset": offset,
+            }
             r = self._post(
                 "/rpc/geodb_get_by_bbox",
                 headers=headers,
-                payload={
-                    "collection": dn,
-                    "minx": bbox[0],
-                    "miny": bbox[1],
-                    "maxx": bbox[2],
-                    "maxy": bbox[3],
-                    "comparison_mode": comparison_mode,
-                    "bbox_crs": bbox_crs,
-                    "limit": limit,
-                    "where": where,
-                    "op": op,
-                    "offset": offset,
-                },
+                payload=payload,
             )
+
+            self._maybe_log_read(collection, database, str(payload))
 
             js = r.json()["src"]
             if js:
@@ -2042,6 +2050,8 @@ class GeoDBClient(object):
             else:
                 r = self._get(f"/{dn}")
 
+            self._maybe_log_read(collection, database, actual_query)
+
             js = r.json()
 
             if js:
@@ -2113,6 +2123,8 @@ class GeoDBClient(object):
 
             js = r.json()["src"]
 
+            self._maybe_log_read(collection, database)
+
             if js:
                 srid = self.get_collection_srid(collection, database)
                 return self._df_from_json(js, srid)
@@ -2120,6 +2132,15 @@ class GeoDBClient(object):
                 return DataFrame(columns=["Empty Result"])
         except GeoDBError as e:
             return self._maybe_raise(e, return_df=True)
+
+    def _maybe_log_read(self, collection, database, query=None):
+        if self._do_log_read:
+            message = f"read from collection {database}_{collection}"
+            if query:
+                message += f": {query}"
+            self._log_event(EventType.READ, message)
+        else:
+            self._do_log_read = True
 
     def create_index(self, collection: str, prop: str, database: str = None) -> Message:
         """
@@ -2915,6 +2936,7 @@ class GeoDBClient(object):
         """
         database = database or self.database
 
+        self._do_log_read = False
         try:
             self.head_collection(collection, database=database)
         except GeoDBError:

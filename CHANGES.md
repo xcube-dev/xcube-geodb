@@ -2,6 +2,9 @@
 
 ### New Features
 
+- the geoDB client correctly refreshes the capabilities of the PostGREST server
+- geoDB now logs collection read events, if deliberately triggered by the user
+
 ### Fixes
 
 - database truncation now works as name suggests (#009)
