@@ -89,7 +89,9 @@ class GeoDBError(ValueError):
 
 class EventType:
     CREATED = "created"
+    DATABASE_CREATED = "created database"
     DROPPED = "dropped"
+    DATABASE_DROPPED = "dropped database"
     RENAMED = "renamed"
     COPIED = "copied"
     MOVED = "moved"
@@ -410,7 +412,9 @@ class GeoDBClient(object):
         except GeoDBError as e:
             self._maybe_raise(e)
 
-    def get_my_collections(self, database: Optional[str] = None) -> Sequence:
+    def get_my_collections(
+        self, database: Optional[str] = None
+    ) -> DataFrame | GeoDataFrame | None:
         """
 
         Args:
@@ -1263,6 +1267,7 @@ class GeoDBClient(object):
                     EventType.PROPERTY_ADDED,
                     f"{{name: {prop_name}, type: {prop_type}}} to collection {dn}",
                 )
+
             self._refresh_capabilities()
             return Message("Properties added")
         except GeoDBError as e:
@@ -1330,10 +1335,12 @@ class GeoDBClient(object):
                 self._log_event(
                     EventType.PROPERTY_DROPPED, f"{prop} from collection {collection}"
                 )
+
             self._refresh_capabilities()
             return Message(
                 f"Properties {str(properties)} dropped from " f"{collection}"
             )
+
         except GeoDBError as e:
             return self._maybe_raise(e)
 
@@ -1394,22 +1401,54 @@ class GeoDBClient(object):
         except GeoDBError as e:
             return self._maybe_raise(e)
 
-    def truncate_database(self, database: str) -> Message:
+    def truncate_database(self, database: str, force: bool = False) -> Message:
         """
-        Delete all tables in the given database.
+        Delete the given database, if empty. If the database is not empty, it will not
+        be deleted, unless the `force` parameter is True.
 
         Args:
-            database (str): The name of the database to be created
+            database (str): The name of the database to be deleted.
+            force (bool): Drop all collections within the database.
 
         Returns:
-            Message: A message about the success or failure of the operation
-
+            Message: A message that the operation has been successful.
         """
+
+        if not self.database_exists(database):
+            raise GeoDBError(
+                f"Database {database} does not exist. No action has been taken."
+            )
+
+        if database == self.whoami:
+            raise GeoDBError(
+                f"The default database {database} cannot be dropped. No action has "
+                f"been taken."
+            )
+
+        if database not in list(self.get_my_databases()["name"]):
+            raise GeoDBError(
+                f"You can only delete databases you own. You are not the owner of "
+                f"database {database}."
+            )
+
+        if len(self.get_my_collections(database)) > 0 and not force:
+            raise GeoDBError(
+                f"The database {database} is not empty, and can therefore not be "
+                f"dropped. No action has been taken. "
+                f"If you wish to drop the database and all the collections inside, use "
+                f"`force=True`. Warning: this action cannot be reverted!"
+            )
+
+        # we can safely assume here that either the database is empty, or force == True
+        if len(self.get_my_collections(database)) > 0:
+            for collection in list(self.get_my_collections(database)["collection"]):
+                self.drop_collection(collection, database)
 
         try:
             self._post(
                 path="/rpc/geodb_truncate_database", payload={"database": database}
             )
+            self._log_event(EventType.DATABASE_DROPPED, database)
             return Message(f"Database {database} truncated")
         except GeoDBError as e:
             return self._maybe_raise(e)

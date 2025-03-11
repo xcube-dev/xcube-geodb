@@ -8,7 +8,7 @@ import requests
 import requests_mock
 from geopandas import GeoDataFrame
 from psycopg2 import OperationalError
-from requests_mock import Mocker
+from requests_mock.mocker import Mocker
 from shapely import wkt, Polygon
 
 from tests.utils import del_env
@@ -490,21 +490,257 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual("Response invalid", str(e.exception))
 
-    def test_truncate_database(self, m):
-        expected_response = True
-        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_truncate_database"
-        m.post(url, text=json.dumps(expected_response))
+    def test_force_truncate_database(self, m: Mocker):
         self.set_global_mocks(m)
+        username = "memyselfi"
+        database = "andmydatabase"
 
-        res = self._api.truncate_database(database="test")
-        expected = {"Message": "Database test truncated"}
-        self.check_message(res, expected)
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_collection_srid"
+        )
+        m.post(url, json={}, status_code=400)
 
-        m.post(url, text="Response invalid", status_code=400)
-        with self.assertRaises(GeoDBError) as e:
-            self._api.truncate_database(database="test")
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?name=eq.{database}"
+        )
+        m.get(
+            url,
+            json={"id": 3, "name": database, "owner": username, "iss": None},
+            status_code=200,
+        )
 
-        self.assertEqual("Response invalid", str(e.exception))
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?owner=eq.{username}"
+        )
+        m.get(
+            url,
+            json=[
+                {"id": 3, "name": database, "owner": username, "iss": None},
+            ],
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_my_collections"
+        )
+        collections = [
+            {
+                "src": [
+                    {
+                        "collection": "some_collection_I_got",
+                        "database": database,
+                        "owner": username,
+                    },
+                    {
+                        "collection": "another_collection_I_got",
+                        "database": database,
+                        "owner": username,
+                    },
+                ]
+            }
+        ]
+        m.post(
+            url,
+            json=collections,
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_drop_collections"
+        )
+        drop_collections_endpoint = m.post(
+            url,
+            status_code=200,
+        )
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_whoami"
+        m.get(url, json=username)
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_truncate_database"
+        )
+        truncate_database_endpoint = m.post(
+            url,
+            status_code=200,
+        )
+
+        self._api.truncate_database(database=database, force=True)
+
+        self.assertEqual(2, drop_collections_endpoint.call_count)
+        self.assertEqual(1, truncate_database_endpoint.call_count)
+
+    def test_cannot_truncate_nonexisting_database(self, m: Mocker):
+        self.set_global_mocks(m)
+        database = "memyselfi"
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_get_collection_srid"
+        m.post(url, json={}, status_code=400)
+
+        url = f"{self._server_test_url}:{self._server_test_port}/geodb_user_databases?name=eq.{database}"
+        m.get(url, json={}, status_code=200)
+
+        with self.assertRaises(GeoDBError) as context:
+            self._api.truncate_database(database)
+
+        self.assertEqual(
+            str(context.exception),
+            f"Database {database} does not exist. No action has been taken.",
+        )
+
+    def test_cannot_truncate_default_database(self, m: Mocker):
+        self.set_global_mocks(m)
+        username = "memyselfi"
+        database = username
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_collection_srid"
+        )
+        m.post(url, json={}, status_code=400)
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?name=eq.{database}"
+        )
+        m.get(
+            url,
+            json={"id": 3, "name": database, "owner": username, "iss": None},
+            status_code=200,
+        )
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_whoami"
+        m.get(url, json=username)
+
+        with self.assertRaises(GeoDBError) as context:
+            self._api.truncate_database(database=database)
+        self.assertEqual(
+            f"The default database {database} cannot be dropped. "
+            f"No action has been taken.",
+            str(context.exception),
+        )
+
+    def test_cannot_truncate_nonowned_database(self, m: Mocker):
+        self.set_global_mocks(m)
+        username = "memyselfi"
+        database = "some_database_i_dont_own"
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_collection_srid"
+        )
+        m.post(url, json={}, status_code=400)
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?owner=eq.{username}"
+        )
+        m.get(
+            url,
+            json=[
+                {"id": 3, "name": "some_db_i_own", "owner": username, "iss": None},
+            ],
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?name=eq.{database}"
+        )
+        m.get(
+            url,
+            json=[
+                {
+                    "id": 4,
+                    "name": database,
+                    "owner": "some_user_that_is_not_me",
+                    "iss": None,
+                },
+            ],
+            status_code=200,
+        )
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_whoami"
+        m.get(url, json=username)
+
+        with self.assertRaises(GeoDBError) as context:
+            self._api.truncate_database(database=database)
+        self.assertEqual(
+            f"You can only delete databases you own. You are not the owner of "
+            f"database {database}.",
+            str(context.exception),
+        )
+
+    def test_cannot_truncate_nonempty_database(self, m: Mocker):
+        self.set_global_mocks(m)
+        username = "memyselfi"
+        database = "andmydatabase"
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_collection_srid"
+        )
+        m.post(url, json={}, status_code=400)
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?name=eq.{database}"
+        )
+        m.get(
+            url,
+            json={"id": 3, "name": database, "owner": username, "iss": None},
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/geodb_user_databases?owner=eq.{username}"
+        )
+        m.get(
+            url,
+            json=[
+                {"id": 3, "name": database, "owner": username, "iss": None},
+            ],
+            status_code=200,
+        )
+
+        url = (
+            f"{self._server_test_url}:{self._server_test_port}"
+            f"/rpc/geodb_get_my_collections"
+        )
+        m.post(
+            url,
+            json=[
+                {
+                    "src": [
+                        {
+                            "collection": "some_collection_I_got",
+                            "database": database,
+                            "owner": username,
+                        }
+                    ]
+                }
+            ],
+            status_code=200,
+        )
+
+        url = f"{self._server_test_url}:{self._server_test_port}/rpc/geodb_whoami"
+        m.get(url, json=username)
+
+        with self.assertRaises(GeoDBError) as context:
+            self._api.truncate_database(database=database)
+        self.assertEqual(
+            f"The database {database} is not empty, and can therefore not be dropped. "
+            f"No action has been taken. "
+            f"If you wish to drop the database and all the collections inside, use "
+            f"`force=True`. Warning: this action cannot be reverted!",
+            str(context.exception),
+        )
 
     def test_create_collection_if_not_exist(self, m):
         self.set_global_mocks(m)
