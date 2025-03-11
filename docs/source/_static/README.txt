@@ -1,1 +1,0 @@
-Static documentation files.

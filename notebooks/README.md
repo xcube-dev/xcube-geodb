@@ -1,1 +1,0 @@
-This folder containe example Notebooks that demonstrate the use of the DCFS GeoDB.

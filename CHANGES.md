@@ -3,6 +3,8 @@
 ### New Features
 
 - the geoDB client correctly refreshes the capabilities of the PostGREST server
+- geoDB now logs collection read events, if deliberately triggered by the user
+- cleaned up documentation (#110)
 
 ### Fixes
 
