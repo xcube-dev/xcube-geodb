@@ -578,6 +578,46 @@ class GeoDBClientTest(unittest.TestCase):
             json.loads(log_event_endpoint.last_request.text),
         )
 
+    # noinspection DuplicatedCode
+    def test_capabilities_cache_on_create(self, m):
+        self.set_global_mocks(m)
+
+        response = "Success"
+        url = f"{self._base_url}/geodb_user_databases?name=eq.helge"
+        m.get(url, text=json.dumps(response))
+        url = f"{self._base_url}/rpc/geodb_create_collections"
+        m.post(url, text=json.dumps(response))
+        url = f"{self._base_url}/"
+        capabilities_endpoint = m.get(
+            url, text=json.dumps({"definitions": {"helge_test": "dummy"}})
+        )
+
+        self.assertEqual(0, capabilities_endpoint.call_count)
+        self._api.create_collection(collection="test", properties={"test_col": "inger"})
+        self._api.get_collection_info(collection="test")
+
+        self.assertEqual(1, capabilities_endpoint.call_count)
+
+    # noinspection DuplicatedCode
+    def test_capabilities_cache_on_drop(self, m):
+        self.set_global_mocks(m)
+
+        response = "Success"
+        url = f"{self._base_url}/geodb_user_databases?name=eq.helge"
+        m.get(url, text=json.dumps(response))
+        url = f"{self._base_url}/rpc/geodb_drop_collections"
+        m.post(url, text=json.dumps(response))
+        url = f"{self._base_url}/"
+        capabilities_endpoint = m.get(
+            url, text=json.dumps({"definitions": {"helge_test": "dummy"}})
+        )
+
+        self.assertEqual(0, capabilities_endpoint.call_count)
+        self._api.drop_collection(collection="test")
+        self._api.get_collection_info(collection="test")
+
+        self.assertEqual(1, capabilities_endpoint.call_count)
+
     def test_create_collections(self, m):
         expected_response = {
             "collections": {
