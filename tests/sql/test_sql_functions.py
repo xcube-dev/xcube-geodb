@@ -38,7 +38,7 @@ class GeoDBSqlTest(unittest.TestCase):
         # because the PostGIS extension cannot be installed via conda nor pip in a compatible way
 
         # Also, if you are using Docker Desktop for Windows, you have to do the
-        # following:
+        # following (only once, not everytime you are running the tests):
         # dism.exe /Online /Disable-Feature:Microsoft-Hyper-V
         # netsh int ipv4 add excludedportrange protocol=tcp startport=50777 numberofports=1
         # dism.exe /Online /Enable-Feature:Microsoft-Hyper-V /All
@@ -54,7 +54,7 @@ class GeoDBSqlTest(unittest.TestCase):
             path = os.environ["PATH"].split(os.pathsep)
             dirs = [directory for directory in path if "PostgreSQL" in directory]
             dirs.extend(
-                [directory for directory in path if not "PostgreSQL" in directory]
+                [directory for directory in path if "PostgreSQL" not in directory]
             )
             os.environ["PATH"] = os.pathsep.join(dirs)
 
@@ -112,6 +112,7 @@ class GeoDBSqlTest(unittest.TestCase):
             self._set_role("postgres")
             self._cursor.execute(
                 "DROP ROLE IF EXISTS geodb_user ; "
+                "DROP ROLE IF EXISTS geodb_user_read_only ; "
                 'DROP ROLE IF EXISTS "geodb_user-with-hyphens" ; '
                 "DROP ROLE IF EXISTS test_group ; "
                 "DROP ROLE IF EXISTS new_group ; "
@@ -120,6 +121,7 @@ class GeoDBSqlTest(unittest.TestCase):
                 "DROP ROLE IF EXISTS test_member ; "
                 "DROP ROLE IF EXISTS test_member_2 ; "
                 "DROP ROLE IF EXISTS test_nomember ;"
+                "DROP ROLE IF EXISTS some_group ;"
             )
             self._conn.commit()
             self._conn.close()
@@ -283,22 +285,49 @@ class GeoDBSqlTest(unittest.TestCase):
 
         props = {"tt": "integer"}
         sql = f"SELECT geodb_create_collection('geodb_user_test_usage', '{json.dumps(props)}', '4326')"
-        self._cursor.execute(sql)
+        self.execute(sql)
 
-        sql = f"SELECT public.geodb_get_my_usage()"
+        sql = "SELECT public.geodb_get_my_usage()"
         self._cursor.execute(sql)
         self._cursor.fetchone()
 
-        sql = f"SELECT current_user"
+        sql = "SELECT current_user"
         self._cursor.execute(sql)
-        res = self._cursor.fetchone()
-        print(res)
+        self._cursor.fetchone()
+
+    def test_create_collection_forbidden(self):
+        user_name = "geodb_user_read_only"
+        self._set_role(user_name)
+
+        props = {"tt": "integer"}
+        sql = f"SELECT geodb_create_collection('geodb_user_test_usage', '{json.dumps(props)}', '4326')"
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege) as e:
+            self.execute(sql)
+        self.assertIn(
+            "permission denied for function geodb_create_collection", str(e.exception)
+        )
+
+    def test_create_collections_forbidden(self):
+        user_name = "geodb_user_read_only"
+        self._set_role(user_name)
+
+        datasets = {
+            "geodb_user_tt1": {"crs": "4326", "properties": {"tt": "integer"}},
+            "geodb_user_tt2": {"crs": "4326", "properties": {"tt": "integer"}},
+        }
+
+        sql = f"SELECT geodb_create_collections('{json.dumps(datasets)}')"
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege) as e:
+            self.execute(sql)
+        self.assertIn(
+            "permission denied for function geodb_create_collection", str(e.exception)
+        )
 
     def test_create_database(self):
         user_name = "geodb_user"
         self._set_role(user_name)
 
-        sql = f"SELECT geodb_create_database('test')"
+        sql = "SELECT geodb_create_database('test')"
         self._cursor.execute(sql)
 
         sql = f"SELECT * FROM geodb_user_databases WHERE name='test' AND owner = '{user_name}'"
@@ -312,16 +341,28 @@ class GeoDBSqlTest(unittest.TestCase):
 
         # noinspection PyUnresolvedReferences
         with self.assertRaises(psycopg2.errors.RaiseException) as e:
-            sql = f"SELECT geodb_create_database('test')"
+            sql = "SELECT geodb_create_database('test')"
             self._cursor.execute(sql)
 
         self.assertIn("Database test exists already.", str(e.exception))
+
+    def test_create_database_read_only(self):
+        user_name = "geodb_user_read_only"
+        self._set_role(user_name)
+
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege) as e:
+            sql = "SELECT geodb_create_database('geodb_user_read_only')"
+            self.execute(sql)
+
+        self.assertIn(
+            "permission denied for function geodb_create_database", str(e.exception)
+        )
 
     def test_get_geodb_sql_version(self):
         user_name = "geodb_user"
         self._set_role(user_name)
 
-        sql = f"SELECT geodb_get_geodb_sql_version()"
+        sql = "SELECT geodb_get_geodb_sql_version()"
         self._cursor.execute(sql)
         res = self._cursor.fetchone()
 
@@ -335,7 +376,7 @@ class GeoDBSqlTest(unittest.TestCase):
         sql = f"INSERT INTO geodb_user_databases(name, owner) VALUES('test_truncate', '{user_name}')"
         self._cursor.execute(sql)
 
-        sql = f"SELECT geodb_truncate_database('test_truncate')"
+        sql = "SELECT geodb_truncate_database('test_truncate')"
         self._cursor.execute(sql)
 
         sql = f"SELECT * FROM geodb_user_databases WHERE name='test_truncate' AND owner = '{user_name}'"
@@ -452,7 +493,7 @@ class GeoDBSqlTest(unittest.TestCase):
             "VALUES (2, 'POLYGON((-6 9, -6 10, 3 10, 3 9, -6 9))');"
         )
         self._cursor.execute(sql)
-        sql = f'INSERT INTO "{user_table}" (id, geometry) ' "VALUES (3, 'POINT(-6 9)');"
+        sql = f"INSERT INTO \"{user_table}\" (id, geometry) VALUES (3, 'POINT(-6 9)');"
         self._cursor.execute(sql)
 
         sql = f"SELECT geodb_geometry_types('{user_table}', 'false')"
@@ -509,6 +550,16 @@ class GeoDBSqlTest(unittest.TestCase):
             res[0],
         )
 
+    def test_index_functions_not_permitted(self):
+        self._set_role("geodb_user_read_only")
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege) as context:
+            self.execute("SELECT geodb_show_indexes('geodb_user_land_use')")
+
+        self.assertTrue(
+            "permission denied for function geodb_show_indexes"
+            in str(context.exception)
+        )
+
     def test_index_functions(self):
         self.execute("SELECT geodb_show_indexes('geodb_user_land_use')")
         self.assertListEqual([("geodb_user_land_use_pkey",)], self._cursor.fetchall())
@@ -544,6 +595,10 @@ class GeoDBSqlTest(unittest.TestCase):
         self._cursor = self._conn.cursor()
 
         user_name = "geodb_admin"
+        self._set_role("postgres")
+        self.execute("DROP ROLE IF EXISTS some_group")
+        self._cursor = self._conn.cursor()
+
         self._set_role(user_name)
         self.execute(f"SELECT geodb_create_role('{user_name}', 'some_group')")
 
@@ -556,10 +611,7 @@ class GeoDBSqlTest(unittest.TestCase):
         user_name = "geodb_user"
         self._set_role(user_name)
 
-        sql = (
-            "SELECT geodb_grant_access_to_collection("
-            "'geodb_user_land_use', 'public')"
-        )
+        sql = "SELECT geodb_grant_access_to_collection('geodb_user_land_use', 'public')"
         self._cursor.execute(sql)
 
         sql = (
@@ -588,9 +640,9 @@ class GeoDBSqlTest(unittest.TestCase):
         )
         self._cursor.execute(sql)
 
-        sql = f"SELECT geodb_grant_access_to_collection('{name}'," f"'postgres')"
+        sql = f"SELECT geodb_grant_access_to_collection('{name}','postgres')"
         self._cursor.execute(sql)
-        sql = f"SELECT geodb_revoke_access_from_collection('{name}', " f"'postgres')"
+        sql = f"SELECT geodb_revoke_access_from_collection('{name}', 'postgres')"
         self._cursor.execute(sql)
 
     def test_log_event(self):
@@ -601,7 +653,7 @@ class GeoDBSqlTest(unittest.TestCase):
         }
         sql = f"SELECT geodb_log_event('{json.dumps(event)}'::json)"
         self._cursor.execute(sql)
-        sql = f'SELECT * from "geodb_eventlog"'
+        sql = 'SELECT * from "geodb_eventlog"'
         self._cursor.execute(sql)
         res = self._cursor.fetchone()
         self.assertEqual("created", res[0])
@@ -630,7 +682,7 @@ class GeoDBSqlTest(unittest.TestCase):
         sql = f"SELECT geodb_log_event('{json.dumps(event)}'::json)"
         self._cursor.execute(sql)
 
-        sql = f"SELECT get_geodb_eventlog()"
+        sql = "SELECT get_geodb_eventlog()"
         self._cursor.execute(sql)
         events = self._cursor.fetchall()[0][0]
         self.assertEqual(len(event_type_list) + 1, len(events))
@@ -647,7 +699,7 @@ class GeoDBSqlTest(unittest.TestCase):
         self.assertEqual("added rows happened on db_col", last_event["message"])
         self.assertEqual("wahnfried", last_event["username"])
 
-        sql = f"SELECT get_geodb_eventlog('PUBLISHED')"
+        sql = "SELECT get_geodb_eventlog('PUBLISHED')"
         self._cursor.execute(sql)
         events = self._cursor.fetchall()[0][0]
         self.assertEqual(1, len(events))
@@ -658,7 +710,7 @@ class GeoDBSqlTest(unittest.TestCase):
         )
         self.assertEqual("thomas", events[0]["username"])
 
-        sql = f"SELECT get_geodb_eventlog('%', 'db_col')"
+        sql = "SELECT get_geodb_eventlog('%', 'db_col')"
         self._cursor.execute(sql)
         events = self._cursor.fetchall()[0][0]
         self.assertEqual(1, len(events))

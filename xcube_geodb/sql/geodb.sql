@@ -1,8 +1,29 @@
--- noinspection SqlResolveForFile
-
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 CREATE SCHEMA IF NOT EXISTS geodb_user_info;
+
+-- cleanup litter of previous versions
+
+DROP FUNCTION IF EXISTS public.geodb_check_user(text);
+DROP FUNCTION IF EXISTS public.geodb_check_user_grants(text);
+DROP FUNCTION IF EXISTS public.geodb_copy_collection2(text);
+DROP FUNCTION IF EXISTS public.geodb_copy_collection3(text);
+DROP FUNCTION IF EXISTS public.geodb_dashboard_view_query(text);
+DROP FUNCTION IF EXISTS public.geodb_extract_database(text);
+DROP FUNCTION IF EXISTS public.geodb_get_geodb_version();
+DROP FUNCTION IF EXISTS public.geodb_get_mvt();
+DROP FUNCTION IF EXISTS public.geodb_get_mvt_geom();
+DROP FUNCTION IF EXISTS public.geodb_get_nearest(text, double precision, double precision, integer, text,
+                                                 text, text, integer);
+DROP FUNCTION IF EXISTS public.geodb_grant_user_admin(text);
+DROP FUNCTION IF EXISTS public.geodb_group_users(text);
+DROP FUNCTION IF EXISTS public.geodb_list_users();
+DROP FUNCTION IF EXISTS public.geodb_log_sizes();
+DROP FUNCTION IF EXISTS public.geodb_reassign_owned();
+DROP FUNCTION IF EXISTS public.geodb_remove_index();
+DROP FUNCTION IF EXISTS public.geodb_test_exception();
+
+-- cleanup end
 
 
 CREATE SEQUENCE IF NOT EXISTS public.geodb_user_info_id_seq
@@ -59,6 +80,8 @@ BEGIN
 END
 $BODY$;
 
+-- todo - this function should check permissions on the collections
+-- todo - and be renamed to geodb_get_eventlog
 CREATE OR REPLACE FUNCTION public.get_geodb_eventlog(
     "event_type" text DEFAULT '%',
     "collection" text DEFAULT '%')
@@ -77,6 +100,8 @@ BEGIN
                                 event_type, collection);
 END
 $BODY$;
+
+REVOKE EXECUTE ON FUNCTION get_geodb_eventlog(text, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_register_user_trg_func()
     RETURNS trigger
@@ -145,7 +170,6 @@ DECLARE
     groupname varchar;
 BEGIN
     -- noinspection SqlAggregates
-
     SELECT COUNT(*) as ct
     FROM geodb_user_databases
     WHERE collection LIKE name || '_%'
@@ -176,9 +200,7 @@ BEGIN
 END
 $BODY$;
 
--- FUNCTION: public.geodb_create_database(text)
-
--- DROP FUNCTION public.geodb_create_database(text);
+REVOKE EXECUTE ON FUNCTION geodb_user_allowed(text, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_create_database(
     database text)
@@ -207,6 +229,7 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_create_database(text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_truncate_database(
     database text)
@@ -226,9 +249,7 @@ BEGIN
 END
 $BODY$;
 
--- FUNCTION: public.geodb_add_properties(text, json)
-
--- DROP FUNCTION public.geodb_add_properties(text, json);
+REVOKE EXECUTE ON FUNCTION geodb_truncate_database(text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_add_properties(IN collection text, IN properties json)
     RETURNS void
@@ -245,6 +266,7 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_add_properties(text, json) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_drop_properties(IN collection text, IN properties json)
     RETURNS void
@@ -266,6 +288,7 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_drop_properties(text, json) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_get_properties(collection text)
     RETURNS TABLE
@@ -292,12 +315,6 @@ BEGIN
 
 END
 $BODY$;
-
-
--- noinspection SqlNoDataSourceInspectionForFile
-
--- noinspection SqlResolveForFile
-
 
 CREATE OR REPLACE FUNCTION update_modified_column()
     RETURNS TRIGGER AS
@@ -348,7 +365,7 @@ BEGIN
 END
 $BODY$;
 
-
+REVOKE EXECUTE ON FUNCTION geodb_create_collection(text, json, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_create_collections("collections" json)
     RETURNS void
@@ -372,8 +389,7 @@ BEGIN
 END
 $BODY$;
 
--- geodb_drop_collections(json) has been replace by public.geodb_drop_collections(json, bool)
-DROP FUNCTION IF EXISTS public.geodb_drop_collections(json);
+REVOKE EXECUTE ON FUNCTION geodb_create_collections(json) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_drop_collections(collections json, "cascade" bool DEFAULT TRUE)
     RETURNS void
@@ -394,6 +410,7 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_drop_collections(json, bool) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_grant_access_to_collection(
     collection text,
@@ -418,6 +435,7 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_grant_access_to_collection(text, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_revoke_access_from_collection(
     collection text,
@@ -437,6 +455,8 @@ BEGIN
     EXECUTE format('REVOKE USAGE, SELECT ON SEQUENCE %s FROM %I', seq_name, usr);
 END
 $BODY$;
+
+REVOKE EXECUTE ON FUNCTION geodb_revoke_access_from_collection(text, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_get_collection_bbox(collection text)
     RETURNS text
@@ -584,7 +604,6 @@ BEGIN
 END
 $BODY$;
 
-
 CREATE OR REPLACE FUNCTION public.geodb_list_grants()
     RETURNS TABLE
             (
@@ -606,11 +625,6 @@ BEGIN
 
 END
 $BODY$;
-
-
--- FUNCTION: public.geodb_list_databases()
-
--- DROP FUNCTION public.geodb_list_databases();
 
 CREATE OR REPLACE FUNCTION public.geodb_list_databases()
     RETURNS TABLE
@@ -635,10 +649,7 @@ BEGIN
 END
 $$;
 
-ALTER FUNCTION public.geodb_list_databases()
-    OWNER TO postgres;
-
-
+REVOKE EXECUTE ON FUNCTION geodb_list_databases() FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_rename_collection(
     collection text,
@@ -670,7 +681,7 @@ BEGIN
 END
 $BODY$;
 
-
+REVOKE EXECUTE ON FUNCTION geodb_rename_collection(text, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_publish_collection(
     collection text)
@@ -686,6 +697,7 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_publish_collection(text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_unpublish_collection(
     collection text)
@@ -702,8 +714,7 @@ BEGIN
 END
 $BODY$;
 
-
--- noinspection SqlSignatureForFile
+REVOKE EXECUTE ON FUNCTION geodb_unpublish_collection(text) FROM PUBLIC;
 
 DO
 $do$
@@ -730,7 +741,6 @@ $do$
     END
 $do$;
 
-
 CREATE OR REPLACE FUNCTION public.geodb_whoami()
     RETURNS text
     LANGUAGE 'plpgsql'
@@ -751,42 +761,6 @@ SELECT version
 from geodb_version_info
 $$;
 
-
--- FUNCTION: public.geodb_log_sizes()
-
--- DROP FUNCTION public.geodb_log_sizes();
-
-CREATE OR REPLACE FUNCTION public.geodb_log_sizes()
-    RETURNS void
-    LANGUAGE 'plpgsql'
-    COST 100
-    VOLATILE PARALLEL UNSAFE
-AS
-$BODY$
-BEGIN
-    INSERT INTO geodb_size_log
-    SELECT now()
-         , *
-         , pg_size_pretty(total_bytes) AS total
-         , pg_size_pretty(index_bytes) AS "index"
-         , pg_size_pretty(toast_bytes) AS "toast"
-         , pg_size_pretty(table_bytes) AS "table"
-    FROM (SELECT *, total_bytes - index_bytes - COALESCE(toast_bytes, 0) AS table_bytes
-          FROM (SELECT c.oid
-                     , nspname                               AS table_schema
-                     , relname                               AS "collection"
-                     , c.reltuples                           AS row_estimate
-                     , pg_total_relation_size(c.oid)         AS total_bytes
-                     , pg_indexes_size(c.oid)                AS index_bytes
-                     , pg_total_relation_size(reltoastrelid) AS toast_bytes
-                FROM pg_class c
-                         LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
-                WHERE relkind = 'r') a
-          WHERE table_schema = 'public') a;
-END
-$BODY$;
-
-
 CREATE OR REPLACE FUNCTION public.geodb_register_user(
     user_name text,
     password text)
@@ -798,6 +772,7 @@ AS
 $BODY$
 DECLARE
     usr TEXT;
+    r   RECORD;
 BEGIN
     usr := current_setting('request.jwt.claim.clientId', true);
     BEGIN
@@ -807,6 +782,22 @@ BEGIN
     END;
     EXECUTE format('ALTER ROLE %I PASSWORD ''%s''; ALTER ROLE %I SET search_path = public;' ||
                    'GRANT %I TO authenticator;', user_name, password, user_name, user_name);
+    FOR r IN
+        SELECT p.proname,
+               pgn.nspname,
+               pg_catalog.pg_get_function_identity_arguments(p.oid) AS arg_types
+        FROM pg_proc p
+                 JOIN pg_namespace pgn ON p.pronamespace = pgn.oid
+        WHERE p.proname LIKE 'geodb_%'
+          AND pgn.nspname NOT IN ('pg_catalog', 'information_schema')
+          AND p.proname NOT IN ('geodb_get_user_roles', 'geodb_get_user_usage')
+        LOOP
+            EXECUTE format('GRANT EXECUTE ON FUNCTION ' || r.nspname || '.' || r.proname || '(' || r.arg_types ||
+                           ') TO %I ;',
+                           user_name);
+        END LOOP;
+    EXECUTE format('GRANT CREATE ON SCHEMA public TO %I ;', user_name);
+    EXECUTE format('GRANT INSERT, SELECT, UPDATE ON ALL TABLES IN SCHEMA public TO %I ;', user_name);
     EXECUTE format(
             'INSERT INTO geodb_user_databases(name, owner, iss) VALUES(''%s'',''%s'', ''%s'') ON CONFLICT ON CONSTRAINT unique_db_name_owner DO NOTHING;',
             user_name, user_name, usr);
@@ -850,69 +841,6 @@ $BODY$;
 REVOKE EXECUTE ON FUNCTION geodb_drop_user(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION geodb_drop_user(text) TO geodb_admin;
 
-CREATE OR REPLACE FUNCTION public.geodb_grant_user_admin(user_name text)
-    RETURNS boolean
-    LANGUAGE 'plpgsql'
-AS
-$BODY$
-BEGIN
-    EXECUTE format('GRANT geodb_admin TO %I', user_name);
-    RETURN true;
-END
-$BODY$;
-
-REVOKE EXECUTE ON FUNCTION geodb_grant_user_admin(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION geodb_grant_user_admin(text) TO geodb_admin;
-
-
--- FUNCTION: public.geodb_check_user()
-
--- DROP FUNCTION public.geodb_check_user();
-
-CREATE OR REPLACE FUNCTION public.geodb_check_user()
-    RETURNS void
-    LANGUAGE 'plpgsql'
-    COST 100
-    VOLATILE PARALLEL UNSAFE
-AS
-$$
-BEGIN
-    IF current_user = 'anonymous' THEN
-        RAISE SQLSTATE 'PT403' USING DETAIL = 'Anonymous users do not have access.',
-            HINT = 'Access denied.';
-    END IF;
-END
-$$;
-
-
--- FUNCTION: public.geodb_check_user_grants(text)
-
--- DROP FUNCTION public.geodb_check_user_grants(text);
-
-CREATE OR REPLACE FUNCTION public.geodb_check_user_grants(grt text)
-    RETURNS boolean
-    LANGUAGE 'plpgsql'
-    COST 100
-    VOLATILE PARALLEL UNSAFE
-AS
-$$
-DECLARE
-    permissions text;
-    ct          integer;
-BEGIN
-    permissions := current_setting('request.jwt.claim.scope', TRUE)::text;
-
-    EXECUTE format('SELECT strpos(''%s'', ''%s'')', permissions, grt) INTO ct;
-
-    IF ct = 0 THEN
-        raise 'Not enough access rights to perform this operation: %', grt;
-    END IF;
-
-    RETURN TRUE;
-END
-$$;
-
-
 CREATE OR REPLACE FUNCTION public.geodb_get_user_usage(user_name text)
     RETURNS TABLE
             (
@@ -934,6 +862,7 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_get_user_usage(text) FROM PUBLIC;
 
 -- noinspection SqlUnused
 
@@ -960,6 +889,8 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_get_user_usage(text, bool) FROM PUBLIC;
+
 CREATE OR REPLACE FUNCTION public.geodb_get_my_usage()
     RETURNS TABLE
             (
@@ -980,6 +911,8 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_get_my_usage() FROM PUBLIC;
+
 CREATE OR REPLACE FUNCTION public.geodb_get_my_usage(pretty boolean)
     RETURNS TABLE
             (
@@ -999,6 +932,8 @@ BEGIN
     RETURN QUERY EXECUTE format('SELECT geodb_get_user_usage(''%I'', ''%s'')', me, pretty);
 END
 $BODY$;
+
+REVOKE EXECUTE ON FUNCTION geodb_get_my_usage(bool) FROM PUBLIC;
 
 
 CREATE OR REPLACE FUNCTION public.geodb_get_pg(
@@ -1251,71 +1186,6 @@ END
 $BODY$;
 
 
-CREATE OR REPLACE FUNCTION public.geodb_get_nearest(
-    collection text,
-    x double precision,
-    y double precision,
-    point_crs integer DEFAULT 4326,
-    "select" text DEFAULT '*'::text,
-    "where" text DEFAULT NULL::text,
-    "group" text DEFAULT NULL::text,
-    "limit" integer DEFAULT NULL::integer,
-    "offset" integer DEFAULT NULL::integer)
-    RETURNS TABLE
-            (
-                src json
-            )
-    LANGUAGE 'plpgsql'
-
-    COST 100
-    VOLATILE
-    ROWS 1000
-AS
-$BODY$
-DECLARE
-    qry            text;
-    DECLARE row_ct int;
-BEGIN
-    qry := format(
-            'SELECT
-                %s,
-                ST_AsText(geometry) as aoi,
-                ST_Distance(geometry,''SRID=%s;POINT(%s %s)''::geometry) AS distance
-            FROM
-                %I
-            ',
-            "select", point_crs, x, y, collection
-           );
-
-    IF "where" IS NOT NULL THEN
-        qry := qry || format('WHERE %s ', "where");
-    END IF;
-
-    IF "group" IS NOT NULL THEN
-        qry := qry || format('GROUP BY %s ', "group");
-    END IF;
-
-    qry := qry || format(' ORDER BY geometry <#> ''SRID=%s;POINT(%s %s)''::geometry ', point_crs, x, y);
-
-    IF "limit" IS NOT NULL THEN
-        qry := qry || format('LIMIT %s  ', "limit");
-    END IF;
-
-    IF "limit" IS NOT NULL AND "offset" IS NOT NULL THEN
-        qry := qry || format('OFFSET %s ', "offset");
-    END IF;
-
-    RETURN QUERY EXECUTE format('SELECT JSON_AGG(src) as src FROM (%s) as src ', qry);
-
-    GET DIAGNOSTICS row_ct = ROW_COUNT;
-
-    IF row_ct < 1 THEN
-        RAISE EXCEPTION 'Only % rows!', row_ct;
-    END IF;
-END
-$BODY$;
-
-
 CREATE OR REPLACE FUNCTION public.geodb_get_collection_srid(
     collection text)
     RETURNS TABLE
@@ -1340,10 +1210,6 @@ BEGIN
 END
 $BODY$;
 
-
--- FUNCTION: public.geodb_copy_collection(text, text)
-
--- DROP FUNCTION public.geodb_copy_collection(text, text);
 
 CREATE OR REPLACE FUNCTION public.geodb_copy_collection(
     old_collection text,
@@ -1385,84 +1251,8 @@ BEGIN
 END
 $$;
 
+REVOKE EXECUTE ON FUNCTION geodb_copy_collection(text, text) FROM PUBLIC;
 
--- FUNCTION: public.geodb_dashboard_view_query(text)
-
--- DROP FUNCTION public.geodb_dashboard_view_query(text);
-
-CREATE OR REPLACE FUNCTION public.geodb_dashboard_view_query(tab text)
-    RETURNS TABLE
-            (
-                aoi_id            character varying,
-                country           character varying,
-                site_name         character varying,
-                indicator_code    character varying,
-                sub_aoi           character varying,
-                indicator_value   character varying,
-                color_code        character varying,
-                measurement_value character varying,
-                max_time          timestamp without time zone,
-                geometry          geometry
-            )
-    LANGUAGE 'plpgsql'
-    COST 100
-    VOLATILE PARALLEL UNSAFE
-    ROWS 1000
-AS
-$BODY$
-BEGIN
-    RETURN QUERY EXECUTE format('SELECT i.aoi_id,
-                                        i.country,
-                                        i.site_name,
-                                        i.indicator_code,
-                                        i.sub_aoi,
-                                        i.indicator_value,
-                                        i.color_code,
-                                        i.measurement_value,
-                                        i.time,
-                                        i.geometry
-                                    FROM %I i
-                                    INNER JOIN
-                                    (SELECT aoi_id, indicator_code, max(time) as time FROM %I
-                                    GROUP BY aoi_id, indicator_code) tmp
-                                        ON i.aoi_id = tmp.aoi_id
-                                        AND i.indicator_code = tmp.indicator_code
-                                        AND i.time = tmp.time
-                                    ORDER BY i.aoi_id, i.indicator_code',
-                                tab, tab);
-END
-$BODY$;
-
--- FUNCTION: public.geodb_list_users(json)
-
--- DROP FUNCTION public.geodb_list_users(json);
-
-CREATE OR REPLACE FUNCTION public.geodb_list_users()
-    RETURNS TABLE
-            (
-                src json
-            )
-    LANGUAGE 'plpgsql'
-AS
-$BODY$
-BEGIN
-    RETURN QUERY SELECT JSON_AGG(vals) as src
-                 FROM (SELECT usename AS role_name,
-                              CASE
-                                  WHEN usesuper AND usecreatedb THEN
-                                      CAST('superuser, create database' AS pg_catalog.text)
-                                  WHEN usesuper THEN
-                                      CAST('superuser' AS pg_catalog.text)
-                                  WHEN usecreatedb THEN
-                                      CAST('create database' AS pg_catalog.text)
-                                  ELSE
-                                      CAST('' AS pg_catalog.text)
-                                  END    role_attributes
-                       FROM pg_catalog.pg_user
-                       WHERE usename LIKE 'geodb_%'
-                       ORDER BY role_name desc) as vals;
-END
-$BODY$;
 
 CREATE OR REPLACE FUNCTION public.geodb_show_indexes(collection text)
     RETURNS TABLE
@@ -1476,6 +1266,8 @@ BEGIN
     RETURN QUERY EXECUTE format('SELECT indexname FROM pg_indexes WHERE tablename = ''%s''', collection);
 END
 $BODY$;
+
+REVOKE EXECUTE ON FUNCTION geodb_show_indexes(text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_create_index(collection text, property text)
     RETURNS void
@@ -1494,6 +1286,8 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_create_index(text, text) FROM PUBLIC;
+
 CREATE OR REPLACE FUNCTION public.geodb_drop_index(collection text, property text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -1506,6 +1300,8 @@ BEGIN
     EXECUTE format('DROP INDEX %I', idx_name);
 END
 $BODY$;
+
+REVOKE EXECUTE ON FUNCTION geodb_drop_index(text, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_get_index_name(collection text, property text)
     RETURNS text
@@ -1526,6 +1322,8 @@ BEGIN
     RETURN idx_name;
 END
 $BODY$;
+
+REVOKE EXECUTE ON FUNCTION geodb_get_index_name(text, text) FROM PUBLIC;
 
 -- group functions
 
@@ -1555,6 +1353,8 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_create_role(text, text) FROM PUBLIC;
+
 CREATE OR REPLACE FUNCTION public.geodb_group_publish_collection(collection text, user_group text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -1564,6 +1364,8 @@ BEGIN
     EXECUTE format('GRANT ALL ON TABLE %I TO %I', collection, user_group);
 END
 $BODY$;
+
+REVOKE EXECUTE ON FUNCTION geodb_group_publish_collection(text, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_group_unpublish_collection(collection text, user_group text)
     RETURNS void
@@ -1575,6 +1377,8 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_group_unpublish_collection(text, text) FROM PUBLIC;
+
 CREATE OR REPLACE FUNCTION public.geodb_group_publish_database(database text, user_group text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -1585,6 +1389,8 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_group_publish_database(text, text) FROM PUBLIC;
+
 CREATE OR REPLACE FUNCTION public.geodb_group_unpublish_database(database text, user_group text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -1594,6 +1400,8 @@ BEGIN
     EXECUTE format('DELETE FROM geodb_user_databases WHERE name = ''%s'' AND owner = ''%s''', database, user_group);
 END
 $BODY$;
+
+REVOKE EXECUTE ON FUNCTION geodb_group_unpublish_database(text, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_get_user_roles(user_name text)
     RETURNS TABLE
@@ -1611,6 +1419,8 @@ BEGIN
                 ) as src', user_name);
 END
 $BODY$;
+
+REVOKE EXECUTE ON FUNCTION geodb_get_user_roles(text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_get_group_users(group_name text)
     RETURNS TABLE
@@ -1630,6 +1440,8 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_get_group_users(text) FROM PUBLIC;
+
 CREATE OR REPLACE FUNCTION public.geodb_group_grant(user_group text, user_name text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -1640,6 +1452,8 @@ BEGIN
 END
 $BODY$;
 
+REVOKE EXECUTE ON FUNCTION geodb_group_grant(text, text) FROM PUBLIC;
+
 CREATE OR REPLACE FUNCTION public.geodb_group_revoke(user_group text, user_name text)
     RETURNS void
     LANGUAGE 'plpgsql'
@@ -1649,6 +1463,8 @@ BEGIN
     EXECUTE format('REVOKE %I FROM %I;', user_group, user_name);
 END
 $BODY$;
+
+REVOKE EXECUTE ON FUNCTION geodb_group_revoke(text, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_get_grants(collection text)
     RETURNS TABLE
@@ -1671,6 +1487,8 @@ BEGIN
                 ) as res', collection);
 END
 $BODY$;
+
+REVOKE EXECUTE ON FUNCTION geodb_get_grants(text) FROM PUBLIC;
 
 -- Below: watching PostGREST schema cache changes to the database, and trigger a
 -- reload.

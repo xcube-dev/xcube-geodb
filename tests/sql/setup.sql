@@ -6,43 +6,24 @@
 
 -- DROP TABLE public.land_use;
 
+SELECT geodb_register_user('geodb_user', 'geodb_user');
+SELECT geodb_register_user('geodb_user-with-hyphens', 'geodb_user-with-hyphens');
+SELECT geodb_register_user('geodb_user_read_only', 'geodb_user_read_only');
+
+REVOKE EXECUTE ON FUNCTION geodb_show_indexes(text) FROM geodb_user_read_only;
+REVOKE EXECUTE ON FUNCTION geodb_create_collection(text, json, text) FROM geodb_user_read_only;
+REVOKE EXECUTE ON FUNCTION geodb_create_collections(json) FROM geodb_user_read_only;
+REVOKE EXECUTE ON FUNCTION geodb_create_database(text) FROM geodb_user_read_only;
+
 ALTER ROLE geodb_admin IN DATABASE postgres SET search_path TO public;
 GRANT geodb_admin TO authenticator;
-
-CREATE ROLE "geodb_user" WITH
-    LOGIN
-    NOSUPERUSER
-    INHERIT
-    NOCREATEDB
-    NOCREATEROLE
-    NOREPLICATION;
-
-GRANT "geodb_user" TO postgres;
-GRANT "geodb_user" TO authenticator;
-
-CREATE ROLE "geodb_user-with-hyphens" WITH
-    LOGIN
-    NOSUPERUSER
-    INHERIT
-    NOCREATEDB
-    NOCREATEROLE
-    NOREPLICATION;
-
-GRANT "geodb_user-with-hyphens" TO postgres;
-GRANT "geodb_user-with-hyphens" TO authenticator;
-
-GRANT ALL ON SCHEMA public TO "geodb_user";
-GRANT ALL ON SCHEMA public TO "geodb_user-with-hyphens";
+GRANT EXECUTE ON FUNCTION geodb_create_role(text, text) TO geodb_admin;
 
 GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE public.geodb_user_databases TO "geodb_user";
 GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE public.geodb_user_databases TO "geodb_user-with-hyphens";
 GRANT SELECT, UPDATE, USAGE ON SEQUENCE public.geodb_user_databases_seq TO "geodb_user";
 GRANT SELECT, UPDATE, USAGE ON SEQUENCE public.geodb_user_databases_seq TO "geodb_user-with-hyphens";
 
-INSERT INTO public.geodb_user_databases("name", "owner", "iss")
-VALUES ('geodb_user', 'geodb_user', '');
-INSERT INTO public.geodb_user_databases("name", "owner", "iss")
-VALUES ('geodb_user-with-hyphens', 'geodb_user-with-hyphens', '');
 INSERT INTO public.geodb_user_databases("name", "owner", "iss")
 VALUES ('postgres', 'postgres', '');
 
