@@ -4,11 +4,12 @@
 
 - the geoDB client correctly refreshes the capabilities of the PostGREST server
 - geoDB now logs collection read events, if deliberately triggered by the user
+- it is now possible to create users that only have permission to read [#117]
 
 ### Fixes
 
-- database truncation now works as name suggests (#009)
-- cleaned up documentation (#110)
+- database truncation now works as name suggests [#009]
+- cleaned up documentation [#110]
 - fixed caching of capabilities [#108]
 
 ## v1.0.9

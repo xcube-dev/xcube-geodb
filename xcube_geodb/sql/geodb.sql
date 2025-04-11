@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS public."geodb_version_info"
 );
 GRANT SELECT ON TABLE geodb_version_info TO PUBLIC;
 INSERT INTO geodb_version_info
-VALUES (DEFAULT, 'VERSION_PLACEHOLDER', now());
+VALUES (DEFAULT, '1.0.10dev', now());
 -- if manually setting up the database, this might be necessary to clean up:
 DELETE
 FROM geodb_version_info
@@ -1538,10 +1538,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP EVENT TRIGGER IF EXISTS pgrst_ddl_watch;
 CREATE EVENT TRIGGER pgrst_ddl_watch
     ON ddl_command_end
 EXECUTE PROCEDURE pgrst_ddl_watch();
 
+DROP EVENT TRIGGER IF EXISTS pgrst_drop_watch;
 CREATE EVENT TRIGGER pgrst_drop_watch
     ON sql_drop
 EXECUTE PROCEDURE pgrst_drop_watch();
