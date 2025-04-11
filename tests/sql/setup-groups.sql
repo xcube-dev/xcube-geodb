@@ -66,6 +66,23 @@ GRANT SELECT, UPDATE, USAGE ON SEQUENCE public.geodb_user_databases_seq TO "test
 
 GRANT "test_group" TO "test_admin" WITH ADMIN OPTION;
 
+GRANT EXECUTE ON FUNCTION geodb_create_database TO "test_member";
+GRANT EXECUTE ON FUNCTION geodb_create_collection TO "test_member";
+GRANT EXECUTE ON FUNCTION geodb_get_grants TO "test_member";
+GRANT EXECUTE ON FUNCTION geodb_user_allowed TO "test_member";
+GRANT EXECUTE ON FUNCTION geodb_add_properties TO "test_member";
+GRANT EXECUTE ON FUNCTION geodb_group_publish_collection TO "test_member";
+GRANT EXECUTE ON FUNCTION geodb_group_publish_database TO "test_member";
+GRANT EXECUTE ON FUNCTION geodb_group_unpublish_database TO "test_member";
+GRANT EXECUTE ON FUNCTION geodb_group_unpublish_collection TO "test_member";
+
+GRANT EXECUTE ON FUNCTION geodb_create_collection TO "test_member_2";
+GRANT EXECUTE ON FUNCTION geodb_user_allowed TO "test_member_2";
+GRANT EXECUTE ON FUNCTION geodb_group_revoke TO "test_member_2";
+GRANT EXECUTE ON FUNCTION geodb_group_grant TO "test_member_2";
+GRANT EXECUTE ON FUNCTION geodb_add_properties TO "test_member_2";
+
+
 INSERT INTO geodb_user_info
 VALUES (100, 'test_admin', '2020-12-08', 'geodb-manage', '');
 INSERT INTO geodb_user_info
