@@ -4,23 +4,24 @@ CREATE SCHEMA IF NOT EXISTS geodb_user_info;
 
 -- cleanup litter of previous versions
 
-DROP FUNCTION IF EXISTS public.geodb_check_user(text);
+DROP FUNCTION IF EXISTS public.geodb_check_user();
 DROP FUNCTION IF EXISTS public.geodb_check_user_grants(text);
-DROP FUNCTION IF EXISTS public.geodb_copy_collection2(text);
-DROP FUNCTION IF EXISTS public.geodb_copy_collection3(text);
+DROP FUNCTION IF EXISTS public.geodb_copy_collection2(text, text);
+DROP FUNCTION IF EXISTS public.geodb_copy_collection3(text, text);
 DROP FUNCTION IF EXISTS public.geodb_dashboard_view_query(text);
-DROP FUNCTION IF EXISTS public.geodb_extract_database(text);
+DROP FUNCTION IF EXISTS public.geodb_extract_database(text, text);
 DROP FUNCTION IF EXISTS public.geodb_get_geodb_version();
 DROP FUNCTION IF EXISTS public.geodb_get_mvt();
 DROP FUNCTION IF EXISTS public.geodb_get_mvt_geom();
-DROP FUNCTION IF EXISTS public.geodb_get_nearest(text, double precision, double precision, integer, text,
-                                                 text, text, integer);
+DROP FUNCTION IF EXISTS public.geodb_get_nearest(text, float8, float8, int4, text,
+                                                 text, text, int4, int4);
 DROP FUNCTION IF EXISTS public.geodb_grant_user_admin(text);
 DROP FUNCTION IF EXISTS public.geodb_group_users(text);
 DROP FUNCTION IF EXISTS public.geodb_list_users();
 DROP FUNCTION IF EXISTS public.geodb_log_sizes();
-DROP FUNCTION IF EXISTS public.geodb_reassign_owned();
-DROP FUNCTION IF EXISTS public.geodb_remove_index();
+DROP FUNCTION IF EXISTS public.geodb_reassign_owned(text, text);
+DROP FUNCTION IF EXISTS public.geodb_remove_index(text);
+DROP FUNCTION IF EXISTS public.geodb_remove_index(text, text);
 DROP FUNCTION IF EXISTS public.geodb_test_exception();
 
 -- cleanup end
@@ -788,7 +789,7 @@ BEGIN
                pg_catalog.pg_get_function_identity_arguments(p.oid) AS arg_types
         FROM pg_proc p
                  JOIN pg_namespace pgn ON p.pronamespace = pgn.oid
-        WHERE p.proname LIKE 'geodb_%'
+        WHERE p.proname LIKE '%geodb_%'
           AND pgn.nspname NOT IN ('pg_catalog', 'information_schema')
           AND p.proname NOT IN ('geodb_get_user_roles', 'geodb_get_user_usage')
         LOOP
