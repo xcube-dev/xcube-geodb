@@ -4,7 +4,6 @@ CREATE SCHEMA IF NOT EXISTS geodb_user_info;
 
 -- cleanup litter of previous versions
 
-DROP FUNCTION IF EXISTS public.geodb_check_user();
 DROP FUNCTION IF EXISTS public.geodb_check_user_grants(text);
 DROP FUNCTION IF EXISTS public.geodb_copy_collection2(text, text);
 DROP FUNCTION IF EXISTS public.geodb_copy_collection3(text, text);
@@ -25,6 +24,22 @@ DROP FUNCTION IF EXISTS public.geodb_remove_index(text, text);
 DROP FUNCTION IF EXISTS public.geodb_test_exception();
 
 -- cleanup end
+
+-- do not remove - this function is called from PostGREST before any database query is done
+CREATE OR REPLACE FUNCTION public.geodb_check_user()
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS
+$$
+BEGIN
+    IF current_user = 'anonymous' THEN
+        RAISE SQLSTATE 'PT403' USING DETAIL = 'Anonymous users do not have access.',
+            HINT = 'Access denied.';
+    END IF;
+END
+$$;
 
 
 CREATE SEQUENCE IF NOT EXISTS public.geodb_user_info_id_seq
