@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS public."geodb_version_info"
 );
 GRANT SELECT ON TABLE geodb_version_info TO PUBLIC;
 INSERT INTO geodb_version_info
-VALUES (DEFAULT, '1.0.10', now());
+VALUES (DEFAULT, 'v1.0.11dev', now());
 -- if manually setting up the database, this might be necessary to clean up:
 DELETE
 FROM geodb_version_info
