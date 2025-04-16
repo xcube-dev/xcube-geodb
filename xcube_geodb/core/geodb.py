@@ -414,7 +414,7 @@ class GeoDBClient(object):
 
     def get_my_collections(
         self, database: Optional[str] = None
-    ) -> DataFrame | GeoDataFrame | None:
+    ) -> Union[DataFrame, GeoDataFrame, None]:
         """
 
         Args:
@@ -1342,9 +1342,7 @@ class GeoDBClient(object):
                 )
 
             self._refresh_capabilities()
-            return Message(
-                f"Properties {str(properties)} dropped from " f"{collection}"
-            )
+            return Message(f"Properties {str(properties)} dropped from {collection}")
 
         except GeoDBError as e:
             return self._maybe_raise(e)

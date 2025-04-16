@@ -1,5 +1,3 @@
-## v1.0.11dev
-
 ## v1.0.10
 
 ### New Features
