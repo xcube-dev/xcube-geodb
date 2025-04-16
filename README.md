@@ -5,6 +5,7 @@
 ![GitHub Release](https://img.shields.io/github/v/release/xcube-dev/xcube-geodb)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/xcube_geodb/badges/version.svg)](https://anaconda.org/conda-forge/xcube_geodb)
 ![Conda Downloads](https://img.shields.io/conda/d/conda-forge/xcube_geodb)
+![GitHub License](https://img.shields.io/github/license/xcube-dev/xcube-geodb)
 
 # xcube geoDB
 
