@@ -3,14 +3,14 @@ channels:
   - conda-forge
 
 dependencies:
-  - python >=3.6
-  - pip
+  - python >=3.9
+  - ipyleaflet
   - geopandas
   - matplotlib-base
+  - pip
   - psycopg2
-  - requests
-  - ipyleaflet
   - python-dotenv
+  - requests
   - requests-mock
   - shapely
   - pip:

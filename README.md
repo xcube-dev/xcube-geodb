@@ -2,7 +2,9 @@
 [![Unittest xcube-geodb](https://github.com/xcube-dev/xcube-geodb/actions/workflows/workflow.yml/badge.svg)](https://github.com/xcube-dev/xcube-geodb/actions/workflows/workflow.yml)
 [![codecov](https://codecov.io/gh/xcube-dev/xcube-geodb/graph/badge.svg?token=67zPacCxuz)](https://codecov.io/gh/xcube-dev/xcube-geodb)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v1.json)](https://github.com/astral-sh/ruff)
+![GitHub Release](https://img.shields.io/github/v/release/xcube-dev/xcube-geodb)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/xcube_geodb/badges/version.svg)](https://anaconda.org/conda-forge/xcube_geodb)
+![Conda Downloads](https://img.shields.io/conda/d/conda-forge/xcube_geodb)
 
 # xcube geoDB
 
