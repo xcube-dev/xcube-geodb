@@ -813,7 +813,6 @@ BEGIN
                            user_name);
         END LOOP;
     EXECUTE format('GRANT CREATE ON SCHEMA public TO %I ;', user_name);
-    EXECUTE format('GRANT INSERT, SELECT, UPDATE ON ALL TABLES IN SCHEMA public TO %I ;', user_name);
     EXECUTE format(
             'INSERT INTO geodb_user_databases(name, owner, iss) VALUES(''%s'',''%s'', ''%s'') ON CONFLICT ON CONSTRAINT unique_db_name_owner DO NOTHING;',
             user_name, user_name, usr);
