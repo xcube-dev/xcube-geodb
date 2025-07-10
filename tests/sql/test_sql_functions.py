@@ -602,6 +602,19 @@ class GeoDBSqlTest(unittest.TestCase):
         self._set_role(user_name)
         self.execute(f"SELECT geodb_create_role('{user_name}', 'some_group')")
 
+    def test_check_geodb_user_info_structure(self):
+        self.execute(
+            "INSERT INTO geodb_user_info ("
+            "   user_name,start_date, subscription, "
+            "   cunits)"
+            "   VALUES("
+            "       'user', "
+            "       '2020-12-08', "
+            "       'superpower',"
+            "       4"
+            ")"
+        )
+
     def execute(self, sql):
         self._cursor.execute(sql)
         self._conn.commit()

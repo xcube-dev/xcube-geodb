@@ -75,7 +75,10 @@ CREATE TABLE IF NOT EXISTS public."geodb_user_info"
     user_name    CHARACTER VARYING(255) NOT NULL UNIQUE,
     start_date   DATE                   NOT NULL,
     subscription TEXT                   NOT NULL,
-    permissions  TEXT                   NOT NULL             DEFAULT ''::text
+    permissions  TEXT                   NOT NULL             DEFAULT ''::text,
+    cells        INT                    NOT NULL             DEFAULT 0,
+    cunits       INT                    NOT NULL             DEFAULT 0,
+    uuid         CHARACTER VARYING(255) NOT NULL             DEFAULT ''::text
 );
 
 CREATE TABLE IF NOT EXISTS public."geodb_version_info"
