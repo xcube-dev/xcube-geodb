@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- geodb.sql does not capture all requirements [#117]
+
 ## v1.0.10
 
 ### New Features

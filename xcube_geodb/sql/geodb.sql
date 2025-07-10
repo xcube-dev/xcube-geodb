@@ -25,6 +25,25 @@ DROP FUNCTION IF EXISTS public.geodb_test_exception();
 
 -- cleanup end
 
+DO
+$do$
+    BEGIN
+        IF NOT EXISTS(SELECT
+                      FROM pg_catalog.pg_roles -- SELECT list can be empty for this
+                      WHERE rolname = 'anonymous') THEN
+            CREATE ROLE anonymous WITH
+                NOSUPERUSER
+                NOCREATEDB
+                NOCREATEROLE
+                INHERIT
+                NOLOGIN
+                NOREPLICATION
+                NOBYPASSRLS
+                CONNECTION LIMIT -1;
+        END IF;
+    END
+$do$;
+
 -- do not remove - this function is called from PostGREST before any database query is done
 CREATE OR REPLACE FUNCTION public.geodb_check_user()
     RETURNS void
@@ -56,7 +75,7 @@ CREATE TABLE IF NOT EXISTS public."geodb_user_info"
     user_name    CHARACTER VARYING(255) NOT NULL UNIQUE,
     start_date   DATE                   NOT NULL,
     subscription TEXT                   NOT NULL,
-    permissions  TEXT                   NOT NULL
+    permissions  TEXT                   NOT NULL             DEFAULT ''::text
 );
 
 CREATE TABLE IF NOT EXISTS public."geodb_version_info"
@@ -116,8 +135,6 @@ BEGIN
                                 event_type, collection);
 END
 $BODY$;
-
-REVOKE EXECUTE ON FUNCTION get_geodb_eventlog(text, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_register_user_trg_func()
     RETURNS trigger
@@ -738,7 +755,7 @@ $do$
         IF NOT EXISTS(SELECT
                       FROM pg_catalog.pg_roles -- SELECT list can be empty for this
                       WHERE rolname = 'authenticator') THEN
-            CREATE ROLE authenticator NOINHERIT;
+            CREATE ROLE authenticator NOINHERIT LOGIN;
             ALTER ROLE authenticator SET search_path = public;
         END IF;
     END
