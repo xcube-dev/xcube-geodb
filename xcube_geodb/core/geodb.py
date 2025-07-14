@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 
 from xcube_geodb.const import MINX, MINY, MAXX, MAXY
 from xcube_geodb.core.message import Message
+from xcube_geodb.core.metadata import Metadata
 from xcube_geodb.defaults import GEODB_DEFAULTS
 from xcube_geodb.version import version
 import warnings
@@ -2777,6 +2778,16 @@ class GeoDBClient(object):
         }
         r = self._post(path=path, payload=payload)
         return int(r.text) > 0
+
+    def get_metadata(self, collection: str, database: Optional[str] = None) -> Metadata:
+        database = database or self.database
+        dn = f"{database}_{collection}"
+
+        path = "/rpc/geodb_get_metadata"
+        payload = {"collection": dn}
+
+        result = self._post(path=path, payload=payload).json()
+        return Metadata.from_json(result)
 
     @property
     def auth_access_token(self) -> str:
