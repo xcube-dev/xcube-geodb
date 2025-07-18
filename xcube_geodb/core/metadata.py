@@ -18,7 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-from typing import List, Optional, Dict, Any, Union, TypeAlias, Literal
+from typing import List, Optional, Dict, Any, Union, TypeAlias, Literal, Sequence
 
 
 # noinspection PyShadowingBuiltins
@@ -237,35 +237,86 @@ class Asset:
 class ItemAsset:
     def __init__(
         self,
-        title: Optional[str],
-        description: Optional[str],
-        type: Optional[str],
-        roles: Optional[List[str]],
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        type: Optional[str] = None,
+        roles: Optional[List[str]] = None,
     ):
         self._title = title
         self._description = description
         self._type = type
         self._roles = roles
 
+    @property
+    def title(self) -> Optional[str]:
+        if self._title:
+            return self._title
+        return None
+
+    @property
+    def description(self) -> Optional[str]:
+        if self._description:
+            return self._description
+        return None
+
+    @description.setter
+    def description(self, value):
+        self._description = value
+
+    @property
+    def type(self) -> Optional[str]:
+        if self._type:
+            return self._type
+        return None
+
+    @property
+    def roles(self) -> Optional[List[str]]:
+        if self._roles:
+            return self._roles
+        return None
+
+    @staticmethod
+    def from_json(asset_spec: Dict[str, Union[str, List[str]]]):
+        item_asset = ItemAsset()
+        if "description" in asset_spec:
+            item_asset.description = asset_spec["description"]
+        if "title" in asset_spec:
+            item_asset.title = asset_spec["title"]
+        if "type" in asset_spec:
+            item_asset.type = asset_spec["type"]
+        if "roles" in asset_spec:
+            item_asset.roles = asset_spec["roles"]
+
+        return item_asset
+
+    @type.setter
+    def type(self, value):
+        self._type = value
+
+    @roles.setter
+    def roles(self, value):
+        self._roles = value
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+
 
 # noinspection PyShadowingBuiltins
 class Metadata:
     """
-    General idea: store properties for the metadata fields that are specified by the
+    This class stores properties for the metadata fields that are specified by the
     STAC collection specification (https://github.com/radiantearth/stac-spec/blob/master/collection-spec/collection
     -spec.md).
 
-    This class is intended not to contain any logic, rather, its purpose is to reflect the
-    database state.
+    Changes in result objects are never reflected in the database. Rather, there are
+    specific setter and modification methods for the different fields, so that
+    you can do, e.g.:
 
+    >>> metadata.remove_summary_item("column_names")
+    >>> metadata.add_asset("image_url", "https://image.url/")
 
-    Disregard this for this class:
-    Also, allow for generic extra fields:
-        - set_binary_metadata(field_name, blob)
-        - set_string_metadata(field_name, string)
-        - set_number_metadata(field_name, number)
-        - set_time_metadata(field_name, datetime)
-        - set_object_metadata(field_name, Anything convertible to JSON)
+    Those changes are directly reflected in the database. Yes, even spatial extent as computing it is expensive.
 
     Some metadata fields can be extracted automatically (see
     xcube_geodb_openeo.core.geodb_datasource.GeoDBVectorSource.get_metadata), however,
@@ -286,7 +337,7 @@ class Metadata:
         stac_extensions: Optional[List[str]] = None,
         keywords: Optional[List[str]] = None,
         summaries: Optional[Dict[str, Summary]] = None,
-        assets: Optional[Dict[str, Asset]] = None,
+        assets: Optional[List[Asset]] = None,
         item_assets: Optional[Dict[str, ItemAsset]] = None,
     ):
         if spatial_extent is None:
@@ -304,8 +355,8 @@ class Metadata:
         self._providers = providers if providers else []
         self._license = license
         self._summaries = summaries if summaries else {}
-        self._assets = assets if assets else {}
-        self._item_assets = item_assets if item_assets else {}
+        self._assets = assets if assets else []
+        self._item_assets = item_assets if item_assets else []
 
     @property
     def type(self) -> str:
@@ -320,8 +371,14 @@ class Metadata:
         return "1.1.0"
 
     @property
-    def stac_extensions(self) -> Optional[List[str]]:
-        return self._stac_extensions
+    def stac_extensions(self) -> Optional[Sequence[str]]:
+        """
+        Retrieve the STAC extensions supported. Changes to the result object are not
+        reflected in the database.
+
+        :return: A copy of the STAC extensions list.
+        """
+        return list(self._stac_extensions)
 
     @property
     def id(self) -> str:
@@ -360,11 +417,11 @@ class Metadata:
         return self._temporal_extent
 
     @property
-    def assets(self) -> Optional[Dict[str, Asset]]:
+    def assets(self) -> Optional[List[Asset]]:
         return self._assets
 
     @property
-    def item_assets(self) -> Optional[Dict[str, ItemAsset]]:
+    def item_assets(self) -> Optional[List[ItemAsset]]:
         return self._item_assets
 
     @staticmethod
@@ -377,12 +434,21 @@ class Metadata:
         return result
 
     @staticmethod
-    def _get_assets(json: Dict[str, Any]) -> Optional[Dict[str, Asset]]:
+    def _get_assets(json: Dict[str, Any]) -> Optional[List[Asset]]:
         if "assets" not in json:
             return None
-        result: dict[str, Asset] = {}
-        for name, asset_spec in json["assets"].items():
-            result[name] = Asset.from_json(asset_spec)
+        result: List[Asset] = []
+        for asset_spec in json["assets"]:
+            result.append(Asset.from_json(asset_spec))
+        return result
+
+    @staticmethod
+    def _get_item_assets(json: Dict[str, Any]) -> Optional[List[ItemAsset]]:
+        if "item_assets" not in json:
+            return None
+        result: List[ItemAsset] = []
+        for item_asset_spec in json["item_assets"]:
+            result.append(ItemAsset.from_json(item_asset_spec))
         return result
 
     @staticmethod
@@ -398,22 +464,38 @@ class Metadata:
     def from_json(json: Dict[str, Any]):
         providers = Metadata._get_providers(json)
         assets = Metadata._get_assets(json)
+        item_assets = Metadata._get_item_assets(json)
         links = Metadata._get_links(json)
-        summaries = json["summaries"] if "summaries" in json else {}
-        stac_extensions = json["stac_extensions"] if "stac_extensions" in json else []
-        title = json["title"] if "title" in json else None
-        keywords = json["keywords"] if "keywords" in json else None
+        summaries = json["basic"]["summaries"] if "summaries" in json["basic"] else {}
+        stac_extensions = (
+            json["basic"]["stac_extensions"]
+            if "stac_extensions" in json["basic"]
+            else []
+        )
+        title = json["basic"]["title"] if "title" in json["basic"] else ""
+        keywords = json["basic"]["keywords"] if "keywords" in json["basic"] else []
+        spatial_extent = (
+            json["basic"]["spatial_extent"]
+            if "spatial_extent" in json["basic"]
+            else None
+        )
+        if spatial_extent:
+            spatial_extent = [
+                [se["minx"], se["miny"], se["maxx"], se["maxy"]]
+                for se in spatial_extent
+            ]
         return Metadata(
-            id=json["id"],
+            id=json["basic"]["collection_name"],
             title=title,
             links=links,
-            spatial_extent=json["spatial_extent"],
-            temporal_extent=json["temporal_extent"],
-            description=json["description"],
-            license=json["license"],
+            spatial_extent=spatial_extent,
+            temporal_extent=json["basic"]["temporal_extent"],
+            description=json["basic"]["description"],
+            license=json["basic"]["license"],
             providers=providers,
             stac_extensions=stac_extensions,
             keywords=keywords,
             summaries=summaries,
             assets=assets,
+            item_assets=item_assets,
         )

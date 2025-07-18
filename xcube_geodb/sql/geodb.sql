@@ -1505,6 +1505,140 @@ $BODY$;
 
 REVOKE EXECUTE ON FUNCTION geodb_get_grants(text) FROM PUBLIC;
 
+-- below: metadata support
+
+CREATE SCHEMA IF NOT EXISTS geodb_collection_metadata;
+
+DO
+$$
+    BEGIN
+        IF NOT EXISTS (SELECT 1
+                       FROM pg_type t
+                                JOIN pg_namespace n ON n.oid = t.typnamespace
+                       WHERE t.typname = 'relation'
+                         AND n.nspname = 'geodb_collection_metadata') THEN
+            CREATE TYPE geodb_collection_metadata.relation AS ENUM ('self', 'root', 'parent', 'child', 'collection', 'item');
+        END IF;
+    END
+$$;
+
+DO
+$$
+    BEGIN
+        IF NOT EXISTS (SELECT 1
+                       FROM pg_type t
+                                JOIN pg_namespace n ON n.oid = t.typnamespace
+                       WHERE t.typname = 'provider_role'
+                         AND n.nspname = 'geodb_collection_metadata') THEN
+            CREATE TYPE geodb_collection_metadata.provider_role AS ENUM ('licensor', 'producer', 'processor', 'host');
+        END IF;
+    END
+$$;
+
+CREATE TABLE IF NOT EXISTS geodb_collection_metadata.metadata
+(
+    collection_name TEXT PRIMARY KEY,
+    title           CHARACTER VARYING(255),
+    description     TEXT            NOT NULL DEFAULT 'No description available',
+    license         TEXT            NOT NULL DEFAULT 'proprietary',
+    spatial_extent  GEOMETRY[]      NULL,
+    temporal_extent TIMESTAMPTZ[][] NOT NULL DEFAULT ARRAY [ ARRAY [NULL::TIMESTAMPTZ, NULL::TIMESTAMPTZ]],
+    stac_extensions TEXT[]          NULL     DEFAULT ARRAY []::TEXT[],
+    keywords        TEXT[]          NULL,
+    summaries       JSONB           NULL
+);
+
+CREATE TABLE IF NOT EXISTS geodb_collection_metadata.link
+(
+    id              SERIAL PRIMARY KEY,
+    href            TEXT                                                                 NOT NULL,
+    rel             geodb_collection_metadata.relation                                   NOT NULL,
+    type            TEXT,
+    title           TEXT,
+    method          TEXT,
+    headers         JSONB,
+    body            JSONB,
+    collection_name TEXT REFERENCES geodb_collection_metadata.metadata (collection_name) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS geodb_collection_metadata.provider
+(
+    name            TEXT PRIMARY KEY,
+    description     TEXT                                                                 NULL,
+    roles           geodb_collection_metadata.provider_role[]                            NULL DEFAULT ARRAY []::geodb_collection_metadata.provider_role[],
+    url             TEXT                                                                 NULL,
+    collection_name TEXT REFERENCES geodb_collection_metadata.metadata (collection_name) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS geodb_collection_metadata.asset
+(
+    name            TEXT PRIMARY KEY,
+    href            TEXT                                                                 NOT NULL,
+    title           TEXT                                                                 NULL,
+    description     TEXT                                                                 NULL,
+    type            TEXT                                                                 NULL,
+    roles           TEXT[]                                                               NULL DEFAULT ARRAY []::TEXT[],
+    collection_name TEXT REFERENCES geodb_collection_metadata.metadata (collection_name) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS geodb_collection_metadata."item_asset"
+(
+    name            TEXT PRIMARY KEY,
+    title           TEXT                                                                 NULL,
+    description     TEXT                                                                 NULL,
+    type            TEXT                                                                 NULL,
+    roles           TEXT[]                                                               NULL DEFAULT ARRAY []::TEXT[],
+    collection_name TEXT REFERENCES geodb_collection_metadata.metadata (collection_name) NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION public.geodb_get_metadata(collection text)
+    RETURNS SETOF jsonb
+    LANGUAGE 'sql'
+AS
+$BODY$
+WITH metadata_prepared AS (SELECT md.*,
+                                  ARRAY(
+                                          SELECT jsonb_build_object(
+                                                         'minx', ST_XMin(g),
+                                                         'miny', ST_YMin(g),
+                                                         'maxx', ST_XMax(g),
+                                                         'maxy', ST_YMax(g)
+                                                 )
+                                          FROM unnest(md.spatial_extent) AS g
+                                  ) AS spatial_extent
+                           FROM geodb_collection_metadata.metadata md)
+SELECT jsonb_build_object(
+               'basic', to_jsonb(mp),
+               'links', COALESCE(link_rows.link, '[]'::jsonb),
+               'providers', COALESCE(provider_rows.provider, '[]'::jsonb),
+               'assets', COALESCE(asset_rows.asset, '[]'::jsonb),
+               'item_assets', COALESCE(item_asset_rows.item_asset, '[]'::jsonb)
+       )
+FROM metadata_prepared mp
+         LEFT JOIN LATERAL (
+    SELECT jsonb_agg(to_jsonb(li)) AS link
+    FROM geodb_collection_metadata.link li
+    WHERE li.collection_name = mp.collection_name
+    ) link_rows ON TRUE
+         LEFT JOIN LATERAL (
+    SELECT jsonb_agg(to_jsonb(pr)) AS provider
+    FROM geodb_collection_metadata.provider pr
+    WHERE pr.collection_name = mp.collection_name
+    ) provider_rows ON TRUE
+         LEFT JOIN LATERAL (
+    SELECT jsonb_agg(to_jsonb(a)) AS asset
+    FROM geodb_collection_metadata.asset a
+    WHERE a.collection_name = mp.collection_name
+    ) asset_rows ON TRUE
+         LEFT JOIN LATERAL (
+    SELECT jsonb_agg(to_jsonb(ia)) AS item_asset
+    FROM geodb_collection_metadata."item_asset" ia
+    WHERE ia.collection_name = mp.collection_name
+    ) item_asset_rows ON TRUE
+WHERE mp.collection_name = collection;
+$BODY$;
+
+
 -- Below: watching PostGREST schema cache changes to the database, and trigger a
 -- reload.
 -- Code copied from https://postgrest.org/en/stable/references/schema_cache.html.
