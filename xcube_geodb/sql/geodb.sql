@@ -1638,6 +1638,35 @@ FROM metadata_prepared mp
 WHERE mp.collection_name = collection;
 $BODY$;
 
+CREATE OR REPLACE FUNCTION public.geodb_set_spatial_extent(collection text, se float8[][], srid int)
+    RETURNS SETOF jsonb
+    LANGUAGE 'plpgsql'
+AS
+$$
+DECLARE
+    bbox   float8[];
+    result geometry[];
+BEGIN
+
+    FOREACH bbox SLICE 1 IN ARRAY se
+        LOOP
+            IF array_length(bbox, 1) = 4 THEN
+                result := result || ST_Transform(ST_MakeEnvelope(
+                                                         bbox[1], -- minx
+                                                         bbox[2], -- miny
+                                                         bbox[3], -- maxx
+                                                         bbox[4], -- maxy
+                                                         srid), 4326);
+            END IF;
+        END LOOP;
+
+
+    UPDATE geodb_collection_metadata.metadata md
+    SET spatial_extent = result
+    WHERE md.collection_name = collection;
+END
+$$;
+
 
 -- Below: watching PostGREST schema cache changes to the database, and trigger a
 -- reload.

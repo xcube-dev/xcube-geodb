@@ -20,9 +20,11 @@
 # DEALINGS IN THE SOFTWARE.
 import os
 import unittest
+from unittest.mock import patch
 
 from tests.sql.test_sql_functions import GeoDBSqlTest
 from tests.sql.test_sql_functions import get_app_dir
+from xcube_geodb.core.db_interface import DbInterface
 from xcube_geodb.core.metadata import Metadata
 
 
@@ -141,11 +143,12 @@ class GeoDBSQLMDTest(unittest.TestCase):
         self.assertEqual("I have a type", result[0][3])
         self.assertEqual([], result[0][4])
 
-    def test_get_metadata(self):
+    @patch("xcube_geodb.core.db_interface.DbInterface")
+    def test_get_metadata(self, mockdb: DbInterface):
         sql = "SELECT geodb_get_metadata('geodb_user_land_use')"
         self._cursor.execute(sql)
         result = self._cursor.fetchone()[0]
-        md = Metadata.from_json(result)
+        md = Metadata.from_json(mockdb, result)
         self.assertEqual("geodb_user_land_use", md.id)
         self.assertEqual("Land Use", md.title)
         self.assertEqual("proprietary", md.license)
@@ -172,9 +175,83 @@ class GeoDBSQLMDTest(unittest.TestCase):
             "this is a complex schema stored in a string", md.summaries["schema"]
         )
 
-    def test_get_default_spatial_extent(self):
+    @patch("xcube_geodb.core.db_interface.DbInterface")
+    def test_set_and_get_spatial_extent(self, mockdb: DbInterface):
+        sql = "SELECT geodb_get_metadata('geodb_user_land_use')"
+        self._cursor.execute(sql)
+        result = self._cursor.fetchone()[0]
+        md = Metadata.from_json(mockdb, result)
+        self.assertListEqual(
+            [[-170, -80, 170, 80], [-169, -79, 169, 79]], md.spatial_extent
+        )
+
         sql = "SELECT geodb_get_metadata('some_other_collection')"
         self._cursor.execute(sql)
         result = self._cursor.fetchone()[0]
-        md = Metadata.from_json(result)
-        self.assertEqual("I am something else", md.title)
+        md = Metadata.from_json(mockdb, result)
+        self.assertListEqual([], md.spatial_extent)
+        self.assertEqual("I am some other collection", md.title)
+
+        sql = "SELECT geodb_set_spatial_extent('some_other_collection', ARRAY[ARRAY[-16, -3, -14, 2], ARRAY[-15.5, -2.3, -14.1, 1.8]], 4326)"
+        self._cursor.execute(sql)
+
+        sql = "SELECT geodb_get_metadata('some_other_collection')"
+        self._cursor.execute(sql)
+        result = self._cursor.fetchone()[0]
+        md = Metadata.from_json(mockdb, result)
+        self.assertListEqual(
+            [[-16, -3, -14, 2], [-15.5, -2.3, -14.1, 1.8]], md.spatial_extent
+        )
+
+        # verify that metadata of other collections have not changed
+        sql = "SELECT geodb_get_metadata('geodb_user_land_use')"
+        self._cursor.execute(sql)
+        result = self._cursor.fetchone()[0]
+        md = Metadata.from_json(mockdb, result)
+        self.assertListEqual(
+            [[-170, -80, 170, 80], [-169, -79, 169, 79]], md.spatial_extent
+        )
+
+    @patch("xcube_geodb.core.db_interface.DbInterface")
+    def test_set_and_get_spatial_extent_srid(self, mockdb: DbInterface):
+        sql = "SELECT geodb_get_metadata('geodb_user_land_use')"
+        self._cursor.execute(sql)
+        result = self._cursor.fetchone()[0]
+        md = Metadata.from_json(mockdb, result)
+        self.assertListEqual(
+            [[-170, -80, 170, 80], [-169, -79, 169, 79]], md.spatial_extent
+        )
+
+        sql = "SELECT geodb_set_spatial_extent('geodb_user_land_use', ARRAY[ARRAY[-16, -3, -14, 2], ARRAY[-15.5, -2.3, -14.1, 1.8]], 3395)"
+        self._cursor.execute(sql)
+
+        sql = "SELECT geodb_get_metadata('geodb_user_land_use')"
+        self._cursor.execute(sql)
+        result = self._cursor.fetchone()[0]
+        md = Metadata.from_json(mockdb, result)
+        self.assertEqual(2, len(md.spatial_extent))
+        self.assertEqual(4, len(md.spatial_extent[0]))
+        self.assertEqual(4, len(md.spatial_extent[1]))
+        self.assertEqual(-0.00014373044545912343, md.spatial_extent[0][0])
+        self.assertEqual(-2.7131084311510432e-05, md.spatial_extent[0][1])
+
+    @patch("xcube_geodb.core.db_interface.DbInterface")
+    def test_reset_spatial_extent(self, mockdb: DbInterface):
+        sql = "SELECT geodb_get_metadata('some_other_collection')"
+        self._cursor.execute(sql)
+        result = self._cursor.fetchone()[0]
+        md = Metadata.from_json(mockdb, result)
+        self.assertListEqual([], md.spatial_extent)
+
+        sql = "SELECT geodb_set_spatial_extent('geodb_user_land_use', ARRAY[ARRAY[-16, -3, -14, 2], ARRAY[-15.5, -2.3, -14.1, 1.8]], 3395)"
+        self._cursor.execute(sql)
+
+        sql = "SELECT geodb_get_metadata('geodb_user_land_use')"
+        self._cursor.execute(sql)
+        result = self._cursor.fetchone()[0]
+        md = Metadata.from_json(mockdb, result)
+        self.assertEqual(2, len(md.spatial_extent))
+        self.assertEqual(4, len(md.spatial_extent[0]))
+        self.assertEqual(4, len(md.spatial_extent[1]))
+        self.assertEqual(-0.00014373044545912343, md.spatial_extent[0][0])
+        self.assertEqual(-2.7131084311510432e-05, md.spatial_extent[0][1])

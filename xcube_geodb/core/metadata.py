@@ -20,6 +20,9 @@
 # DEALINGS IN THE SOFTWARE.
 from typing import List, Optional, Dict, Any, Union, TypeAlias, Literal, Sequence
 
+from xcube_geodb.core.db_interface import DbInterface
+from xcube_geodb.core.error import GeoDBError
+
 
 # noinspection PyShadowingBuiltins
 class Range(dict):  # inheriting from dict to make it JSON serializable
@@ -313,10 +316,9 @@ class Metadata:
     specific setter and modification methods for the different fields, so that
     you can do, e.g.:
 
-    >>> metadata.remove_summary_item("column_names")
-    >>> metadata.add_asset("image_url", "https://image.url/")
+    >>> set_spatial_extent([[-100, -10, 20, 30]], 4326)
 
-    Those changes are directly reflected in the database. Yes, even spatial extent as computing it is expensive.
+    Those changes are directly reflected in the database.
 
     Some metadata fields can be extracted automatically (see
     xcube_geodb_openeo.core.geodb_datasource.GeoDBVectorSource.get_metadata), however,
@@ -326,6 +328,7 @@ class Metadata:
 
     def __init__(
         self,
+        db_interface: DbInterface,
         id: str,
         title: str,
         links: List[Link],
@@ -340,10 +343,13 @@ class Metadata:
         assets: Optional[List[Asset]] = None,
         item_assets: Optional[Dict[str, ItemAsset]] = None,
     ):
+        if not db_interface:
+            raise ValueError("db_interface cannot be None")
         if spatial_extent is None:
             spatial_extent = [[-180.0, -90.0, 180.0, 90.0]]
         if temporal_extent is None:
             temporal_extent = [[None, None]]
+        self._db_interface = db_interface
         self._id = id
         self._title = title
         self._links = links
@@ -424,6 +430,23 @@ class Metadata:
     def item_assets(self) -> Optional[List[ItemAsset]]:
         return self._item_assets
 
+    def set_spatial_extent(
+        self, spatial_extent: SpatialExtent, srid: int = 4326
+    ) -> None:
+        self._spatial_extent = spatial_extent
+        payload = {
+            "collection_name": self.id,
+            "spatial_extent": spatial_extent,
+            "srid": srid,
+        }
+        try:
+            self._db_interface.post(
+                path="/rpc/geodb_set_spatial_extent", payload=payload
+            )
+        except Exception as e:
+            raise GeoDBError(str(e))
+        self._spatial_extent = spatial_extent
+
     @staticmethod
     def _get_providers(json: Dict[str, Any]) -> Optional[List[Provider]]:
         if "providers" not in json:
@@ -461,7 +484,7 @@ class Metadata:
         return result
 
     @staticmethod
-    def from_json(json: Dict[str, Any]):
+    def from_json(db_interface: DbInterface, json: Dict[str, Any]):
         providers = Metadata._get_providers(json)
         assets = Metadata._get_assets(json)
         item_assets = Metadata._get_item_assets(json)
@@ -485,6 +508,7 @@ class Metadata:
                 for se in spatial_extent
             ]
         return Metadata(
+            db_interface,
             id=json["basic"]["collection_name"],
             title=title,
             links=links,

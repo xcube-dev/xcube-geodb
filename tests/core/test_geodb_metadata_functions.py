@@ -14,7 +14,7 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         cls.base_test.setUp()
         cls.default_json = {
             "basic": {
-                "collection_name": "3",
+                "collection_name": "my_test_collection",
                 "links": [],
                 "temporal_extent": [[None, None]],
                 "description": "No description available",
@@ -97,7 +97,7 @@ class GeoDBClientMetadataTest(unittest.TestCase):
             collection="my_collection", database="database"
         )
         self.assertIsNotNone(metadata)
-        self.assertEqual(metadata.id, "3")
+        self.assertEqual(metadata.id, "my_test_collection")
         self.assertEqual(metadata.description, "No description available")
         self.assertEqual(metadata.license, "proprietary")
         self.assertEqual(metadata.type, "Collection")
@@ -175,4 +175,37 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         self.assertListEqual(metadata.keywords, [])
         self.assertListEqual(metadata.links, [])
         self.assertDictEqual(metadata.summaries, {})
-        self.assertDictEqual(metadata.item_assets, {})
+        self.assertListEqual(metadata.item_assets, [])
+
+    def test_set_spatial_extent(self, m):
+        self.base_test.set_global_mocks(m)
+
+        url = f"{self.base_test._base_url}/rpc/geodb_get_metadata"
+        m.post(
+            url,
+            json=self.default_json,
+        )
+
+        metadata = self.base_test._api.get_metadata(
+            collection="my_collection", database="database"
+        )
+
+        url = f"{self.base_test._base_url}/rpc/geodb_set_spatial_extent"
+        m.post(
+            url,
+            json=[],
+            status_code=200,
+        )
+        metadata.set_spatial_extent([[-16, -3, -14, 2], [-15.5, -2.3, -14.1, 1.8]])
+        self.assertListEqual(
+            [[-16, -3, -14, 2], [-15.5, -2.3, -14.1, 1.8]], metadata.spatial_extent
+        )
+        request = m.last_request
+        self.assertEqual("/rpc/geodb_set_spatial_extent", request.path)
+        self.assertDictEqual(
+            {
+                "collection_name": "my_test_collection",
+                "spatial_extent": [[-16, -3, -14, 2], [-15.5, -2.3, -14.1, 1.8]],
+            },
+            request.json(),
+        )

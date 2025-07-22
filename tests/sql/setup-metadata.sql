@@ -45,4 +45,4 @@ INSERT INTO geodb_collection_metadata."item_asset"("name", "type", "collection_n
 VALUES ('some_item_asset', 'I have a type', 'geodb_user_land_use');
 
 INSERT INTO geodb_collection_metadata.metadata ("collection_name", "title")
-VALUES ('some_other_collection', 'I am something else');
+VALUES ('some_other_collection', 'I am some other collection');
