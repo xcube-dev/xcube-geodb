@@ -94,7 +94,7 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         )
 
         metadata = self.base_test._api.get_metadata(
-            collection="my_collection", database="database"
+            collection="my_test_collection", database="database"
         )
         self.assertIsNotNone(metadata)
         self.assertEqual(metadata.id, "my_test_collection")
@@ -158,6 +158,16 @@ class GeoDBClientMetadataTest(unittest.TestCase):
             url,
             json=self.default_json,
         )
+        url = f"{self.base_test._base_url}/rpc/geodb_estimate_collection_bbox"
+        m.post(
+            url,
+            text="BOX(-90 -180 90 180)",
+        )
+        url = f"{self.base_test._base_url}/rpc/geodb_set_spatial_extent"
+        m.post(
+            url,
+            text="",
+        )
 
         metadata = self.base_test._api.get_metadata(
             collection="my_collection", database="database"
@@ -177,35 +187,48 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         self.assertDictEqual(metadata.summaries, {})
         self.assertListEqual(metadata.item_assets, [])
 
-    def test_set_spatial_extent(self, m):
+    def test_set_metadata_title(self, m):
         self.base_test.set_global_mocks(m)
 
+        json = self.default_json
+        json["basic"]["spatial_extent"] = [
+            {"minx": -180, "miny": -90, "maxx": 0, "maxy": 0},
+            {"minx": -170, "miny": -80, "maxx": -30, "maxy": -20},
+        ]
+        json["basic"]["title"] = "Sir Collection"
         url = f"{self.base_test._base_url}/rpc/geodb_get_metadata"
         m.post(
             url,
             json=self.default_json,
         )
 
-        metadata = self.base_test._api.get_metadata(
-            collection="my_collection", database="database"
+        self.assertEqual(
+            "Sir Collection",
+            self.base_test._api.get_metadata(
+                collection="my_collection", database="database"
+            ).title,
         )
 
-        url = f"{self.base_test._base_url}/rpc/geodb_set_spatial_extent"
+        url = f"{self.base_test._base_url}/rpc/geodb_set_metadata_title"
         m.post(
             url,
-            json=[],
-            status_code=200,
+            json={},
         )
-        metadata.set_spatial_extent([[-16, -3, -14, 2], [-15.5, -2.3, -14.1, 1.8]])
-        self.assertListEqual(
-            [[-16, -3, -14, 2], [-15.5, -2.3, -14.1, 1.8]], metadata.spatial_extent
+
+        self.base_test._api.set_metadata_title(
+            "Lady Collection", collection="my_collection", database="database"
         )
-        request = m.last_request
-        self.assertEqual("/rpc/geodb_set_spatial_extent", request.path)
-        self.assertDictEqual(
-            {
-                "collection_name": "my_test_collection",
-                "spatial_extent": [[-16, -3, -14, 2], [-15.5, -2.3, -14.1, 1.8]],
-            },
-            request.json(),
+
+        json["basic"]["title"] = "Lady Collection"
+        url = f"{self.base_test._base_url}/rpc/geodb_get_metadata"
+        m.post(
+            url,
+            json=self.default_json,
+        )
+
+        self.assertEqual(
+            "Lady Collection",
+            self.base_test._api.get_metadata(
+                collection="my_collection", database="database"
+            ).title,
         )

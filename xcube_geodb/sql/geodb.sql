@@ -1515,29 +1515,18 @@ $$
         IF NOT EXISTS (SELECT 1
                        FROM pg_type t
                                 JOIN pg_namespace n ON n.oid = t.typnamespace
-                       WHERE t.typname = 'relation'
+                       WHERE t.typname = 'provider_role'
                          AND n.nspname = 'geodb_collection_metadata') THEN
+            CREATE TYPE geodb_collection_metadata.provider_role AS ENUM ('licensor', 'producer', 'processor', 'host');
             CREATE TYPE geodb_collection_metadata.relation AS ENUM ('self', 'root', 'parent', 'child', 'collection', 'item');
         END IF;
     END
 $$;
 
-DO
-$$
-    BEGIN
-        IF NOT EXISTS (SELECT 1
-                       FROM pg_type t
-                                JOIN pg_namespace n ON n.oid = t.typnamespace
-                       WHERE t.typname = 'provider_role'
-                         AND n.nspname = 'geodb_collection_metadata') THEN
-            CREATE TYPE geodb_collection_metadata.provider_role AS ENUM ('licensor', 'producer', 'processor', 'host');
-        END IF;
-    END
-$$;
-
-CREATE TABLE IF NOT EXISTS geodb_collection_metadata.metadata
+CREATE TABLE IF NOT EXISTS geodb_collection_metadata.basic
 (
-    collection_name TEXT PRIMARY KEY,
+    collection_name TEXT,
+    database        TEXT            NOT NULL,
     title           CHARACTER VARYING(255),
     description     TEXT            NOT NULL DEFAULT 'No description available',
     license         TEXT            NOT NULL DEFAULT 'proprietary',
@@ -1545,53 +1534,62 @@ CREATE TABLE IF NOT EXISTS geodb_collection_metadata.metadata
     temporal_extent TIMESTAMPTZ[][] NOT NULL DEFAULT ARRAY [ ARRAY [NULL::TIMESTAMPTZ, NULL::TIMESTAMPTZ]],
     stac_extensions TEXT[]          NULL     DEFAULT ARRAY []::TEXT[],
     keywords        TEXT[]          NULL,
-    summaries       JSONB           NULL
+    summaries       JSONB           NULL,
+    CONSTRAINT basic_unique_collection_name_database UNIQUE ("collection_name", database)
 );
 
 CREATE TABLE IF NOT EXISTS geodb_collection_metadata.link
 (
     id              SERIAL PRIMARY KEY,
-    href            TEXT                                                                 NOT NULL,
-    rel             geodb_collection_metadata.relation                                   NOT NULL,
+    href            TEXT                               NOT NULL,
+    rel             geodb_collection_metadata.relation NOT NULL,
     type            TEXT,
     title           TEXT,
     method          TEXT,
     headers         JSONB,
     body            JSONB,
-    collection_name TEXT REFERENCES geodb_collection_metadata.metadata (collection_name) NOT NULL
+    collection_name TEXT                               NOT NULL,
+    database        TEXT                               NOT NULL,
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database)
 );
 
 CREATE TABLE IF NOT EXISTS geodb_collection_metadata.provider
 (
     name            TEXT PRIMARY KEY,
-    description     TEXT                                                                 NULL,
-    roles           geodb_collection_metadata.provider_role[]                            NULL DEFAULT ARRAY []::geodb_collection_metadata.provider_role[],
-    url             TEXT                                                                 NULL,
-    collection_name TEXT REFERENCES geodb_collection_metadata.metadata (collection_name) NOT NULL
+    description     TEXT                                      NULL,
+    roles           geodb_collection_metadata.provider_role[] NULL DEFAULT ARRAY []::geodb_collection_metadata.provider_role[],
+    url             TEXT                                      NULL,
+    collection_name TEXT                                      NOT NULL,
+    database        TEXT                                      NOT NULL,
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database)
 );
 
 CREATE TABLE IF NOT EXISTS geodb_collection_metadata.asset
 (
     name            TEXT PRIMARY KEY,
-    href            TEXT                                                                 NOT NULL,
-    title           TEXT                                                                 NULL,
-    description     TEXT                                                                 NULL,
-    type            TEXT                                                                 NULL,
-    roles           TEXT[]                                                               NULL DEFAULT ARRAY []::TEXT[],
-    collection_name TEXT REFERENCES geodb_collection_metadata.metadata (collection_name) NOT NULL
+    href            TEXT   NOT NULL,
+    title           TEXT   NULL,
+    description     TEXT   NULL,
+    type            TEXT   NULL,
+    roles           TEXT[] NULL DEFAULT ARRAY []::TEXT[],
+    collection_name TEXT   NOT NULL,
+    database        TEXT   NOT NULL,
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database)
 );
 
 CREATE TABLE IF NOT EXISTS geodb_collection_metadata."item_asset"
 (
     name            TEXT PRIMARY KEY,
-    title           TEXT                                                                 NULL,
-    description     TEXT                                                                 NULL,
-    type            TEXT                                                                 NULL,
-    roles           TEXT[]                                                               NULL DEFAULT ARRAY []::TEXT[],
-    collection_name TEXT REFERENCES geodb_collection_metadata.metadata (collection_name) NOT NULL
+    title           TEXT   NULL,
+    description     TEXT   NULL,
+    type            TEXT   NULL,
+    roles           TEXT[] NULL DEFAULT ARRAY []::TEXT[],
+    collection_name TEXT   NOT NULL,
+    database        TEXT   NOT NULL,
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database)
 );
 
-CREATE OR REPLACE FUNCTION public.geodb_get_metadata(collection text)
+CREATE OR REPLACE FUNCTION public.geodb_get_metadata(collection text, db text)
     RETURNS SETOF jsonb
     LANGUAGE 'sql'
 AS
@@ -1606,7 +1604,7 @@ WITH metadata_prepared AS (SELECT md.*,
                                                  )
                                           FROM unnest(md.spatial_extent) AS g
                                   ) AS spatial_extent
-                           FROM geodb_collection_metadata.metadata md)
+                           FROM geodb_collection_metadata.basic md)
 SELECT jsonb_build_object(
                'basic', to_jsonb(mp),
                'links', COALESCE(link_rows.link, '[]'::jsonb),
@@ -1619,26 +1617,31 @@ FROM metadata_prepared mp
     SELECT jsonb_agg(to_jsonb(li)) AS link
     FROM geodb_collection_metadata.link li
     WHERE li.collection_name = mp.collection_name
+      AND li.database = mp.database
     ) link_rows ON TRUE
          LEFT JOIN LATERAL (
     SELECT jsonb_agg(to_jsonb(pr)) AS provider
     FROM geodb_collection_metadata.provider pr
     WHERE pr.collection_name = mp.collection_name
+      AND pr.database = mp.database
     ) provider_rows ON TRUE
          LEFT JOIN LATERAL (
     SELECT jsonb_agg(to_jsonb(a)) AS asset
     FROM geodb_collection_metadata.asset a
     WHERE a.collection_name = mp.collection_name
+      AND a.database = mp.database
     ) asset_rows ON TRUE
          LEFT JOIN LATERAL (
     SELECT jsonb_agg(to_jsonb(ia)) AS item_asset
     FROM geodb_collection_metadata."item_asset" ia
     WHERE ia.collection_name = mp.collection_name
+      AND ia.database = mp.database
     ) item_asset_rows ON TRUE
-WHERE mp.collection_name = collection;
+WHERE mp.collection_name = collection
+  AND mp.database = db;
 $BODY$;
 
-CREATE OR REPLACE FUNCTION public.geodb_set_spatial_extent(collection text, se float8[][], srid int)
+CREATE OR REPLACE FUNCTION public.geodb_set_spatial_extent(collection text, db text, se float8[][], srid int)
     RETURNS SETOF jsonb
     LANGUAGE 'plpgsql'
 AS
@@ -1660,13 +1663,12 @@ BEGIN
             END IF;
         END LOOP;
 
-
-    UPDATE geodb_collection_metadata.metadata md
+    UPDATE geodb_collection_metadata.basic md
     SET spatial_extent = result
-    WHERE md.collection_name = collection;
+    WHERE md.collection_name = collection
+      and md.database = db;
 END
 $$;
-
 
 -- Below: watching PostGREST schema cache changes to the database, and trigger a
 -- reload.

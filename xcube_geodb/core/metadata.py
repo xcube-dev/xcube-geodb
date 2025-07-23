@@ -18,10 +18,22 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-from typing import List, Optional, Dict, Any, Union, TypeAlias, Literal, Sequence
+from typing import (
+    List,
+    Optional,
+    Dict,
+    Any,
+    Union,
+    TypeAlias,
+    Literal,
+    Sequence,
+    TYPE_CHECKING,
+)
 
 from xcube_geodb.core.db_interface import DbInterface
-from xcube_geodb.core.error import GeoDBError
+
+if TYPE_CHECKING:
+    from xcube_geodb.core.geodb import GeoDBClient
 
 
 # noinspection PyShadowingBuiltins
@@ -305,6 +317,113 @@ class ItemAsset:
         self._title = value
 
 
+class MetadataManager:
+    def __init__(self, geodb: "GeoDBClient", db_interface: DbInterface):
+        self._geodb = geodb
+        if not db_interface:
+            raise ValueError("db_interface cannot be None")
+        self._db_interface = db_interface
+
+    def from_json(self, json: Dict[str, Any], collection: str, database: str):
+        providers = self._get_providers(json)
+        assets = self._get_assets(json)
+        item_assets = self._get_item_assets(json)
+        links = self._get_links(json)
+        summaries = json["basic"]["summaries"] if "summaries" in json["basic"] else {}
+        stac_extensions = (
+            json["basic"]["stac_extensions"]
+            if "stac_extensions" in json["basic"]
+            else []
+        )
+        title = json["basic"]["title"] if "title" in json["basic"] else ""
+        keywords = json["basic"]["keywords"] if "keywords" in json["basic"] else []
+        spatial_extent = (
+            json["basic"]["spatial_extent"]
+            if "spatial_extent" in json["basic"]
+            else None
+        )
+        if not spatial_extent:
+            # get from database
+            bbox = self._geodb.get_collection_bbox(collection, database)
+            srid = self._geodb.get_collection_srid(collection, database)
+            spatial_extent = [[bbox[0], bbox[1], bbox[2], bbox[3]]]
+            self._set_spatial_extent(spatial_extent, collection, database, srid)
+        else:
+            # reformat what we got from metadata table
+            spatial_extent = [
+                [se["minx"], se["miny"], se["maxx"], se["maxy"]]
+                for se in spatial_extent
+            ]
+        return Metadata(
+            id=collection,
+            title=title,
+            links=links,
+            spatial_extent=spatial_extent,
+            temporal_extent=json["basic"]["temporal_extent"],
+            description=json["basic"]["description"],
+            license=json["basic"]["license"],
+            providers=providers,
+            stac_extensions=stac_extensions,
+            keywords=keywords,
+            summaries=summaries,
+            assets=assets,
+            item_assets=item_assets,
+        )
+
+    def set_title(self, title: str) -> None:
+        pass
+
+    def _set_spatial_extent(
+        self, spatial_extent: Sequence, collection: str, database: str, srid: str
+    ):
+        path = "/rpc/geodb_set_spatial_extent"
+        self._db_interface.post(
+            path,
+            payload={
+                "collection": f"{collection}_{database}",
+                "database": database,
+                "spatial_extent": spatial_extent,
+                "srid": int(srid),
+            },
+        )
+
+    @staticmethod
+    def _get_providers(json: Dict[str, Any]) -> Optional[List[Provider]]:
+        if "providers" not in json:
+            return None
+        result = []
+        for provider_spec in json["providers"]:
+            result.append(Provider.from_json(provider_spec))
+        return result
+
+    @staticmethod
+    def _get_assets(json: Dict[str, Any]) -> Optional[List[Asset]]:
+        if "assets" not in json:
+            return None
+        result: List[Asset] = []
+        for asset_spec in json["assets"]:
+            result.append(Asset.from_json(asset_spec))
+        return result
+
+    @staticmethod
+    def _get_item_assets(json: Dict[str, Any]) -> Optional[List[ItemAsset]]:
+        if "item_assets" not in json:
+            return None
+        result: List[ItemAsset] = []
+        for item_asset_spec in json["item_assets"]:
+            result.append(ItemAsset.from_json(item_asset_spec))
+        return result
+
+    @staticmethod
+    def _get_links(json: Dict[str, Any]) -> List[Link]:
+        if "links" not in json:
+            return []
+        result = []
+        for link_spec in json["links"]:
+            result.append(Link.from_json(link_spec))
+        return result
+
+
 # noinspection PyShadowingBuiltins
 class Metadata:
     """
@@ -328,11 +447,10 @@ class Metadata:
 
     def __init__(
         self,
-        db_interface: DbInterface,
         id: str,
         title: str,
         links: List[Link],
-        spatial_extent: Optional[SpatialExtent] = None,
+        spatial_extent: Optional[SpatialExtent],
         temporal_extent: Optional[TemporalExtent] = None,
         description: str = "No description available",
         license: str = "proprietary",
@@ -343,13 +461,8 @@ class Metadata:
         assets: Optional[List[Asset]] = None,
         item_assets: Optional[Dict[str, ItemAsset]] = None,
     ):
-        if not db_interface:
-            raise ValueError("db_interface cannot be None")
-        if spatial_extent is None:
-            spatial_extent = [[-180.0, -90.0, 180.0, 90.0]]
         if temporal_extent is None:
             temporal_extent = [[None, None]]
-        self._db_interface = db_interface
         self._id = id
         self._title = title
         self._links = links
@@ -429,97 +542,3 @@ class Metadata:
     @property
     def item_assets(self) -> Optional[List[ItemAsset]]:
         return self._item_assets
-
-    def set_spatial_extent(
-        self, spatial_extent: SpatialExtent, srid: int = 4326
-    ) -> None:
-        self._spatial_extent = spatial_extent
-        payload = {
-            "collection_name": self.id,
-            "spatial_extent": spatial_extent,
-            "srid": srid,
-        }
-        try:
-            self._db_interface.post(
-                path="/rpc/geodb_set_spatial_extent", payload=payload
-            )
-        except Exception as e:
-            raise GeoDBError(str(e))
-        self._spatial_extent = spatial_extent
-
-    @staticmethod
-    def _get_providers(json: Dict[str, Any]) -> Optional[List[Provider]]:
-        if "providers" not in json:
-            return None
-        result = []
-        for provider_spec in json["providers"]:
-            result.append(Provider.from_json(provider_spec))
-        return result
-
-    @staticmethod
-    def _get_assets(json: Dict[str, Any]) -> Optional[List[Asset]]:
-        if "assets" not in json:
-            return None
-        result: List[Asset] = []
-        for asset_spec in json["assets"]:
-            result.append(Asset.from_json(asset_spec))
-        return result
-
-    @staticmethod
-    def _get_item_assets(json: Dict[str, Any]) -> Optional[List[ItemAsset]]:
-        if "item_assets" not in json:
-            return None
-        result: List[ItemAsset] = []
-        for item_asset_spec in json["item_assets"]:
-            result.append(ItemAsset.from_json(item_asset_spec))
-        return result
-
-    @staticmethod
-    def _get_links(json: Dict[str, Any]) -> List[Link]:
-        if "links" not in json:
-            return []
-        result = []
-        for link_spec in json["links"]:
-            result.append(Link.from_json(link_spec))
-        return result
-
-    @staticmethod
-    def from_json(db_interface: DbInterface, json: Dict[str, Any]):
-        providers = Metadata._get_providers(json)
-        assets = Metadata._get_assets(json)
-        item_assets = Metadata._get_item_assets(json)
-        links = Metadata._get_links(json)
-        summaries = json["basic"]["summaries"] if "summaries" in json["basic"] else {}
-        stac_extensions = (
-            json["basic"]["stac_extensions"]
-            if "stac_extensions" in json["basic"]
-            else []
-        )
-        title = json["basic"]["title"] if "title" in json["basic"] else ""
-        keywords = json["basic"]["keywords"] if "keywords" in json["basic"] else []
-        spatial_extent = (
-            json["basic"]["spatial_extent"]
-            if "spatial_extent" in json["basic"]
-            else None
-        )
-        if spatial_extent:
-            spatial_extent = [
-                [se["minx"], se["miny"], se["maxx"], se["maxy"]]
-                for se in spatial_extent
-            ]
-        return Metadata(
-            db_interface,
-            id=json["basic"]["collection_name"],
-            title=title,
-            links=links,
-            spatial_extent=spatial_extent,
-            temporal_extent=json["basic"]["temporal_extent"],
-            description=json["basic"]["description"],
-            license=json["basic"]["license"],
-            providers=providers,
-            stac_extensions=stac_extensions,
-            keywords=keywords,
-            summaries=summaries,
-            assets=assets,
-            item_assets=item_assets,
-        )

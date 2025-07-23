@@ -16,11 +16,15 @@ from xcube_geodb.const import MINX, MINY, MAXX, MAXY
 from xcube_geodb.core.db_interface import DbInterface
 from xcube_geodb.core.error import GeoDBError
 from xcube_geodb.core.message import Message
-from xcube_geodb.core.metadata import Metadata
 from xcube_geodb.defaults import GEODB_DEFAULTS
 from xcube_geodb.version import version
 import warnings
 import functools
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from xcube_geodb.core.metadata import Metadata
 
 
 def warn(msg: str):
@@ -261,6 +265,9 @@ class GeoDBClient(object):
             self._auth_aud,
             self._auth_access_token_uri,
         )
+        from xcube_geodb.core.metadata import MetadataManager
+
+        self._metadata_manager = MetadataManager(self, self._db_interface)
 
     def _set_from_env(self):
         """
@@ -2565,15 +2572,26 @@ class GeoDBClient(object):
         r = self._db_interface.post(path=path, payload=payload)
         return int(r.text) > 0
 
-    def get_metadata(self, collection: str, database: Optional[str] = None) -> Metadata:
+    def get_metadata(
+        self, collection: str, database: Optional[str] = None
+    ) -> "Metadata":
         database = database or self.database
-        dn = f"{database}_{collection}"
 
         path = "/rpc/geodb_get_metadata"
-        payload = {"collection": dn}
+        payload = {"collection": collection, "db": database}
 
         result = self._db_interface.post(path=path, payload=payload).json()
-        return Metadata.from_json(self._db_interface, result)
+        return self._metadata_manager.from_json(result, collection, database)
+
+    def set_metadata_title(
+        self, title: str, collection: str, database: Optional[str] = None
+    ):
+        database = database or self.database
+
+        path = "/rpc/geodb_set_metadata_title"
+        payload = {"collection": collection, "db": database, "title": title}
+
+        self._db_interface.post(path=path, payload=payload).json()
 
     def refresh_auth_access_token(self):
         """
