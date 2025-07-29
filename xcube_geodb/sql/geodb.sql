@@ -1508,6 +1508,7 @@ REVOKE EXECUTE ON FUNCTION geodb_get_grants(text) FROM PUBLIC;
 -- below: metadata support
 
 CREATE SCHEMA IF NOT EXISTS geodb_collection_metadata;
+GRANT USAGE ON SCHEMA geodb_collection_metadata to PUBLIC;
 
 DO
 $$
@@ -1525,7 +1526,7 @@ $$;
 
 CREATE TABLE IF NOT EXISTS geodb_collection_metadata.basic
 (
-    collection_name TEXT,
+    collection_name TEXT            NOT NULL,
     database        TEXT            NOT NULL,
     title           CHARACTER VARYING(255),
     description     TEXT            NOT NULL DEFAULT 'No description available',
@@ -1589,57 +1590,80 @@ CREATE TABLE IF NOT EXISTS geodb_collection_metadata."item_asset"
     FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database)
 );
 
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA geodb_collection_metadata TO PUBLIC;
+
 CREATE OR REPLACE FUNCTION public.geodb_get_metadata(collection text, db text)
-    RETURNS SETOF jsonb
-    LANGUAGE 'sql'
+    RETURNS JSONB
+    LANGUAGE 'plpgsql'
 AS
-$BODY$
-WITH metadata_prepared AS (SELECT md.*,
-                                  ARRAY(
-                                          SELECT jsonb_build_object(
-                                                         'minx', ST_XMin(g),
-                                                         'miny', ST_YMin(g),
-                                                         'maxx', ST_XMax(g),
-                                                         'maxy', ST_YMax(g)
-                                                 )
-                                          FROM unnest(md.spatial_extent) AS g
-                                  ) AS spatial_extent
-                           FROM geodb_collection_metadata.basic md)
-SELECT jsonb_build_object(
-               'basic', to_jsonb(mp),
-               'links', COALESCE(link_rows.link, '[]'::jsonb),
-               'providers', COALESCE(provider_rows.provider, '[]'::jsonb),
-               'assets', COALESCE(asset_rows.asset, '[]'::jsonb),
-               'item_assets', COALESCE(item_asset_rows.item_asset, '[]'::jsonb)
-       )
-FROM metadata_prepared mp
-         LEFT JOIN LATERAL (
-    SELECT jsonb_agg(to_jsonb(li)) AS link
+$$
+DECLARE
+    mp              RECORD;
+    result          JSONB;
+    link_data       JSONB := '[]';
+    provider_data   JSONB := '[]';
+    asset_data      JSONB := '[]';
+    item_asset_data JSONB := '[]';
+    usr             TEXT;
+    ct              INT;
+BEGIN
+    usr := (SELECT geodb_whoami());
+    SELECT geodb_user_allowed(db || '_' || collection, usr) INTO ct;
+
+    IF ct = 0 then
+        RAISE EXCEPTION 'No access to collection % for user %.', db || '_' || collection, usr;
+    end if;
+
+    SELECT md.*,
+           ARRAY(
+                   SELECT jsonb_build_object(
+                                  'minx', ST_XMin(g),
+                                  'miny', ST_YMin(g),
+                                  'maxx', ST_XMax(g),
+                                  'maxy', ST_YMax(g)
+                          )
+                   FROM unnest(md.spatial_extent) AS g
+           ) AS spatial_extent
+    INTO mp
+    FROM geodb_collection_metadata.basic md
+    WHERE md.collection_name = collection
+      AND md.database = db;
+
+    SELECT COALESCE(jsonb_agg(to_jsonb(li)), '[]'::jsonb)
+    INTO link_data
     FROM geodb_collection_metadata.link li
     WHERE li.collection_name = mp.collection_name
-      AND li.database = mp.database
-    ) link_rows ON TRUE
-         LEFT JOIN LATERAL (
-    SELECT jsonb_agg(to_jsonb(pr)) AS provider
+      AND li.database = mp.database;
+
+    SELECT COALESCE(jsonb_agg(to_jsonb(pr)), '[]'::jsonb)
+    INTO provider_data
     FROM geodb_collection_metadata.provider pr
     WHERE pr.collection_name = mp.collection_name
-      AND pr.database = mp.database
-    ) provider_rows ON TRUE
-         LEFT JOIN LATERAL (
-    SELECT jsonb_agg(to_jsonb(a)) AS asset
+      AND pr.database = mp.database;
+
+    SELECT COALESCE(jsonb_agg(to_jsonb(a)), '[]'::jsonb)
+    INTO asset_data
     FROM geodb_collection_metadata.asset a
     WHERE a.collection_name = mp.collection_name
-      AND a.database = mp.database
-    ) asset_rows ON TRUE
-         LEFT JOIN LATERAL (
-    SELECT jsonb_agg(to_jsonb(ia)) AS item_asset
-    FROM geodb_collection_metadata."item_asset" ia
+      AND a.database = mp.database;
+
+    SELECT COALESCE(jsonb_agg(to_jsonb(ia)), '[]'::jsonb)
+    INTO item_asset_data
+    FROM geodb_collection_metadata.item_asset ia
     WHERE ia.collection_name = mp.collection_name
-      AND ia.database = mp.database
-    ) item_asset_rows ON TRUE
-WHERE mp.collection_name = collection
-  AND mp.database = db;
-$BODY$;
+      AND ia.database = mp.database;
+
+    -- Construct final JSON
+    result := jsonb_build_object(
+            'basic', to_jsonb(mp),
+            'links', link_data,
+            'providers', provider_data,
+            'assets', asset_data,
+            'item_assets', item_asset_data
+              );
+    return result;
+END
+$$;
 
 CREATE OR REPLACE FUNCTION public.geodb_set_spatial_extent(collection text, db text, se float8[][], srid int)
     RETURNS SETOF jsonb
@@ -1681,7 +1705,17 @@ DECLARE
     roles      TEXT[];
     item_asset JSON;
     ts_array   TIMESTAMPTZ[][];
+    usr        TEXT;
+    ct         INT;
 BEGIN
+
+    usr := (SELECT geodb_whoami());
+    SELECT geodb_user_allowed(db || '_' || collection, usr) INTO ct;
+
+    IF ct = 0 then
+        RAISE EXCEPTION 'No access to collection % for user %.', db || '_' || collection, usr;
+    end if;
+
     RAISE NOTICE 'Setting metadata field % to % for %_%', field, value, collection, db;
     IF field IN ('title', 'description', 'license') THEN
         EXECUTE format('

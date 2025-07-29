@@ -319,6 +319,29 @@ class GeoDBSQLMDTest(unittest.TestCase):
         with self.assertRaises(RaiseException):
             self._cursor.execute(sql)
 
+    @patch("xcube_geodb.core.geodb.GeoDBClient")
+    @patch("xcube_geodb.core.db_interface.DbInterface")
+    def test_get_md_access_control(self, geodb: GeoDBClient, mockdb: DbInterface):
+        self._set_role("geodb_user")
+        sql = "SELECT geodb_get_metadata('land_use', 'geodb_user')"
+        self._cursor.execute(sql)
+
+        self._set_role("geodb_user-with-hyphens")
+        sql = "SELECT geodb_get_metadata('land_use', 'geodb_user')"
+        with self.assertRaises(Exception):
+            self._cursor.execute(sql)
+        self._conn.commit()
+        self._cursor = self._conn.cursor()
+
+        self._set_role("geodb_user")
+        sql = "SELECT geodb_set_metadata_field('title', '\"sausage\"', 'land_use', 'geodb_user')"
+        self._cursor.execute(sql)
+
+        self._set_role("geodb_user-with-hyphens")
+        sql = "SELECT geodb_set_metadata_field('title', '\"pasta\"', 'land_use', 'geodb_user')"
+        with self.assertRaises(Exception):
+            self._cursor.execute(sql)
+
     def _fetch_md(self, geodb, mockdb) -> Metadata:
         sql = "SELECT geodb_get_metadata('land_use', 'geodb_user')"
         self._cursor.execute(sql)
