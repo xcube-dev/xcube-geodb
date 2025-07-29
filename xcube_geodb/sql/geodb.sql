@@ -1718,12 +1718,23 @@ BEGIN
 
     RAISE NOTICE 'Setting metadata field % to % for %_%', field, value, collection, db;
     IF field IN ('title', 'description', 'license') THEN
-        EXECUTE format('
+        SELECT COUNT(*)
+        FROM geodb_collection_metadata.basic
+        WHERE collection_name = collection
+          and database = db
+        INTO ct;
+        IF ct = 0 THEN
+            EXECUTE format('
+            INSERT INTO geodb_collection_metadata.basic (%s, collection_name, database)
+            VALUES (''%s'', ''%s'', ''%s'');', field, replace(value #>> '{}', '"', ''), collection, db);
+        ELSE
+            EXECUTE format('
             UPDATE geodb_collection_metadata.basic md
             SET %s = ''%s''
-            WHERE md.collection_name = ''%I''
-              and md.database = ''%I'';'
-            , field, value #>> '{}', collection, db);
+            WHERE md.collection_name = ''%s''
+              and md.database = ''%s'';'
+                , field, replace(value #>> '{}', '"', ''), collection, db);
+        END IF;
     ELSIF field IN ('keywords', 'stac_extensions') THEN
         EXECUTE format('
             UPDATE geodb_collection_metadata.basic md

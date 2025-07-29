@@ -329,17 +329,31 @@ class MetadataManager:
         assets = self._get_assets(json)
         item_assets = self._get_item_assets(json)
         links = self._get_links(json)
-        summaries = json["basic"]["summaries"] if "summaries" in json["basic"] else {}
+        summaries = (
+            json["basic"]["summaries"]
+            if "summaries" in json["basic"] and json["basic"]["summaries"] is not None
+            else {}
+        )
         stac_extensions = (
             json["basic"]["stac_extensions"]
             if "stac_extensions" in json["basic"]
+            and json["basic"]["stac_extensions"] is not None
             else []
         )
-        title = json["basic"]["title"] if "title" in json["basic"] else ""
-        keywords = json["basic"]["keywords"] if "keywords" in json["basic"] else []
+        title = (
+            json["basic"]["title"]
+            if "title" in json["basic"] and json["basic"]["title"] is not None
+            else ""
+        )
+        keywords = (
+            json["basic"]["keywords"]
+            if "keywords" in json["basic"] and json["basic"]["keywords"] is not None
+            else []
+        )
         spatial_extent = (
             json["basic"]["spatial_extent"]
             if "spatial_extent" in json["basic"]
+            and json["basic"]["spatial_extent"] is not None
             else None
         )
         if not spatial_extent:
@@ -381,8 +395,8 @@ class MetadataManager:
             path,
             payload={
                 "collection": f"{collection}_{database}",
-                "database": database,
-                "spatial_extent": spatial_extent,
+                "db": database,
+                "se": spatial_extent,
                 "srid": int(srid),
             },
         )
@@ -452,8 +466,8 @@ class Metadata:
         links: List[Link],
         spatial_extent: Optional[SpatialExtent],
         temporal_extent: Optional[TemporalExtent] = None,
-        description: str = "No description available",
-        license: str = "proprietary",
+        description: Optional[str] = None,
+        license: Optional[str] = None,
         providers: Optional[List[Provider]] = None,
         stac_extensions: Optional[List[str]] = None,
         keywords: Optional[List[str]] = None,
@@ -468,11 +482,11 @@ class Metadata:
         self._links = links
         self._spatial_extent = spatial_extent
         self._temporal_extent = temporal_extent
-        self._description = description
+        self._description = description if description else "No description available"
         self._stac_extensions = stac_extensions
         self._keywords = keywords if keywords else []
         self._providers = providers if providers else []
-        self._license = license
+        self._license = license if license else "proprietary"
         self._summaries = summaries if summaries else {}
         self._assets = assets if assets else []
         self._item_assets = item_assets if item_assets else []

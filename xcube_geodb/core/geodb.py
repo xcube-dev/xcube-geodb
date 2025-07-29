@@ -2609,17 +2609,22 @@ class GeoDBClient(object):
             database (str): The database to set the metadata field for
         """
         database = database or self.database
+        try:
+            jsonified_value = json.dumps(json.loads(value))
+        except (json.JSONDecodeError, TypeError):
+            # cannot parse as json -> wrap in double quotes
+            jsonified_value = f'"{value}"'
 
         path = "/rpc/geodb_set_metadata_field"
         payload = {
             "field": field,
-            "value": f"{value}",
+            "value": jsonified_value,
             "collection": collection,
             "db": database,
         }
 
         try:
-            self._db_interface.post(path=path, payload=payload).json()
+            self._db_interface.post(path=path, payload=payload)
         except GeoDBError as e:
             return self._maybe_raise(e, return_df=True)
 
