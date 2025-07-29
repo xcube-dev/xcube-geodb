@@ -84,11 +84,16 @@ class GeoDBSqlTest(unittest.TestCase):
 
         # special windows treatment end
 
+        tmpdir = os.path.join(os.getcwd(), "tmp")
+        os.makedirs(tmpdir, exist_ok=True)
+
         postgresql = testing.postgresql.PostgresqlFactory(
             cache_initialized_db=False,
             initdb=initdb,
             postgres=postgres,
             port=50777,
+            base_dir=tmpdir,
+            postgres_args="-h 127.0.0.1 -F -c logging_collector=on -c log_statement=all -c log_min_messages=debug3 -c client_min_messages=debug3 -c log_destination=stderr",
         )
 
         cls._postgresql = postgresql()

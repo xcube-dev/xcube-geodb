@@ -2583,15 +2583,45 @@ class GeoDBClient(object):
         result = self._db_interface.post(path=path, payload=payload).json()
         return self._metadata_manager.from_json(result, collection, database)
 
-    def set_metadata_title(
-        self, title: str, collection: str, database: Optional[str] = None
-    ):
+    def set_metadata_field(
+        self, field: str, value: str, collection: str, database: Optional[str] = None
+    ) -> None | DataFrame | Message:
+        """
+        Sets the given metadata field for the given collection. See the STAC
+        'collection' specification for details on the possible field values.
+
+        Args:
+            field (str): The metadata field to set. Valid fields are: title, description, license, keywords, providers
+            value (str): The value to set, provided as JSON string.
+            >>> GeoDBClient.set_metadata_field("title", "my title")
+            >>> GeoDBClient.set_metadata_field("description", "my description")
+            >>> GeoDBClient.set_metadata_field("license", "MIT")
+            >>> GeoDBClient.set_metadata_field("link", "[{'href': 'https://link.org', 'rel': 'parent'}, {'href': 'https://link2.org', 'rel': 'root'}]")
+            >>> GeoDBClient.set_metadata_field("keywords", "['crops', 'europe', 'rural']")
+            >>> GeoDBClient.set_metadata_field("stac_extensions", "['https://stac-extensions.github.io/authentication/v1.1.0/schema.json']")
+            >>> GeoDBClient.set_metadata_field("providers", "[{'name': 'provider 1', 'description': 'some provider', 'roles': ['licensor', 'producer']}]")
+            >>> GeoDBClient.set_metadata_field("summaries", "{'columns': ['id', 'geometry'], 'x_range': {'min': '-170', 'max': '170'}, 'y_range': {'min': '-80', 'max': '80'}, 'schema': 'some JSON schema'}")
+            >>> GeoDBClient.set_metadata_field("assets", "[{'href': 'https://asset.org', 'title': 'some title'}]")
+            >>> GeoDBClient.set_metadata_field("item_assets", "[{'href': 'https://asset.org', 'type': 'some type'}]")
+            >>> GeoDBClient.set_metadata_field("temporal_extent", "[['2019-01-01T00:00:00Z', null]]")
+
+            collection (str): The collection to set the metadata field for
+            database (str): The database to set the metadata field for
+        """
         database = database or self.database
 
-        path = "/rpc/geodb_set_metadata_title"
-        payload = {"collection": collection, "db": database, "title": title}
+        path = "/rpc/geodb_set_metadata_field"
+        payload = {
+            "field": field,
+            "value": f"{value}",
+            "collection": collection,
+            "db": database,
+        }
 
-        self._db_interface.post(path=path, payload=payload).json()
+        try:
+            self._db_interface.post(path=path, payload=payload).json()
+        except GeoDBError as e:
+            return self._maybe_raise(e, return_df=True)
 
     def refresh_auth_access_token(self):
         """

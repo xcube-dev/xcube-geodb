@@ -1533,7 +1533,7 @@ CREATE TABLE IF NOT EXISTS geodb_collection_metadata.basic
     spatial_extent  GEOMETRY[]      NULL,
     temporal_extent TIMESTAMPTZ[][] NOT NULL DEFAULT ARRAY [ ARRAY [NULL::TIMESTAMPTZ, NULL::TIMESTAMPTZ]],
     stac_extensions TEXT[]          NULL     DEFAULT ARRAY []::TEXT[],
-    keywords        TEXT[]          NULL,
+    keywords        TEXT[]          NULL     DEFAULT ARRAY []::TEXT[],
     summaries       JSONB           NULL,
     CONSTRAINT basic_unique_collection_name_database UNIQUE ("collection_name", database)
 );
@@ -1566,7 +1566,7 @@ CREATE TABLE IF NOT EXISTS geodb_collection_metadata.provider
 
 CREATE TABLE IF NOT EXISTS geodb_collection_metadata.asset
 (
-    name            TEXT PRIMARY KEY,
+    id              SERIAL PRIMARY KEY,
     href            TEXT   NOT NULL,
     title           TEXT   NULL,
     description     TEXT   NULL,
@@ -1579,7 +1579,7 @@ CREATE TABLE IF NOT EXISTS geodb_collection_metadata.asset
 
 CREATE TABLE IF NOT EXISTS geodb_collection_metadata."item_asset"
 (
-    name            TEXT PRIMARY KEY,
+    id              SERIAL PRIMARY KEY,
     title           TEXT   NULL,
     description     TEXT   NULL,
     type            TEXT   NULL,
@@ -1667,6 +1667,154 @@ BEGIN
     SET spatial_extent = result
     WHERE md.collection_name = collection
       and md.database = db;
+END
+$$;
+
+CREATE OR REPLACE FUNCTION public.geodb_set_metadata_field(field text, value json, collection text, db text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$$
+DECLARE
+    link       JSON;
+    asset      JSON;
+    roles      TEXT[];
+    item_asset JSON;
+    ts_array   TIMESTAMPTZ[][];
+BEGIN
+    RAISE NOTICE 'Setting metadata field % to % for %_%', field, value, collection, db;
+    IF field IN ('title', 'description', 'license') THEN
+        EXECUTE format('
+            UPDATE geodb_collection_metadata.basic md
+            SET %s = ''%s''
+            WHERE md.collection_name = ''%I''
+              and md.database = ''%I'';'
+            , field, value #>> '{}', collection, db);
+    ELSIF field IN ('keywords', 'stac_extensions') THEN
+        EXECUTE format('
+            UPDATE geodb_collection_metadata.basic md
+            SET %s = ''%s''
+            WHERE md.collection_name = ''%I''
+              and md.database = ''%I'';'
+            , field, ARRAY(SELECT json_array_elements_text(value)), collection, db);
+    ELSIF field = 'links' THEN
+        DELETE
+        FROM geodb_collection_metadata.link li
+        WHERE li.collection_name = collection
+          AND li.database = db;
+        FOR link in SELECT json_array_elements(value)
+            LOOP
+                EXECUTE format('
+                INSERT INTO geodb_collection_metadata.link (href, rel, type, title, method, headers, body, collection_name, database)
+                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', %L, %L, ''%I'', ''%I'');',
+                               link ->> 'href',
+                               link ->> 'rel',
+                               link ->> 'type',
+                               link ->> 'title',
+                               link ->> 'method',
+                               (link ->> 'headers')::JSONB,
+                               (link ->> 'body')::JSONB,
+                               collection,
+                               db);
+            END LOOP;
+    ELSIF field = 'providers' THEN
+        DELETE
+        FROM geodb_collection_metadata.provider pr
+        WHERE pr.collection_name = collection
+          AND pr.database = db;
+        FOR asset in SELECT json_array_elements(value)
+            LOOP
+                IF asset -> 'roles' IS NOT NULL THEN
+                    SELECT ARRAY(SELECT json_array_elements_text(asset -> 'roles'))
+                    INTO roles;
+                ELSE
+                    roles := '{}'::TEXT[];
+                END IF;
+                EXECUTE format('
+                INSERT INTO geodb_collection_metadata.provider (name, description, roles, url, collection_name, database)
+                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'');',
+                               asset ->> 'name',
+                               asset ->> 'description',
+                               roles,
+                               asset ->> 'url',
+                               collection,
+                               db);
+            END LOOP;
+    ELSIF field = 'assets' THEN
+        DELETE
+        FROM geodb_collection_metadata.asset a
+        WHERE a.collection_name = collection
+          AND a.database = db;
+        FOR asset in SELECT json_array_elements(value)
+            LOOP
+                IF asset -> 'roles' IS NOT NULL THEN
+                    SELECT ARRAY(SELECT json_array_elements_text(asset -> 'roles'))
+                    INTO roles;
+                ELSE
+                    roles := '{}'::TEXT[];
+                END IF;
+                EXECUTE format('
+                INSERT INTO geodb_collection_metadata.asset (href, title, description, type, roles, collection_name, database)
+                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'');',
+                               asset ->> 'href',
+                               asset ->> 'title',
+                               asset ->> 'description',
+                               asset ->> 'type',
+                               roles,
+                               collection,
+                               db);
+            END LOOP;
+    ELSIF field = 'item_assets' THEN
+        DELETE
+        FROM geodb_collection_metadata.item_asset a
+        WHERE a.collection_name = collection
+          AND a.database = db;
+        FOR item_asset in SELECT json_array_elements(value)
+            LOOP
+                IF item_asset -> 'roles' IS NOT NULL THEN
+                    SELECT ARRAY(SELECT json_array_elements_text(item_asset -> 'roles'))
+                    INTO roles;
+                ELSE
+                    roles := '{}'::TEXT[];
+                END IF;
+                EXECUTE format('
+                INSERT INTO geodb_collection_metadata."item_asset" (title, description, type, roles, collection_name, database)
+                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'');',
+                               item_asset ->> 'title',
+                               item_asset ->> 'description',
+                               item_asset ->> 'type',
+                               roles,
+                               collection,
+                               db);
+            END LOOP;
+    ELSIF field = 'temporal_extent' THEN
+        SELECT ARRAY(
+                       SELECT ARRAY(
+                                      SELECT CASE
+                                                 WHEN elem IS NULL OR elem::text = 'null' THEN NULL
+                                                 ELSE elem::text::TIMESTAMPTZ
+                                                 END
+                                      FROM json_array_elements(outer_elem::json) AS elem
+                              )
+                       FROM json_array_elements(value::json) AS outer_elem
+               )
+        INTO ts_array;
+        EXECUTE format('
+            UPDATE geodb_collection_metadata.basic md
+            SET %s = ''%s''
+            WHERE md.collection_name = ''%I''
+              and md.database = ''%I'';'
+            , field, ts_array, collection, db);
+    ELSIF field = 'summaries' THEN
+        EXECUTE format('
+            UPDATE geodb_collection_metadata.basic md
+            SET %s = ''%s''
+            WHERE md.collection_name = ''%I''
+              and md.database = ''%I'';'
+            , field, value, collection, db);
+    ELSE
+        RAISE EXCEPTION 'Invalid field; must be one of "title", "description", "license", "keywords", "stac_extensions", "links", "providers", "assets", "item_assets", "temporal_extent", "summaries"';
+    END IF;
 END
 $$;
 

@@ -3,6 +3,7 @@ import unittest
 import requests_mock
 
 from tests.core.test_geodb import GeoDBClientTest
+from xcube_geodb.core.error import GeoDBError
 from xcube_geodb.core.metadata import Range
 
 
@@ -26,7 +27,7 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         self.base_test.tearDown()
 
     # noinspection PyTypeChecker
-    def test_get_metadata(self, m):
+    def test_get_metadata(self, m: requests_mock.mocker.Mocker):
         self.base_test.set_global_mocks(m)
         url = f"{self.base_test._base_url}/rpc/geodb_get_metadata"
         json = self.default_json
@@ -151,7 +152,7 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         self.assertEqual(len(metadata.summaries), 4)
         self.assertEqual(len(metadata.item_assets), 1)
 
-    def test_get_metadata_everything_none(self, m):
+    def test_get_metadata_everything_none(self, m: requests_mock.mocker.Mocker):
         self.base_test.set_global_mocks(m)
         url = f"{self.base_test._base_url}/rpc/geodb_get_metadata"
         m.post(
@@ -187,20 +188,23 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         self.assertDictEqual(metadata.summaries, {})
         self.assertListEqual(metadata.item_assets, [])
 
-    def test_set_metadata_title(self, m):
+    def test_set_metadata_field(self, m: requests_mock.mocker.Mocker):
         self.base_test.set_global_mocks(m)
 
         json = self.default_json
-        json["basic"]["spatial_extent"] = [
-            {"minx": -180, "miny": -90, "maxx": 0, "maxy": 0},
-            {"minx": -170, "miny": -80, "maxx": -30, "maxy": -20},
-        ]
         json["basic"]["title"] = "Sir Collection"
         url = f"{self.base_test._base_url}/rpc/geodb_get_metadata"
         m.post(
             url,
             json=self.default_json,
         )
+        url = f"{self.base_test._base_url}/rpc/geodb_estimate_collection_bbox"
+        m.post(
+            url,
+            text="BOX(-6 9,5 11)",
+        )
+        url = f"{self.base_test._base_url}/rpc/geodb_set_spatial_extent"
+        m.post(url)
 
         self.assertEqual(
             "Sir Collection",
@@ -209,14 +213,14 @@ class GeoDBClientMetadataTest(unittest.TestCase):
             ).title,
         )
 
-        url = f"{self.base_test._base_url}/rpc/geodb_set_metadata_title"
+        url = f"{self.base_test._base_url}/rpc/geodb_set_metadata_field"
         m.post(
             url,
             json={},
         )
 
-        self.base_test._api.set_metadata_title(
-            "Lady Collection", collection="my_collection", database="database"
+        self.base_test._api.set_metadata_field(
+            "title", "Lady Collection", collection="my_collection", database="database"
         )
 
         json["basic"]["title"] = "Lady Collection"
@@ -232,3 +236,17 @@ class GeoDBClientMetadataTest(unittest.TestCase):
                 collection="my_collection", database="database"
             ).title,
         )
+
+        url = f"{self.base_test._base_url}/rpc/geodb_set_metadata_field"
+        m.post(
+            url,
+            exc=GeoDBError("Collection does not exist"),
+        )
+
+        with self.assertRaises(GeoDBError):
+            self.base_test._api.set_metadata_field(
+                "description",
+                "Bro Collection",
+                collection="no_collection",
+                database="database",
+            )

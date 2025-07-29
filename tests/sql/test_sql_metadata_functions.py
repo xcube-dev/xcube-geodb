@@ -18,15 +18,18 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import json
 import os
 import unittest
 from unittest.mock import patch
+
+from psycopg2.errors import RaiseException
 
 from tests.sql.test_sql_functions import GeoDBSqlTest
 from tests.sql.test_sql_functions import get_app_dir
 from xcube_geodb.core.db_interface import DbInterface
 from xcube_geodb.core.geodb import GeoDBClient
-from xcube_geodb.core.metadata import MetadataManager
+from xcube_geodb.core.metadata import MetadataManager, Metadata
 
 
 class GeoDBSQLMDTest(unittest.TestCase):
@@ -135,7 +138,6 @@ class GeoDBSQLMDTest(unittest.TestCase):
         result = self._cursor.fetchall()
         self.assertEqual(1, len(result))
 
-        self.assertEqual("some_asset", result[0][0])
         self.assertEqual("https://best-assets.bc", result[0][1])
         self.assertEqual([], result[0][5])
 
@@ -144,17 +146,13 @@ class GeoDBSQLMDTest(unittest.TestCase):
         result = self._cursor.fetchall()
         self.assertEqual(1, len(result))
 
-        self.assertEqual("some_item_asset", result[0][0])
         self.assertEqual("I have a type", result[0][3])
         self.assertEqual([], result[0][4])
 
     @patch("xcube_geodb.core.geodb.GeoDBClient")
     @patch("xcube_geodb.core.db_interface.DbInterface")
     def test_get_metadata(self, geodb: GeoDBClient, mockdb: DbInterface):
-        sql = "SELECT geodb_get_metadata('land_use', 'geodb_user')"
-        self._cursor.execute(sql)
-        result = self._cursor.fetchone()[0]
-        md = MetadataManager(geodb, mockdb).from_json(result, "land_use", "geodb_user")
+        md = self._fetch_md(geodb, mockdb)
         self.assertEqual("land_use", md.id)
         self.assertEqual("Land Use", md.title)
         self.assertEqual("proprietary", md.license)
@@ -179,4 +177,152 @@ class GeoDBSQLMDTest(unittest.TestCase):
         self.assertDictEqual({"min": "-80", "max": "80"}, md.summaries["y_range"])
         self.assertEqual(
             "this is a complex schema stored in a string", md.summaries["schema"]
+        )
+
+    @patch("xcube_geodb.core.geodb.GeoDBClient")
+    @patch("xcube_geodb.core.db_interface.DbInterface")
+    def test_set_metadata_field(self, geodb: GeoDBClient, mockdb: DbInterface):
+        sql = "SELECT geodb_set_metadata_field('title', '\"sausage\"', 'land_use', 'geodb_user')"
+        self._cursor.execute(sql)
+        md = self._fetch_md(geodb, mockdb)
+        self.assertEqual("sausage", md.title)
+
+        sql = "SELECT geodb_set_metadata_field('description', '\"this is a sausage\"', 'land_use', 'geodb_user')"
+        self._cursor.execute(sql)
+        md = self._fetch_md(geodb, mockdb)
+        self.assertEqual("this is a sausage", md.description)
+
+        sql = "SELECT geodb_set_metadata_field('license', '\"MIT\"', 'land_use', 'geodb_user')"
+        self._cursor.execute(sql)
+        md = self._fetch_md(geodb, mockdb)
+        self.assertEqual("MIT", md.license)
+
+        sql = "SELECT geodb_set_metadata_field('stac_extensions', '[\"https://stac-extensions.github.io/authentication/v1.1.0/schema.json\"]', 'land_use', 'geodb_user')"
+        self._cursor.execute(sql)
+        md = self._fetch_md(geodb, mockdb)
+        self.assertListEqual(
+            ["https://stac-extensions.github.io/authentication/v1.1.0/schema.json"],
+            md.stac_extensions,
+        )
+
+        sql = "SELECT geodb_set_metadata_field('links', '[{\"href\": \"https://link.com\", \"rel\": \"parent\"}]', 'land_use', 'geodb_user')"
+        self._cursor.execute(sql)
+        md = self._fetch_md(geodb, mockdb)
+        self.assertEqual(1, len(md.links))
+        self.assertEqual("https://link.com", md.links[0].href)
+        self.assertEqual("parent", md.links[0].rel)
+
+        sql = (
+            "SELECT geodb_set_metadata_field("
+            "'links',"
+            "'["
+            '{"href": "https://link.com", "rel": "root"},'
+            '{"href": "https://links.com", "rel": "parent", "title": "some_title"}'
+            "]',"
+            "'land_use',"
+            "'geodb_user')"
+        )
+        self._cursor.execute(sql)
+        md = self._fetch_md(geodb, mockdb)
+        self.assertEqual(2, len(md.links))
+        self.assertEqual("https://link.com", md.links[0].href)
+        self.assertEqual("root", md.links[0].rel)
+        self.assertEqual("https://links.com", md.links[1].href)
+        self.assertEqual("parent", md.links[1].rel)
+        self.assertEqual("some_title", md.links[1].title)
+
+        sql = 'SELECT geodb_set_metadata_field(\'providers\', \'[{"name": "some_provider_name", "description": "yo", "roles": ["licensor", "producer"], "url": "https://www.provider.bc"}]\', \'land_use\', \'geodb_user\')'
+        self._cursor.execute(sql)
+        md = self._fetch_md(geodb, mockdb)
+
+        self.assertEqual(1, len(md.providers))
+        self.assertEqual("some_provider_name", md.providers[0].name)
+        self.assertEqual("yo", md.providers[0].description)
+        self.assertListEqual(["licensor", "producer"], md.providers[0].roles)
+        self.assertEqual("https://www.provider.bc", md.providers[0].url)
+
+        sql = "SELECT geodb_set_metadata_field('providers', '[{\"name\": \"some_provider_name\"}]', 'land_use', 'geodb_user')"
+        self._cursor.execute(sql)
+        md = self._fetch_md(geodb, mockdb)
+        self.assertEqual(1, len(md.providers))
+        self.assertEqual("some_provider_name", md.providers[0].name)
+        self.assertListEqual([], md.providers[0].roles)
+
+        sql = 'SELECT geodb_set_metadata_field(\'assets\', \'[{"href": "https://asset.bc", "title": "assettitle", "roles": ["canbe", "anything"]}]\', \'land_use\', \'geodb_user\')'
+        self._cursor.execute(sql)
+        md = self._fetch_md(geodb, mockdb)
+        self.assertEqual(1, len(md.assets))
+        self.assertEqual("https://asset.bc", md.assets[0].href)
+        self.assertEqual("assettitle", md.assets[0].title)
+        self.assertListEqual(["canbe", "anything"], md.assets[0].roles)
+        self.assertIsNone(md.assets[0].type)
+        self.assertIsNone(md.assets[0].description)
+
+        sql = 'SELECT geodb_set_metadata_field(\'item_assets\', \'[{"description": "I am an item asset", "title": "itemassettitle", "roles": ["or", "canit?"]}]\', \'land_use\', \'geodb_user\')'
+        self._cursor.execute(sql)
+        md = self._fetch_md(geodb, mockdb)
+        self.assertEqual(1, len(md.item_assets))
+        self.assertEqual("itemassettitle", md.item_assets[0].title)
+        self.assertEqual("I am an item asset", md.item_assets[0].description)
+        self.assertListEqual(["or", "canit?"], md.item_assets[0].roles)
+        self.assertIsNone(md.assets[0].type)
+
+        ts = [["2025-01-01", "2025-12-31"], ["2025-02-05", "2025-02-26"]]
+        timestamps_json = json.dumps(ts)
+        self._cursor.execute(
+            "SELECT geodb_set_metadata_field('temporal_extent', %s, 'land_use', 'geodb_user');",
+            (timestamps_json,),
+        )
+        md = self._fetch_md(geodb, mockdb)
+        self.assertListEqual(
+            [
+                ["2025-01-01T00:00:00+00:00", "2025-12-31T00:00:00+00:00"],
+                ["2025-02-05T00:00:00+00:00", "2025-02-26T00:00:00+00:00"],
+            ],
+            md.temporal_extent,
+        )
+
+        ts = [["2025-01-01", None], [None, "2025-02-26"]]
+        timestamps_json = json.dumps(ts)
+        self._cursor.execute(
+            "SELECT geodb_set_metadata_field('temporal_extent', %s, 'land_use', 'geodb_user');",
+            (timestamps_json,),
+        )
+        md = self._fetch_md(geodb, mockdb)
+        self.assertListEqual(
+            [
+                ["2025-01-01T00:00:00+00:00", None],
+                [None, "2025-02-26T00:00:00+00:00"],
+            ],
+            md.temporal_extent,
+        )
+
+        summaries = {
+            "columns": ["name", "title"],
+            "x_range": {"min": "-170", "max": "170"},
+            "y_range": {"min": "-80", "max": "80"},
+            "schema": "this is a complex schema stored in a string",
+        }
+        summaries_json = json.dumps(summaries)
+        sql = "SELECT geodb_set_metadata_field('summaries', %s, 'land_use', 'geodb_user');"
+        self._cursor.execute(sql, (summaries_json,))
+        md = self._fetch_md(geodb, mockdb)
+        self.assertEqual(4, len(md.summaries.keys()))
+        self.assertListEqual(["name", "title"], md.summaries["columns"])
+        self.assertDictEqual({"min": "-170", "max": "170"}, md.summaries["x_range"])
+        self.assertDictEqual({"min": "-80", "max": "80"}, md.summaries["y_range"])
+        self.assertEqual(
+            "this is a complex schema stored in a string", md.summaries["schema"]
+        )
+
+        sql = "SELECT geodb_set_metadata_field('this_string_field_does_not_exist', '\"this is a failure\"', 'land_use', 'geodb_user')"
+        with self.assertRaises(RaiseException):
+            self._cursor.execute(sql)
+
+    def _fetch_md(self, geodb, mockdb) -> Metadata:
+        sql = "SELECT geodb_get_metadata('land_use', 'geodb_user')"
+        self._cursor.execute(sql)
+        result = self._cursor.fetchone()[0]
+        return MetadataManager(geodb, mockdb).from_json(
+            result, "land_use", "geodb_user"
         )

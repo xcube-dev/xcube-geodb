@@ -38,11 +38,11 @@ VALUES ('another_provider', 'i am an ok provider!', ARRAY ['producer'::geodb_col
         'https://ok-provider.com',
         'land_use', 'geodb_user');
 
-INSERT INTO geodb_collection_metadata.asset("name", "href", "collection_name", "database")
-VALUES ('some_asset', 'https://best-assets.bc', 'land_use', 'geodb_user');
+INSERT INTO geodb_collection_metadata.asset("href", "collection_name", "database")
+VALUES ('https://best-assets.bc', 'land_use', 'geodb_user');
 
-INSERT INTO geodb_collection_metadata."item_asset"("name", "type", "collection_name", "database")
-VALUES ('some_item_asset', 'I have a type', 'land_use', 'geodb_user');
+INSERT INTO geodb_collection_metadata."item_asset"("type", "collection_name", "database")
+VALUES ('I have a type', 'land_use', 'geodb_user');
 
 INSERT INTO geodb_collection_metadata.basic ("collection_name", "database", "title")
 VALUES ('some_other_collection', 'some_database', 'I am some other collection');
