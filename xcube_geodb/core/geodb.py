@@ -2,7 +2,7 @@ import json
 import os
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Dict, Optional, Union, Sequence, Tuple, List
+from typing import Dict, Optional, Union, Sequence, Tuple, List, Any
 
 import geopandas as gpd
 import requests
@@ -24,7 +24,7 @@ import functools
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from xcube_geodb.core.metadata import Metadata
+    from xcube_geodb.core.metadata import Metadata, Link, Provider, Asset, ItemAsset
 
 
 def warn(msg: str):
@@ -2575,6 +2575,14 @@ class GeoDBClient(object):
     def get_metadata(
         self, collection: str, database: Optional[str] = None
     ) -> "Metadata":
+        """
+        Retrieves the metadata for the given collection and database. The metadata
+        fields are compliant to the STAC collection specification, v1.1.0.
+
+        :param collection: the collection name to retrieve the metadata for
+        :param database: the database the collection is stored in
+        :return: the metadata
+        """
         database = database or self.database
 
         path = "/rpc/geodb_get_metadata"
@@ -2584,36 +2592,99 @@ class GeoDBClient(object):
         return self._metadata_manager.from_json(result, collection, database)
 
     def set_metadata_field(
-        self, field: str, value: str, collection: str, database: Optional[str] = None
+        self,
+        field: str,
+        value: Any,
+        collection: str,
+        database: Optional[str] = None,
     ) -> None | DataFrame | Message:
-        """
+        """(str): The collection to set the metadat
         Sets the given metadata field for the given collection. See the STAC
         'collection' specification for details on the possible field values.
 
         Args:
-            field (str): The metadata field to set. Valid fields are: title, description, license, keywords, providers
-            value (str): The value to set, provided as JSON string.
-            >>> GeoDBClient.set_metadata_field("title", "my title")
-            >>> GeoDBClient.set_metadata_field("description", "my description")
-            >>> GeoDBClient.set_metadata_field("license", "MIT")
-            >>> GeoDBClient.set_metadata_field("link", "[{'href': 'https://link.org', 'rel': 'parent'}, {'href': 'https://link2.org', 'rel': 'root'}]")
-            >>> GeoDBClient.set_metadata_field("keywords", "['crops', 'europe', 'rural']")
-            >>> GeoDBClient.set_metadata_field("stac_extensions", "['https://stac-extensions.github.io/authentication/v1.1.0/schema.json']")
-            >>> GeoDBClient.set_metadata_field("providers", "[{'name': 'provider 1', 'description': 'some provider', 'roles': ['licensor', 'producer']}]")
-            >>> GeoDBClient.set_metadata_field("summaries", "{'columns': ['id', 'geometry'], 'x_range': {'min': '-170', 'max': '170'}, 'y_range': {'min': '-80', 'max': '80'}, 'schema': 'some JSON schema'}")
-            >>> GeoDBClient.set_metadata_field("assets", "[{'href': 'https://asset.org', 'title': 'some title'}]")
-            >>> GeoDBClient.set_metadata_field("item_assets", "[{'href': 'https://asset.org', 'type': 'some type'}]")
-            >>> GeoDBClient.set_metadata_field("temporal_extent", "[['2019-01-01T00:00:00Z', null]]")
-
+            field (str): The metadata field to set. Valid fields to set are:
+                         title (str), description (str), license (str),
+                         keywords (List[str]), providers (List[Provider]),
+                         stac_extensions (List[str]), links (List[Link]),
+                         summaries (Dict[str, Summary]), assets (List[Asset]),
+                         item_assets(Dict[str, ItemAsset]),
+                         temporal_extent (TemporalExtent)
+            value (Any): The value to set, provided in the type that the field expects
+                         (see above documentation for 'field'-parameter for the
+                         expected types).
             collection (str): The collection to set the metadata field for
             database (str): The database to set the metadata field for
+            >>> GeoDBClient.set_metadata_field("title", "my title", "my_collection")
+            >>> GeoDBClient.set_metadata_field("description", "my description", "my_collection")
+            >>> GeoDBClient.set_metadata_field("license", "my license", "my_collection")
+            >>> GeoDBClient.set_metadata_field("links", [Link.from_json({'href': 'https://link2.bc', 'rel': 'root'})], "my_collection")
+            >>> GeoDBClient.set_metadata_field("keywords", ['crops', 'europe', 'rural'], "my_collection")
+            >>> GeoDBClient.set_metadata_field("stac_extensions", ['https://stac-extensions.github.io/authentication/v1.1.0/schema.json'], "my_collection")
+            >>> GeoDBClient.set_metadata_field("providers", [Provider.from_json({'name': 'provider 1', 'description': 'some provider', 'roles': ['licensor', 'producer']})], "my_collection")
+            >>> GeoDBClient.set_metadata_field("summaries", {'columns': ['id', 'geometry'], 'x_range': {'min': '-170', 'max': '170'}, 'y_range': {'min': '-80', 'max': '80'}, 'schema': 'some JSON schema'}, "my_collection")
+            >>> GeoDBClient.set_metadata_field("assets", [Asset.from_json({'href': 'https://asset.org', 'title': 'some title', 'roles': ['image', 'ql']})], "my_collection")
+            >>> GeoDBClient.set_metadata_field("item_assets", [ItemAsset.from_json({'href': 'https://asset.org', 'type': 'some type'})], "my_collection")
+            >>> GeoDBClient.set_metadata_field("temporal_extent", [['2018-01-01T00:00:00Z', None], "my_collection")
         """
         database = database or self.database
-        try:
-            jsonified_value = json.dumps(json.loads(value))
-        except (json.JSONDecodeError, TypeError):
-            # cannot parse as json -> wrap in double quotes
+        if isinstance(value, str):
             jsonified_value = f'"{value}"'
+        elif field == "keywords" or field == "stac_extensions":
+            value: List[str]
+            jsonified_value = [f"{v}" for v in value]
+        elif field == "links":
+            value: List["Link"]
+            jsonified_value = [
+                {
+                    "href": v.href,
+                    "rel": v.rel,
+                    "type": v.type,
+                    "title": v.title,
+                    "method": v.method,
+                    "body": v.body,
+                    "headers": v.headers,
+                }
+                for v in value
+            ]
+        elif field == "providers":
+            value: List["Provider"]
+            jsonified_value = [
+                {
+                    "description": v.description,
+                    "url": v.url,
+                    "name": v.name,
+                    "roles": v.roles,
+                }
+                for v in value
+            ]
+        elif field == "assets":
+            value: List["Asset"]
+            jsonified_value = [
+                {
+                    "description": v.description,
+                    "title": v.title,
+                    "href": v.href,
+                    "type": v.type,
+                    "roles": v.roles,
+                }
+                for v in value
+            ]
+        elif field == "item_assets":
+            value: List["ItemAsset"]
+            jsonified_value = [
+                {
+                    "description": v.description,
+                    "title": v.title,
+                    "type": v.type,
+                    "roles": v.roles,
+                }
+                for v in value
+            ]
+        elif field == "summaries" or field == "temporal_extent":
+            jsonified_value = value
+        else:
+            raise ValueError(f"Invalid field: {field}")
 
         path = "/rpc/geodb_set_metadata_field"
         payload = {

@@ -109,6 +109,12 @@ class Provider:
 
         return p
 
+    def __repr__(self):
+        return (
+            f"{{name = {self._name}, description = {self._description}, url = {self._url}, "
+            f"roles = {self._roles}}}"
+        )
+
 
 # noinspection PyShadowingBuiltins
 class Link:
@@ -170,6 +176,13 @@ class Link:
     def headers(self) -> Optional[Dict[str, Union[str, List[str]]]]:
         return self._headers
 
+    def __repr__(self):
+        return (
+            f"{{href = {self._href}, rel = {self._rel}, type = {self._type}, "
+            f"title = {self._title}, method = {self._method}, "
+            f"headers = {self._headers}, body = {self._body}}}"
+        )
+
 
 # noinspection PyShadowingBuiltins
 class Asset:
@@ -219,6 +232,18 @@ class Asset:
             return self._roles
         return None
 
+    @title.setter
+    def title(self, value):
+        self._title = value
+
+    @type.setter
+    def type(self, value):
+        self._type = value
+
+    @roles.setter
+    def roles(self, value):
+        self._roles = value
+
     @staticmethod
     def from_json(asset_spec: Dict[str, Union[str, List[str]]]):
         asset = Asset(
@@ -235,17 +260,11 @@ class Asset:
 
         return asset
 
-    @type.setter
-    def type(self, value):
-        self._type = value
-
-    @roles.setter
-    def roles(self, value):
-        self._roles = value
-
-    @title.setter
-    def title(self, value):
-        self._title = value
+    def __repr__(self):
+        return (
+            f"{{href = {self.href}, description = {self._description}, title = {self._title}, "
+            f"type = {self._type}, roles = {self._roles}}}"
+        )
 
 
 # noinspection PyShadowingBuiltins
@@ -290,6 +309,18 @@ class ItemAsset:
             return self._roles
         return None
 
+    @title.setter
+    def title(self, value):
+        self._title = value
+
+    @type.setter
+    def type(self, value):
+        self._type = value
+
+    @roles.setter
+    def roles(self, value):
+        self._roles = value
+
     @staticmethod
     def from_json(asset_spec: Dict[str, Union[str, List[str]]]):
         item_asset = ItemAsset()
@@ -304,17 +335,11 @@ class ItemAsset:
 
         return item_asset
 
-    @type.setter
-    def type(self, value):
-        self._type = value
-
-    @roles.setter
-    def roles(self, value):
-        self._roles = value
-
-    @title.setter
-    def title(self, value):
-        self._title = value
+    def __repr__(self):
+        return (
+            f"{{description = {self._description}, title = {self._title}, "
+            f"type = {self._type}, roles = {self._roles}}}"
+        )
 
 
 class MetadataManager:
@@ -354,6 +379,7 @@ class MetadataManager:
             json["basic"]["spatial_extent"]
             if "spatial_extent" in json["basic"]
             and json["basic"]["spatial_extent"] is not None
+            and not json["basic"]["spatial_extent"] == []
             else None
         )
         if not spatial_extent:
@@ -394,7 +420,7 @@ class MetadataManager:
         self._db_interface.post(
             path,
             payload={
-                "collection": f"{collection}_{database}",
+                "collection": collection,
                 "db": database,
                 "se": spatial_extent,
                 "srid": int(srid),
@@ -505,13 +531,7 @@ class Metadata:
 
     @property
     def stac_extensions(self) -> Optional[Sequence[str]]:
-        """
-        Retrieve the STAC extensions supported. Changes to the result object are not
-        reflected in the database.
-
-        :return: A copy of the STAC extensions list.
-        """
-        return list(self._stac_extensions)
+        return self._stac_extensions
 
     @property
     def id(self) -> str:

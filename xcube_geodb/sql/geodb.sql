@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS public."geodb_version_info"
 );
 GRANT SELECT ON TABLE geodb_version_info TO PUBLIC;
 INSERT INTO geodb_version_info
-VALUES (DEFAULT, '1.0.11dev', now());
+VALUES (DEFAULT, '1.1.0', now());
 -- if manually setting up the database, this might be necessary to clean up:
 DELETE
 FROM geodb_version_info
@@ -1591,6 +1591,7 @@ CREATE TABLE IF NOT EXISTS geodb_collection_metadata."item_asset"
 );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA geodb_collection_metadata TO PUBLIC;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA geodb_collection_metadata TO PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_get_metadata(collection text, db text)
     RETURNS JSONB
@@ -1738,10 +1739,10 @@ BEGIN
     ELSIF field IN ('keywords', 'stac_extensions') THEN
         EXECUTE format('
             UPDATE geodb_collection_metadata.basic md
-            SET %s = ''%s''
-            WHERE md.collection_name = ''%I''
-              and md.database = ''%I'';'
-            , field, ARRAY(SELECT json_array_elements_text(value)), collection, db);
+            SET %s = %s
+            WHERE md.collection_name = ''%s''
+              and md.database = ''%s'';'
+            , field, ARRAY(SELECT json_array_elements(value)), collection, db);
     ELSIF field = 'links' THEN
         DELETE
         FROM geodb_collection_metadata.link li
@@ -1751,7 +1752,7 @@ BEGIN
             LOOP
                 EXECUTE format('
                 INSERT INTO geodb_collection_metadata.link (href, rel, type, title, method, headers, body, collection_name, database)
-                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', %L, %L, ''%I'', ''%I'');',
+                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', %L, %L, ''%s'', ''%s'');',
                                link ->> 'href',
                                link ->> 'rel',
                                link ->> 'type',
@@ -1792,7 +1793,7 @@ BEGIN
           AND a.database = db;
         FOR asset in SELECT json_array_elements(value)
             LOOP
-                IF asset -> 'roles' IS NOT NULL THEN
+                IF asset -> 'roles' IS NOT NULL AND asset ->> 'roles' != 'null' THEN
                     SELECT ARRAY(SELECT json_array_elements_text(asset -> 'roles'))
                     INTO roles;
                 ELSE
@@ -1816,7 +1817,7 @@ BEGIN
           AND a.database = db;
         FOR item_asset in SELECT json_array_elements(value)
             LOOP
-                IF item_asset -> 'roles' IS NOT NULL THEN
+                IF item_asset -> 'roles' IS NOT NULL AND item_asset ->> 'roles' != 'null' THEN
                     SELECT ARRAY(SELECT json_array_elements_text(item_asset -> 'roles'))
                     INTO roles;
                 ELSE
@@ -1847,15 +1848,15 @@ BEGIN
         EXECUTE format('
             UPDATE geodb_collection_metadata.basic md
             SET %s = ''%s''
-            WHERE md.collection_name = ''%I''
-              and md.database = ''%I'';'
+            WHERE md.collection_name = ''%s''
+              and md.database = ''%s'';'
             , field, ts_array, collection, db);
     ELSIF field = 'summaries' THEN
         EXECUTE format('
             UPDATE geodb_collection_metadata.basic md
             SET %s = ''%s''
-            WHERE md.collection_name = ''%I''
-              and md.database = ''%I'';'
+            WHERE md.collection_name = ''%s''
+              and md.database = ''%s'';'
             , field, value, collection, db);
     ELSE
         RAISE EXCEPTION 'Invalid field; must be one of "title", "description", "license", "keywords", "stac_extensions", "links", "providers", "assets", "item_assets", "temporal_extent", "summaries"';

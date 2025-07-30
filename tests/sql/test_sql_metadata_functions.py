@@ -197,8 +197,13 @@ class GeoDBSQLMDTest(unittest.TestCase):
         md = self._fetch_md(geodb, mockdb)
         self.assertEqual("MIT", md.license)
 
-        sql = "SELECT geodb_set_metadata_field('stac_extensions', '[\"https://stac-extensions.github.io/authentication/v1.1.0/schema.json\"]', 'land_use', 'geodb_user')"
-        self._cursor.execute(sql)
+        stac_ext_json = json.dumps(
+            ["https://stac-extensions.github.io/authentication/v1.1.0/schema.json"]
+        )
+        self._cursor.execute(
+            "SELECT geodb_set_metadata_field('stac_extensions', %s, 'land_use', 'geodb_user');",
+            (stac_ext_json,),
+        )
         md = self._fetch_md(geodb, mockdb)
         self.assertListEqual(
             ["https://stac-extensions.github.io/authentication/v1.1.0/schema.json"],
