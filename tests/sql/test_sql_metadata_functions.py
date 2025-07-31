@@ -210,6 +210,17 @@ class GeoDBSQLMDTest(unittest.TestCase):
             md.stac_extensions,
         )
 
+        keywords_json = json.dumps(["land", "sea", "whatever"])
+        self._cursor.execute(
+            "SELECT geodb_set_metadata_field('keywords', %s, 'land_use', 'geodb_user');",
+            (keywords_json,),
+        )
+        md = self._fetch_md(geodb, mockdb)
+        self.assertListEqual(
+            ["land", "sea", "whatever"],
+            md.keywords,
+        )
+
         sql = "SELECT geodb_set_metadata_field('links', '[{\"href\": \"https://link.com\", \"rel\": \"parent\"}]', 'land_use', 'geodb_user')"
         self._cursor.execute(sql)
         md = self._fetch_md(geodb, mockdb)

@@ -1739,10 +1739,10 @@ BEGIN
     ELSIF field IN ('keywords', 'stac_extensions') THEN
         EXECUTE format('
             UPDATE geodb_collection_metadata.basic md
-            SET %s = %s
+            SET %s = ''%s''
             WHERE md.collection_name = ''%s''
               and md.database = ''%s'';'
-            , field, ARRAY(SELECT json_array_elements(value)), collection, db);
+            , field, ARRAY(SELECT json_array_elements_text(value)), collection, db);
     ELSIF field = 'links' THEN
         DELETE
         FROM geodb_collection_metadata.link li
