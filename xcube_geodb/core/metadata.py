@@ -91,6 +91,10 @@ class Provider:
 
     @roles.setter
     def roles(self, value):
+        if not set(value).issubset(valid_roles):
+            raise ValueError(
+                f"Invalid set of roles provided: {value}; valid roles are: {valid_roles}."
+            )
         self._roles = value
 
     @staticmethod
@@ -206,15 +210,11 @@ class Asset:
 
     @property
     def title(self) -> Optional[str]:
-        if self._title:
-            return self._title
-        return None
+        return self._title
 
     @property
     def description(self) -> Optional[str]:
-        if self._description:
-            return self._description
-        return None
+        return self._description
 
     @description.setter
     def description(self, value):
@@ -222,15 +222,11 @@ class Asset:
 
     @property
     def type(self) -> Optional[str]:
-        if self._type:
-            return self._type
-        return None
+        return self._type
 
     @property
     def roles(self) -> Optional[List[str]]:
-        if self._roles:
-            return self._roles
-        return None
+        return self._roles
 
     @title.setter
     def title(self, value):
@@ -249,13 +245,13 @@ class Asset:
         asset = Asset(
             asset_spec["href"],
         )
-        if "description" in asset_spec:
+        if "description" in asset_spec and asset_spec["description"]:
             asset.description = asset_spec["description"]
-        if "title" in asset_spec:
+        if "title" in asset_spec and asset_spec["title"]:
             asset.title = asset_spec["title"]
-        if "type" in asset_spec:
+        if "type" in asset_spec and asset_spec["type"]:
             asset.type = asset_spec["type"]
-        if "roles" in asset_spec:
+        if "roles" in asset_spec and asset_spec["roles"]:
             asset.roles = asset_spec["roles"]
 
         return asset
@@ -283,15 +279,11 @@ class ItemAsset:
 
     @property
     def title(self) -> Optional[str]:
-        if self._title:
-            return self._title
-        return None
+        return self._title
 
     @property
     def description(self) -> Optional[str]:
-        if self._description:
-            return self._description
-        return None
+        return self._description
 
     @description.setter
     def description(self, value):
@@ -299,15 +291,11 @@ class ItemAsset:
 
     @property
     def type(self) -> Optional[str]:
-        if self._type:
-            return self._type
-        return None
+        return self._type
 
     @property
     def roles(self) -> Optional[List[str]]:
-        if self._roles:
-            return self._roles
-        return None
+        return self._roles
 
     @title.setter
     def title(self, value):
@@ -345,8 +333,6 @@ class ItemAsset:
 class MetadataManager:
     def __init__(self, geodb: "GeoDBClient", db_interface: DbInterface):
         self._geodb = geodb
-        if not db_interface:
-            raise ValueError("db_interface cannot be None")
         self._db_interface = db_interface
 
     def from_json(self, json: Dict[str, Any], collection: str, database: str):
@@ -410,9 +396,6 @@ class MetadataManager:
             item_assets=item_assets,
         )
 
-    def set_title(self, title: str) -> None:
-        pass
-
     def _set_spatial_extent(
         self, spatial_extent: Sequence, collection: str, database: str, srid: str
     ):
@@ -471,18 +454,9 @@ class Metadata:
     STAC collection specification (https://github.com/radiantearth/stac-spec/blob/master/collection-spec/collection
     -spec.md).
 
-    Changes in result objects are never reflected in the database. Rather, there are
-    specific setter and modification methods for the different fields, so that
-    you can do, e.g.:
-
-    >>> set_spatial_extent([[-100, -10, 20, 30]], 4326)
-
-    Those changes are directly reflected in the database.
-
-    Some metadata fields can be extracted automatically (see
-    xcube_geodb_openeo.core.geodb_datasource.GeoDBVectorSource.get_metadata), however,
-    if they have been deliberately set using one of the set_methods, that value takes
-    precedence.
+    Changes in result objects are never reflected in the database. Rather, there is the
+    method `set_metadata_field` in the geoDB client. Using that method, changes are
+    directly reflected in the database.
     """
 
     def __init__(
@@ -491,7 +465,7 @@ class Metadata:
         title: str,
         links: List[Link],
         spatial_extent: Optional[SpatialExtent],
-        temporal_extent: Optional[TemporalExtent] = None,
+        temporal_extent: Optional[TemporalExtent],
         description: Optional[str] = None,
         license: Optional[str] = None,
         providers: Optional[List[Provider]] = None,
@@ -501,8 +475,6 @@ class Metadata:
         assets: Optional[List[Asset]] = None,
         item_assets: Optional[Dict[str, ItemAsset]] = None,
     ):
-        if temporal_extent is None:
-            temporal_extent = [[None, None]]
         self._id = id
         self._title = title
         self._links = links

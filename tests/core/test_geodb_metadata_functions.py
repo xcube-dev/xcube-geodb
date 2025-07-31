@@ -4,7 +4,13 @@ import requests_mock
 
 from tests.core.test_geodb import GeoDBClientTest
 from xcube_geodb.core.error import GeoDBError
-from xcube_geodb.core.metadata import Range
+from xcube_geodb.core.metadata import (
+    Range,
+    Link,
+    Provider,
+    Asset,
+    ItemAsset,
+)
 
 
 @requests_mock.mock(real_http=False)
@@ -237,6 +243,80 @@ class GeoDBClientMetadataTest(unittest.TestCase):
             ).title,
         )
 
+        self.base_test._api.set_metadata_field(
+            "keywords",
+            ["crops", "europe", "rural"],
+            collection="my_collection",
+            database="database",
+        )
+        self.base_test._api.set_metadata_field(
+            "links",
+            [Link.from_json({"href": "https://link2.bc", "rel": "root"})],
+            collection="my_collection",
+            database="database",
+        )
+        self.base_test._api.set_metadata_field(
+            "providers",
+            [
+                Provider.from_json(
+                    {
+                        "name": "provider 1",
+                        "description": "some provider",
+                        "roles": ["licensor", "producer"],
+                    }
+                )
+            ],
+            collection="my_collection",
+            database="database",
+        )
+        self.base_test._api.set_metadata_field(
+            "assets",
+            [
+                Asset.from_json(
+                    {
+                        "href": "https://asset.org",
+                        "title": "some title",
+                        "roles": ["image", "ql"],
+                    }
+                )
+            ],
+            collection="my_collection",
+            database="database",
+        )
+        self.base_test._api.set_metadata_field(
+            "item_assets",
+            [
+                ItemAsset.from_json(
+                    {
+                        "type": "some_type",
+                        "title": "some title",
+                        "roles": ["image", "ql"],
+                    }
+                )
+            ],
+            collection="my_collection",
+            database="database",
+        )
+        self.base_test._api.set_metadata_field(
+            "summaries",
+            {
+                "columns": ["id", "geometry"],
+                "x_range": {"min": "-170", "max": "170"},
+                "y_range": {"min": "-80", "max": "80"},
+                "schema": "some JSON schema",
+            },
+            collection="my_collection",
+            database="database",
+        )
+
+        with self.assertRaises(ValueError):
+            self.base_test._api.set_metadata_field(
+                "ruebennase",
+                "ruebennasenhausen",
+                collection="my_collection",
+                database="database",
+            )
+
         url = f"{self.base_test._base_url}/rpc/geodb_set_metadata_field"
         m.post(
             url,
@@ -250,3 +330,50 @@ class GeoDBClientMetadataTest(unittest.TestCase):
                 collection="no_collection",
                 database="database",
             )
+
+    def test_print_metadata(self, m: requests_mock.mocker.Mocker):
+        p = Provider.from_json({"name": "some_name", "roles": ["licensor"]})
+        self.assertEqual(
+            "{name = some_name, description = , url = None, roles = ['licensor']}",
+            str(p),
+        )
+        l = Link.from_json(
+            {
+                "href": "https://link",
+                "rel": "rel",
+                "type": "some_type",
+                "body": "some request body",
+            }
+        )
+        self.assertEqual(
+            "{href = https://link, rel = rel, type = some_type, title = None, method = None, headers = None, body = some request body}",
+            str(l),
+        )
+        a = Asset.from_json(
+            {
+                "href": "https://link",
+                "type": "some_type",
+                "title": "some asset title",
+                "roles": ["any", "will", "do"],
+            }
+        )
+        self.assertEqual(
+            "{href = https://link, description = None, title = some asset title, type = some_type, roles = ['any', 'will', 'do']}",
+            str(a),
+        )
+        ia = ItemAsset.from_json(
+            {
+                "type": "some_type",
+                "description": "description",
+                "title": "some item asset title",
+                "roles": ["any", "will", "do"],
+            }
+        )
+        self.assertEqual(
+            "{description = description, title = some item asset title, type = some_type, roles = ['any', 'will', 'do']}",
+            str(ia),
+        )
+
+    def test_set_wrong_metadata(self, m: requests_mock.mocker.Mocker):
+        with self.assertRaises(ValueError):
+            Provider.from_json({"name": "some_name", "roles": ["kaputtnick"]})

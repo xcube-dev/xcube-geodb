@@ -2628,7 +2628,7 @@ class GeoDBClient(object):
             >>> GeoDBClient.set_metadata_field("temporal_extent", [['2018-01-01T00:00:00Z', None], "my_collection")
         """
         database = database or self.database
-        if isinstance(value, str):
+        if field == "title" or field == "description" or field == "license":
             jsonified_value = f'"{value}"'
         elif field == "keywords" or field == "stac_extensions":
             value: List[str]
@@ -2812,37 +2812,3 @@ class GeoDBClient(object):
             payload=event,
             headers={"Prefer": "params=single-object"},
         )
-
-    @staticmethod
-    def setup(
-        host: Optional[str] = None,
-        port: Optional[str] = None,
-        user: Optional[str] = None,
-        passwd: Optional[str] = None,
-        dbname: Optional[str] = None,
-        conn: Optional[any] = None,
-    ):
-        """
-        Sets up  the database. Needs DB credentials and the database user requires CREATE TABLE/FUNCTION grants.
-        """
-        host = host or os.getenv("GEODB_DB_HOST")
-        port = port or os.getenv("GEODB_DB_PORT")
-        user = user or os.getenv("GEODB_DB_USER")
-        passwd = passwd or os.getenv("GEODB_DB_PASSWD")
-        dbname = dbname or os.getenv("GEODB_DB_DBNAME")
-
-        try:
-            import psycopg2
-        except ImportError:
-            raise GeoDBError("You need to install psycopg2 first to run this module.")
-
-        conn = conn or psycopg2.connect(
-            host=host, port=port, user=user, password=passwd, dbname=dbname
-        )
-        cursor = conn.cursor()
-
-        with open("xcube_geodb/sql/geodb.sql") as sql_file:
-            sql_create = sql_file.read()
-            cursor.execute(sql_create)
-
-        conn.commit()

@@ -7,7 +7,6 @@ import pandas as pd
 import requests
 import requests_mock
 from geopandas import GeoDataFrame
-from psycopg2 import OperationalError
 from requests_mock.mocker import Mocker
 from shapely import wkt, Polygon
 
@@ -2124,30 +2123,6 @@ class GeoDBClientTest(unittest.TestCase):
             warn("test")
 
         self.assertEqual("test", str(e.warning))
-
-    @unittest.skip
-    def test_setup(self, m):
-        geodb = GeoDBClient()
-        with self.assertRaises(OperationalError) as e:
-            geodb.setup()
-
-        self.assertIn("could not connect to server", str(e.exception))
-
-        # noinspection PyPep8Naming
-        class cn:
-            @staticmethod
-            def commit():
-                return True
-
-            # noinspection PyPep8Naming
-            class cursor:
-                @staticmethod
-                def execute(qry):
-                    return True
-
-        cn.cursor.execute = MagicMock()
-        geodb.setup(conn=cn)
-        cn.cursor.execute.assert_called_once()
 
     def test_df_from_json(self, m):
         # This test tests an impossible situation as `js` cannot be none. However, you never know.
