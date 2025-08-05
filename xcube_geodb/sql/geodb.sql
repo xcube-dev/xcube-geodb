@@ -129,6 +129,180 @@ $BODY$
 BEGIN
     IF NEW.user_name IS NOT NULL THEN
         EXECUTE format('SELECT geodb_register_user(''%s''::text, ''bla''::text)', NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_add_properties TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_copy_collection TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_count_by_bbox TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_count_collection TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_create_collection(text, json, text) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_create_collection(text, json, text, text) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_create_collections(json) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_create_collections(json, text) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_create_database TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_create_index TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_drop_collections(json, bool) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_drop_collections(json, text) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_drop_index TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_drop_properties(text, json) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_drop_properties(text, json, text) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_estimate_collection_bbox TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_estimate_collection_count TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_geometry_types TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_by_bbox TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_by_bbox_v2 TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_collection_bbox TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_collection_srid TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_collections() TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_collections(text) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_extent TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_geodb_sql_version TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_granted_collections() TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_granted_collections(text) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_grants TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_group_users TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_index_name TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_index_name TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_my_collections TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_my_usage() TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_my_usage(bool) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_pg TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_properties TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_user_roles TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_user_usage(text) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_get_user_usage(text, bool) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_grant_access_to_collection TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_group_grant TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_group_publish_collection TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_group_publish_database TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_group_revoke TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_group_unpublish_collection TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_group_unpublish_database TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_list_collections TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_list_databases TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_list_grants() TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_list_grants(text) TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_log_event TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_publish_collection TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_rename_collection TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_revoke_access_from_collection TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_show_indexes TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_truncate_database TO "%s"',
+                NEW.user_name);
+        EXECUTE format(
+                'GRANT EXECUTE ON FUNCTION geodb_unpublish_collection TO "%s"',
+                NEW.user_name);
     END IF;
 
     RETURN NEW;
@@ -788,7 +962,6 @@ AS
 $BODY$
 DECLARE
     usr TEXT;
-    r   RECORD;
 BEGIN
     usr := current_setting('request.jwt.claim.clientId', true);
     BEGIN
@@ -798,20 +971,6 @@ BEGIN
     END;
     EXECUTE format('ALTER ROLE %I PASSWORD ''%s''; ALTER ROLE %I SET search_path = public;' ||
                    'GRANT %I TO authenticator;', user_name, password, user_name, user_name);
-    FOR r IN
-        SELECT p.proname,
-               pgn.nspname,
-               pg_catalog.pg_get_function_identity_arguments(p.oid) AS arg_types
-        FROM pg_proc p
-                 JOIN pg_namespace pgn ON p.pronamespace = pgn.oid
-        WHERE p.proname LIKE '%geodb_%'
-          AND pgn.nspname NOT IN ('pg_catalog', 'information_schema')
-          AND p.proname NOT IN ('geodb_get_user_roles', 'geodb_get_user_usage')
-        LOOP
-            EXECUTE format('GRANT EXECUTE ON FUNCTION ' || r.nspname || '.' || r.proname || '(' || r.arg_types ||
-                           ') TO %I ;',
-                           user_name);
-        END LOOP;
     EXECUTE format('GRANT CREATE ON SCHEMA public TO %I ;', user_name);
     EXECUTE format(
             'INSERT INTO geodb_user_databases(name, owner, iss) VALUES(''%s'',''%s'', ''%s'') ON CONFLICT ON CONSTRAINT unique_db_name_owner DO NOTHING;',
