@@ -10,7 +10,6 @@ from tests.sql.test_sql_functions import get_app_dir
 
 
 class GeoDBSQLGroupTest(unittest.TestCase):
-
     @classmethod
     def setUp(cls) -> None:
         cls.base_test = GeoDBSqlTest()
@@ -116,7 +115,7 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
     def test_create_role_fails(self):
         self._set_role(self.noadmin)
-        with self.assertRaises(psycopg2.errors.RaiseException):
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
             self.execute(f"SELECT geodb_create_role('{self.noadmin}', 'any_group')")
 
     def test_get_group_users(self):
@@ -185,14 +184,18 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
     def publish_database_to_group(self, user):
         self._set_role(user)
-        sql = f"SELECT geodb_group_publish_database('{self.database_name}'," \
-              f"'{self.test_group}')"
+        sql = (
+            f"SELECT geodb_group_publish_database('{self.database_name}',"
+            f"'{self.test_group}')"
+        )
         self.execute(sql)
 
     def unpublish_database_from_group(self, user):
         self._set_role(user)
-        sql = f"SELECT geodb_group_unpublish_database('{self.database_name}'," \
-              f"'{self.test_group}')"
+        sql = (
+            f"SELECT geodb_group_unpublish_database('{self.database_name}',"
+            f"'{self.test_group}')"
+        )
         self.execute(sql)
 
     def access_table_with_user_fail(self, user):
@@ -223,16 +226,19 @@ class GeoDBSQLGroupTest(unittest.TestCase):
     def create_table_as_user(self, user, table_name):
         self._set_role(user)
         props = {}
-        sql = f"SELECT geodb_create_collection('{table_name}', " \
-              f"'{json.dumps(props)}', '4326')"
+        sql = (
+            f"SELECT geodb_create_collection('{table_name}', "
+            f"'{json.dumps(props)}', '4326')"
+        )
         self.execute(sql)
-
 
     def create_table_as_user_fails(self, user, table_name):
         self._set_role(user)
         props = {}
-        sql = f"SELECT geodb_create_collection('{table_name}', " \
-              f"'{json.dumps(props)}', '4326')"
+        sql = (
+            f"SELECT geodb_create_collection('{table_name}', "
+            f"'{json.dumps(props)}', '4326')"
+        )
         with self.assertRaises(psycopg2.errors.RaiseException):
             self.execute(sql)
         # necessary so we can keep using the connection after the failed query

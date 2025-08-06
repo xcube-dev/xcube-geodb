@@ -139,32 +139,6 @@ BEGIN
 END
 $BODY$;
 
-CREATE OR REPLACE FUNCTION public.geodb_register_user_trg_func()
-    RETURNS trigger
-    LANGUAGE 'plpgsql'
-    COST 100
-    VOLATILE NOT LEAKPROOF
-AS
-$BODY$
-BEGIN
-    IF NEW.user_name IS NOT NULL THEN
-        EXECUTE format('SELECT geodb_register_user(''%s''::text, ''bla''::text)', NEW.user_name);
-    END IF;
-
-    RETURN NEW;
-END;
-$BODY$;
-
-
-DROP TRIGGER IF EXISTS geodb_register_user_trg ON "geodb_user_info";
-
-CREATE TRIGGER geodb_register_user_trg
-    AFTER INSERT
-    ON "geodb_user_info"
-    FOR EACH ROW
-EXECUTE PROCEDURE geodb_register_user_trg_func();
-
-
 CREATE SEQUENCE IF NOT EXISTS public.geodb_user_databases_seq
     INCREMENT 1
     START 1
@@ -189,54 +163,6 @@ CREATE TABLE IF NOT EXISTS public.geodb_user_databases
 
 GRANT SELECT, INSERT, UPDATE ON geodb_user_databases TO PUBLIC;
 GRANT SELECT, UPDATE, USAGE ON geodb_user_databases_seq TO PUBLIC;
-
--- ensures that database of collection belongs to user or group
-CREATE
-    OR REPLACE FUNCTION public.geodb_user_allowed(
-    collection text,
-    usr text)
-    RETURNS INT
-    LANGUAGE 'plpgsql'
-    COST 100
-    VOLATILE PARALLEL UNSAFE
-AS
-$BODY$
-DECLARE
-    ct        INT;
-    groupname varchar;
-BEGIN
-    -- noinspection SqlAggregates
-    SELECT COUNT(*) as ct
-    FROM geodb_user_databases
-    WHERE collection LIKE name || '_%'
-      AND owner = usr
-    INTO ct;
-    if ct > 0 then
-        return 1;
-    end if;
-
-    -- User is also allowed if any of the groups he is in is allowed
-
-    FOR groupname IN
-        (SELECT rolname
-         FROM pg_roles
-         WHERE pg_has_role(usr, oid, 'member'))
-        LOOP
-            if groupname != usr then
-                SELECT geodb_user_allowed(collection, groupname)
-                INTO ct;
-                if ct > 0 then
-                    return 1;
-                end if;
-            end if;
-        END LOOP;
-
-    return 0;
-
-END
-$BODY$;
-
-REVOKE EXECUTE ON FUNCTION geodb_user_allowed(text, text) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_create_database(
     database text)
@@ -767,15 +693,86 @@ $do$;
 
 DO
 $do$
+    DECLARE
+        r RECORD;
     BEGIN
         IF NOT EXISTS(SELECT
                       FROM pg_catalog.pg_roles -- SELECT list can be empty for this
                       WHERE rolname = 'geodb_admin') THEN
             CREATE ROLE geodb_admin INHERIT CREATEROLE ;
             ALTER ROLE geodb_admin SET search_path = public;
+            -- the following block: ensures that geodb_admin can grant newly registered users the execution rights on necessary functions
+            FOR r IN
+                SELECT p.proname,
+                       pgn.nspname,
+                       pg_catalog.pg_get_function_identity_arguments(p.oid) AS arg_types
+                FROM pg_proc p
+                         JOIN pg_namespace pgn ON p.pronamespace = pgn.oid
+                WHERE p.proname LIKE '%geodb_%'
+                  AND pgn.nspname NOT IN ('pg_catalog', 'information_schema')
+                  AND p.proname NOT IN
+                      ('geodb_check_user', 'geodb_create_role', 'geodb_drop_user', 'geodb_register_user',
+                       'geodb_register_user_trg_func', 'geodb_user_allowed', 'geodb_user_exists')
+                LOOP
+                    EXECUTE 'GRANT EXECUTE ON FUNCTION ' || r.nspname || '.' || r.proname || '(' || r.arg_types ||
+                            ') TO geodb_admin WITH GRANT OPTION ;';
+                END LOOP;
         END IF;
     END
 $do$;
+
+GRANT REFERENCES, UPDATE, DELETE, SELECT, INSERT, TRIGGER, TRUNCATE ON TABLE public.geodb_eventlog TO geodb_admin;
+GRANT REFERENCES, UPDATE, DELETE, SELECT, INSERT, TRIGGER, TRUNCATE ON TABLE public.geodb_user_info TO geodb_admin;
+GRANT ALL ON SEQUENCE geodb_user_info_id_seq TO geodb_admin;
+
+-- ensures that database of collection belongs to user or group
+CREATE
+    OR REPLACE FUNCTION public.geodb_user_allowed(
+    collection text,
+    usr text)
+    RETURNS INT
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS
+$BODY$
+DECLARE
+    ct        INT;
+    groupname varchar;
+BEGIN
+    -- noinspection SqlAggregates
+    SELECT COUNT(*) as ct
+    FROM geodb_user_databases
+    WHERE collection LIKE name || '_%'
+      AND owner = usr
+    INTO ct;
+    if ct > 0 then
+        return 1;
+    end if;
+
+    -- User is also allowed if any of the groups he is in is allowed
+
+    FOR groupname IN
+        (SELECT rolname
+         FROM pg_roles
+         WHERE pg_has_role(usr, oid, 'member'))
+        LOOP
+            if groupname != usr then
+                SELECT geodb_user_allowed(collection, groupname)
+                INTO ct;
+                if ct > 0 then
+                    return 1;
+                end if;
+            end if;
+        END LOOP;
+
+    return 0;
+
+END
+$BODY$;
+
+REVOKE EXECUTE ON FUNCTION geodb_user_allowed(text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION geodb_user_allowed(text, text) TO geodb_admin;
 
 CREATE OR REPLACE FUNCTION public.geodb_whoami()
     RETURNS text
@@ -797,6 +794,173 @@ SELECT version
 from geodb_version_info
 $$;
 
+CREATE OR REPLACE FUNCTION public.geodb_register_user_trg_func()
+    RETURNS trigger
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE NOT LEAKPROOF
+AS
+$BODY$
+BEGIN
+    IF NEW.user_name IS NOT NULL THEN
+        EXECUTE format('SELECT geodb_register_user(''%s''::text, ''bla''::text)', NEW.user_name);
+    END IF;
+
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_add_properties TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_user_allowed TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_copy_collection TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_count_by_bbox TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_count_collection TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_create_collection(text, json, text) TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_create_collections(json) TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_create_database TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_create_index TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_drop_collections(json, bool) TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_drop_index TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_drop_properties(text, json) TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_estimate_collection_bbox TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_estimate_collection_count TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_geometry_types TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_by_bbox TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_collection_bbox TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_collection_srid TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_geodb_sql_version TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_grants TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_group_users TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_index_name TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_my_collections TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_my_usage() TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_my_usage(bool) TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_pg TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_properties TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_user_roles TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_user_usage(text) TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_get_user_usage(text, bool) TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_grant_access_to_collection TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_group_grant TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_group_publish_collection TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_group_publish_database TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_group_revoke TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_group_unpublish_collection TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_group_unpublish_database TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_list_databases TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_list_grants() TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_list_grants(text) TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_log_event TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_publish_collection TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_rename_collection TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_revoke_access_from_collection TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_show_indexes TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_truncate_database TO "%s"',
+            NEW.user_name);
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_unpublish_collection TO "%s"',
+            NEW.user_name);
+
+    RETURN NEW;
+END;
+$BODY$;
+
+DROP TRIGGER IF EXISTS geodb_register_user_trg ON "geodb_user_info";
+
+CREATE TRIGGER geodb_register_user_trg
+    AFTER INSERT
+    ON "geodb_user_info"
+    FOR EACH ROW
+EXECUTE PROCEDURE geodb_register_user_trg_func();
+GRANT EXECUTE ON FUNCTION geodb_register_user_trg_func() TO geodb_admin;
+
 CREATE OR REPLACE FUNCTION public.geodb_register_user(
     user_name text,
     password text)
@@ -808,7 +972,6 @@ AS
 $BODY$
 DECLARE
     usr TEXT;
-    r   RECORD;
 BEGIN
     usr := current_setting('request.jwt.claim.clientId', true);
     BEGIN
@@ -818,20 +981,6 @@ BEGIN
     END;
     EXECUTE format('ALTER ROLE %I PASSWORD ''%s''; ALTER ROLE %I SET search_path = public;' ||
                    'GRANT %I TO authenticator;', user_name, password, user_name, user_name);
-    FOR r IN
-        SELECT p.proname,
-               pgn.nspname,
-               pg_catalog.pg_get_function_identity_arguments(p.oid) AS arg_types
-        FROM pg_proc p
-                 JOIN pg_namespace pgn ON p.pronamespace = pgn.oid
-        WHERE p.proname LIKE '%geodb_%'
-          AND pgn.nspname NOT IN ('pg_catalog', 'information_schema')
-          AND p.proname NOT IN ('geodb_get_user_roles', 'geodb_get_user_usage')
-        LOOP
-            EXECUTE format('GRANT EXECUTE ON FUNCTION ' || r.nspname || '.' || r.proname || '(' || r.arg_types ||
-                           ') TO %I ;',
-                           user_name);
-        END LOOP;
     EXECUTE format('GRANT CREATE ON SCHEMA public TO %I ;', user_name);
     EXECUTE format(
             'INSERT INTO geodb_user_databases(name, owner, iss) VALUES(''%s'',''%s'', ''%s'') ON CONFLICT ON CONSTRAINT unique_db_name_owner DO NOTHING;',
@@ -858,9 +1007,6 @@ $BODY$;
 
 REVOKE EXECUTE ON FUNCTION geodb_user_exists(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION geodb_user_exists(text) TO geodb_admin;
-
-
--- DROP FUNCTION IF EXISTS public.geodb_drop_user(text);
 
 CREATE OR REPLACE FUNCTION public.geodb_drop_user(user_name text)
     RETURNS boolean
@@ -1389,6 +1535,7 @@ END
 $BODY$;
 
 REVOKE EXECUTE ON FUNCTION geodb_create_role(text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION geodb_create_role(text, text) TO geodb_admin;
 
 CREATE OR REPLACE FUNCTION public.geodb_group_publish_collection(collection text, user_group text)
     RETURNS void

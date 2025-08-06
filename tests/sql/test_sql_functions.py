@@ -588,7 +588,7 @@ class GeoDBSqlTest(unittest.TestCase):
         user_name = "geodb_user"
         self._set_role(user_name)
 
-        with self.assertRaises(psycopg2.errors.RaiseException):
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
             self.execute(f"SELECT geodb_create_role('{user_name}', 'some_group')")
 
         self._conn.commit()
