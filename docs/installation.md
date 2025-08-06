@@ -76,10 +76,14 @@ instance. There are ready-to-use PostGIS docker images, see
 [PostGIS docker image](https://registry.hub.docker.com/r/postgis/postgis/).
 
 To install the xcube geoDB extension, open a PostGreSQL console or a database
-GUI of your choice as super-user. Then copy and paste the contents of the geoDB
+GUI of your choice as superuser. Then copy and paste the contents of the geoDB
 [SQL script](https://github.com/xcube-dev/xcube-geodb/blob/main/xcube_geodb/sql/geodb.sql),
 replacing `VERSION_PLACEHOLDER` with the version provided in
 [version.py](https://github.com/xcube-dev/xcube-geodb/blob/main/xcube_geodb/version.py).
+
+Then choose a password for the `authenticator` user, and apply it:
+
+`ALTER ROLE authenticator WITH PASSWORD '<password>';`
 
 ## 3. Installation of the Postgrest RestAPI
 
@@ -165,16 +169,20 @@ GEODB_API_SERVER_PORT = "The postgrest API server port"
 
 __Step 4__: Configure the PostgREST Service
 
-The PostgREST service needs a key to check the signature of the token. This is
+Point the PostgREST service to your database server by setting `db-uri`.
+From the sample below, replace `password` with the password you set in
+section 2; and replace `localhost:5432` with the host and port of your
+database server.
+Also, the PostgREST service needs a key to check the signature of the token. This is
 done using the `jwt-secret` in the PostGREST configuration. You can use
 symmetric encryption and store the key passphrase in `jwt-secret`, or use
 asymmetric encryption. Keycloak only supports asymmetric encryption. In that
 case, use the public part of the Keypair you generated in step 1 as value for
-`jwt-secret`. See alsothe
+`jwt-secret`. See also the
 [PostgREST documentation, section "JWT from Auth0"](https://postgrest.org/en/stable/auth.html#client-auth)):
 
 ```dotenv
-db-uri = "postgres://user:password@localhost:5432/geodb"
+db-uri = "postgres://authenticator:password@localhost:5432/geodb"
 db-schema = "public, geodb_user_info"
 db-anon-role = "anonymous"
 jwt-secret = ""{\"alg\":\"RS256\",\"e\":\"AQAB\",\"key_ops\":[\"verify\"],\"kty\":\"RSA\",\"n\":\"aav7svBqEXAw-5D29LO...\"}""

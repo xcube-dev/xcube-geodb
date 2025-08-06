@@ -66,6 +66,8 @@ GRANT SELECT, UPDATE, USAGE ON SEQUENCE public.geodb_user_databases_seq TO "test
 
 GRANT "test_group" TO "test_admin" WITH ADMIN OPTION;
 
+GRANT EXECUTE ON FUNCTION geodb_create_role TO "test_admin";
+
 GRANT EXECUTE ON FUNCTION geodb_create_database TO "test_member";
 GRANT EXECUTE ON FUNCTION geodb_create_collection TO "test_member";
 GRANT EXECUTE ON FUNCTION geodb_get_grants TO "test_member";
