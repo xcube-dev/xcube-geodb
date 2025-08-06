@@ -771,7 +771,7 @@ $do$
         IF NOT EXISTS(SELECT
                       FROM pg_catalog.pg_roles -- SELECT list can be empty for this
                       WHERE rolname = 'geodb_admin') THEN
-            CREATE ROLE geodb_admin NOINHERIT;
+            CREATE ROLE geodb_admin INHERIT CREATEROLE ;
             ALTER ROLE geodb_admin SET search_path = public;
         END IF;
     END
