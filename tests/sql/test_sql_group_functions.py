@@ -1,3 +1,24 @@
+# The MIT License (MIT)
+# Copyright (c) 2025 by the xcube team
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 import json
 import os
 import unittest
@@ -10,7 +31,6 @@ from tests.sql.test_sql_functions import get_app_dir
 
 
 class GeoDBSQLGroupTest(unittest.TestCase):
-
     @classmethod
     def setUp(cls) -> None:
         cls.base_test = GeoDBSqlTest()
@@ -185,14 +205,18 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
     def publish_database_to_group(self, user):
         self._set_role(user)
-        sql = f"SELECT geodb_group_publish_database('{self.database_name}'," \
-              f"'{self.test_group}')"
+        sql = (
+            f"SELECT geodb_group_publish_database('{self.database_name}',"
+            f"'{self.test_group}')"
+        )
         self.execute(sql)
 
     def unpublish_database_from_group(self, user):
         self._set_role(user)
-        sql = f"SELECT geodb_group_unpublish_database('{self.database_name}'," \
-              f"'{self.test_group}')"
+        sql = (
+            f"SELECT geodb_group_unpublish_database('{self.database_name}',"
+            f"'{self.test_group}')"
+        )
         self.execute(sql)
 
     def access_table_with_user_fail(self, user):
@@ -223,16 +247,19 @@ class GeoDBSQLGroupTest(unittest.TestCase):
     def create_table_as_user(self, user, table_name):
         self._set_role(user)
         props = {}
-        sql = f"SELECT geodb_create_collection('{table_name}', " \
-              f"'{json.dumps(props)}', '4326')"
+        sql = (
+            f"SELECT geodb_create_collection('{table_name}', "
+            f"'{json.dumps(props)}', '4326')"
+        )
         self.execute(sql)
-
 
     def create_table_as_user_fails(self, user, table_name):
         self._set_role(user)
         props = {}
-        sql = f"SELECT geodb_create_collection('{table_name}', " \
-              f"'{json.dumps(props)}', '4326')"
+        sql = (
+            f"SELECT geodb_create_collection('{table_name}', "
+            f"'{json.dumps(props)}', '4326')"
+        )
         with self.assertRaises(psycopg2.errors.RaiseException):
             self.execute(sql)
         # necessary so we can keep using the connection after the failed query

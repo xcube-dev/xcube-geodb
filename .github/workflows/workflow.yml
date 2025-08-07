@@ -93,8 +93,11 @@ jobs:
       - name: test-notebooks
         shell: bash -l {0}
         working-directory: docs/source/notebooks
+        # excluding metadata from run as it needs the public geoDB. Add it back in
+        # as soon as the branch is merged to main, and the SQL on the public geoDB
+        # supports metadata functionalities.
         run: |
-          for nb in $(ls *.ipynb)
+          for nb in $(ls *.ipynb | grep -v metadata)
           do
             papermill $nb  $(basename -s .ipynb $nb)_out.ipynb
           done

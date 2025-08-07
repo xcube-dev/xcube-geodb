@@ -7,7 +7,6 @@ import pandas as pd
 import requests
 import requests_mock
 from geopandas import GeoDataFrame
-from psycopg2 import OperationalError
 from requests_mock.mocker import Mocker
 from shapely import wkt, Polygon
 
@@ -465,11 +464,11 @@ class GeoDBClientTest(unittest.TestCase):
         self._api.use_auth_cache = False
         self.set_global_mocks(m)
 
-        auth_access_token = self._api.auth_access_token
+        auth_access_token = self._api._db_interface.auth_access_token
         self.assertEqual("A long lived token", auth_access_token)
 
         self.set_auth_change_mocks(m)
-        auth_access_token = self._api.auth_access_token
+        auth_access_token = self._api._db_interface.auth_access_token
         self.assertEqual("A long lived token", auth_access_token)
 
     def test_create_database(self, m):
@@ -1541,13 +1540,13 @@ class GeoDBClientTest(unittest.TestCase):
             json={"access_token": "A long lived token"},
         )
 
-        access_token = self._api.auth_access_token
+        access_token = self._api._db_interface.auth_access_token
 
         self.assertEqual("A long lived token", access_token)
 
-        self._api._auth_access_token = "Another token"
+        self._api._db_interface._auth_access_token = "Another token"
 
-        access_token = self._api.auth_access_token
+        access_token = self._api._db_interface.auth_access_token
 
         self.assertEqual("Another token", access_token)
 
@@ -1603,12 +1602,12 @@ class GeoDBClientTest(unittest.TestCase):
 
         geodb = GeoDBClient()
         geodb.use_auth_cache = False
-        geodb._auth_access_token = "testölasdjdkas"
+        geodb._db_interface._auth_access_token = "testölasdjdkas"
 
-        self.assertEqual("testölasdjdkas", geodb.auth_access_token)
+        self.assertEqual("testölasdjdkas", geodb._db_interface.auth_access_token)
 
-        geodb._auth_access_token = None
-        self.assertEqual("A long lived token", geodb.auth_access_token)
+        geodb._db_interface._auth_access_token = None
+        self.assertEqual("A long lived token", geodb._db_interface.auth_access_token)
 
     def test_publish_collection(self, m):
         self.set_global_mocks(m)
@@ -1723,12 +1722,12 @@ class GeoDBClientTest(unittest.TestCase):
     def test_publish_to_geoserver_winchester(self, m):
         self.set_global_mocks(m)
         m.get(
-            self._api._auth_domain,
+            self._api._db_interface._auth_domain,
             json={"apis": [{"name": "winchester"}]},
         )
 
         self._gs_server_url = self._server_test_url
-        self._api._gs_server_url = self._server_test_url
+        self._api._db_interface._gs_server_url = self._server_test_url
 
         url = self._gs_server_url + "/geodb_geoserver/geodb_admin/collections/"
         m.put(url=url, json={"name": "land_use"})
@@ -1769,18 +1768,18 @@ class GeoDBClientTest(unittest.TestCase):
             gs_server_port=4000,
         )
 
-        url = geodb._get_full_url("/test")
+        url = geodb._db_interface._get_full_url("/test")
         self.assertEqual("https://test_geodb:3000/test", url)
 
-        url = geodb._get_full_url("/services/xcube_geoserv")
+        url = geodb._db_interface._get_full_url("/services/xcube_geoserv")
         self.assertEqual("https://test_geoserv:4000/services/xcube_geoserv", url)
 
-        geodb._gs_server_port = None
-        url = geodb._get_full_url("/services/xcube_geoserv")
+        geodb._db_interface._gs_server_port = None
+        url = geodb._db_interface._get_full_url("/services/xcube_geoserv")
         self.assertEqual("https://test_geoserv/services/xcube_geoserv", url)
 
-        geodb._server_port = None
-        url = geodb._get_full_url("/test")
+        geodb._db_interface._server_port = None
+        url = geodb._db_interface._get_full_url("/test")
         self.assertEqual("https://test_geodb/test", url)
 
     def test_get_published_gs(self, m):
@@ -1824,10 +1823,16 @@ class GeoDBClientTest(unittest.TestCase):
         self.maxDiff = None
         self.set_global_mocks(m)
 
-        self._api._auth_domain = "https://winchester.deployment"
-        self._api._gs_server_url = "https://winchester.deployment"
-        m.get(self._api._gs_server_url, json={"apis": [{"name": "winchester"}]})
-        url = self._api._gs_server_url + "/geodb_geoserver/geodb_admin/collections"
+        self._api._db_interface._auth_domain = "https://winchester.deployment"
+        self._api._db_interface._gs_server_url = "https://winchester.deployment"
+        m.get(
+            self._api._db_interface._gs_server_url,
+            json={"apis": [{"name": "winchester"}]},
+        )
+        url = (
+            self._api._db_interface._gs_server_url
+            + "/geodb_geoserver/geodb_admin/collections"
+        )
 
         server_response = {
             "collection_id": ["land_use"],
@@ -2119,30 +2124,6 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertEqual("test", str(e.warning))
 
-    @unittest.skip
-    def test_setup(self, m):
-        geodb = GeoDBClient()
-        with self.assertRaises(OperationalError) as e:
-            geodb.setup()
-
-        self.assertIn("could not connect to server", str(e.exception))
-
-        # noinspection PyPep8Naming
-        class cn:
-            @staticmethod
-            def commit():
-                return True
-
-            # noinspection PyPep8Naming
-            class cursor:
-                @staticmethod
-                def execute(qry):
-                    return True
-
-        cn.cursor.execute = MagicMock()
-        geodb.setup(conn=cn)
-        cn.cursor.execute.assert_called_once()
-
     def test_df_from_json(self, m):
         # This test tests an impossible situation as `js` cannot be none. However, you never know.
         # noinspection PyTypeChecker
@@ -2221,34 +2202,35 @@ class GeoDBClientTest(unittest.TestCase):
 
         self.assertIsNone(self._api._auth_access_token)
         # auth_access_token will retreive new token
-        self.assertEqual("A long lived token", self._api.auth_access_token)
+        self.assertEqual(
+            "A long lived token", self._api._db_interface.auth_access_token
+        )
 
     def test_auth_access_token(self, m):
         self.set_global_mocks(m)
-        self._api.use_auth_cache = False
-        self._api._auth_client_id = None
+        self._api._db_interface._auth_client_id = None
 
         with self.assertRaises(GeoDBError) as e:
-            r = self._api.auth_access_token
+            r = self._api._db_interface.auth_access_token
 
         self.assertEqual(
             "System: Invalid client_credentials configuration.", str(e.exception)
         )
 
-        self._api._auth_mode = "password"
+        self._api._db_interface._auth_mode = "password"
 
         with self.assertRaises(GeoDBError) as e:
-            r = self._api.auth_access_token
+            r = self._api._db_interface.auth_access_token
 
         self.assertEqual(
             "System: Invalid password flow configuration", str(e.exception)
         )
 
-        self._api._auth_client_id = "ksdjbvdkasj"
-        self._api._auth_username = "ksdjbvdkasj"
-        self._api._auth_password = "ksdjbvdkasj"
+        self._api._db_interface._auth_client_id = "ksdjbvdkasj"
+        self._api._db_interface._auth_username = "ksdjbvdkasj"
+        self._api._db_interface._auth_password = "ksdjbvdkasj"
 
-        r = self._api.auth_access_token
+        r = self._api._db_interface.auth_access_token
 
     def test_get_geodb_sql_version(self, m):
         self.set_global_mocks(m)

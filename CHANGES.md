@@ -1,6 +1,8 @@
-## v1.0.11 (in development)
+## v1.1.0
 
 ### New Features
+
+- allow to store metadata for collections [#123]
 
 ### Fixes
 
