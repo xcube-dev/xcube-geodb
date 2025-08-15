@@ -1,8 +1,10 @@
-## v1.0.11 (in development)
+## v1.1.0 (in development)
 
 ### New Features
 
 ### Fixes
+
+- renamed parameters [#128]
 
 ## v1.0.10
 
