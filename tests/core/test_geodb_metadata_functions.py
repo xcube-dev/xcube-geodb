@@ -2,7 +2,7 @@ import unittest
 
 import requests_mock
 
-from tests.core.test_geodb import GeoDBClientTest
+from tests.core.geodb_test_base import GeoDBClientTestBase
 from xcube_geodb.core.error import GeoDBError
 from xcube_geodb.core.metadata import (
     Range,
@@ -17,7 +17,7 @@ from xcube_geodb.core.metadata import (
 class GeoDBClientMetadataTest(unittest.TestCase):
     @classmethod
     def setUp(cls) -> None:
-        cls.base_test = GeoDBClientTest()
+        cls.base_test = GeoDBClientTestBase()
         cls.base_test.setUp()
         cls.default_json = {
             "basic": {

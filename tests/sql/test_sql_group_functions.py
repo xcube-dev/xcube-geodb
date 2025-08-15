@@ -26,17 +26,16 @@ import unittest
 import pandas as pd
 import psycopg2
 
-from tests.sql.test_sql_functions import GeoDBSqlTest
-from tests.sql.test_sql_functions import get_app_dir
+from tests.sql.geodb_sql_test_base import GeoDBSqlTestBase, get_app_dir
 
 
 class GeoDBSQLGroupTest(unittest.TestCase):
     @classmethod
     def setUp(cls) -> None:
-        cls.base_test = GeoDBSqlTest()
+        cls.base_test = GeoDBSqlTestBase()
         cls.base_test.setUp()
         cls._cursor = cls.base_test._cursor
-        cls._set_role = cls.base_test._set_role
+        cls._set_role = cls.base_test.set_role
         cls._conn = cls.base_test._conn
 
         app_path = get_app_dir()

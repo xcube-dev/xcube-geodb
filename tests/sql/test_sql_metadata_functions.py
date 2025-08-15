@@ -25,8 +25,8 @@ from unittest.mock import patch
 
 from psycopg2.errors import RaiseException
 
-from tests.sql.test_sql_functions import GeoDBSqlTest
-from tests.sql.test_sql_functions import get_app_dir
+from tests.sql.geodb_sql_test_base import get_app_dir
+from tests.sql.test_sql_functions import GeoDBSqlTestBase
 from xcube_geodb.core.db_interface import DbInterface
 from xcube_geodb.core.geodb import GeoDBClient
 from xcube_geodb.core.metadata import MetadataManager, Metadata
@@ -35,10 +35,10 @@ from xcube_geodb.core.metadata import MetadataManager, Metadata
 class GeoDBSQLMDTest(unittest.TestCase):
     @classmethod
     def setUp(cls) -> None:
-        cls.base_test = GeoDBSqlTest()
+        cls.base_test = GeoDBSqlTestBase()
         cls.base_test.setUp()
         cls._cursor = cls.base_test._cursor
-        cls._set_role = cls.base_test._set_role
+        cls._set_role = cls.base_test.set_role
         cls._conn = cls.base_test._conn
 
         app_path = get_app_dir()
@@ -121,17 +121,17 @@ class GeoDBSQLMDTest(unittest.TestCase):
         result = self._cursor.fetchall()
         self.assertEqual(3, len(result))
 
-        self.assertEqual("some_provider", result[0][0])
-        self.assertEqual("some_other_provider", result[1][0])
-        self.assertEqual("another_provider", result[2][0])
+        self.assertEqual("some_provider", result[0][1])
+        self.assertEqual("some_other_provider", result[1][1])
+        self.assertEqual("another_provider", result[2][1])
 
-        self.assertEqual("i am the best provider!", result[0][1])
-        self.assertEqual("i am the worst provider!", result[1][1])
-        self.assertEqual("i am an ok provider!", result[2][1])
+        self.assertEqual("i am the best provider!", result[0][2])
+        self.assertEqual("i am the worst provider!", result[1][2])
+        self.assertEqual("i am an ok provider!", result[2][2])
 
-        self.assertEqual("{}", result[0][2])
-        self.assertEqual("{}", result[1][2])
-        self.assertEqual("{producer,host}", result[2][2])
+        self.assertEqual("{}", result[0][3])
+        self.assertEqual("{}", result[1][3])
+        self.assertEqual("{producer,host}", result[2][3])
 
         sql = "SELECT * from geodb_collection_metadata.asset;"
         self._cursor.execute(sql)

@@ -769,8 +769,8 @@ class GeoDBClient(object):
         """
 
         database = database or self.database
-        collections = [database + "_" + collection for collection in collections]
         payload = {
+            "database": database,
             "collections": collections,
             "cascade": "TRUE" if cascade else "FALSE",
         }
@@ -778,9 +778,11 @@ class GeoDBClient(object):
         try:
             self._db_interface.post(path="/rpc/geodb_drop_collections", payload=payload)
             for collection in collections:
-                self._log_event(EventType.DROPPED, f"collection {collection}")
+                self._log_event(
+                    EventType.DROPPED, f"collection {database}_{collection}"
+                )
             self._refresh_capabilities()
-            return Message(f"Collection {str(collections)} deleted")
+            return Message(f"Collections {database}_{str(collections)} deleted")
         except GeoDBError as e:
             return self._maybe_raise(e)
 

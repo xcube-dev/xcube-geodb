@@ -371,8 +371,12 @@ class MetadataManager:
         if not spatial_extent:
             # get from database
             bbox = self._geodb.get_collection_bbox(collection, database)
-            srid = self._geodb.get_collection_srid(collection, database)
-            spatial_extent = [[bbox[0], bbox[1], bbox[2], bbox[3]]]
+            if bbox:
+                srid = self._geodb.get_collection_srid(collection, database)
+                spatial_extent = [[bbox[0], bbox[1], bbox[2], bbox[3]]]
+            else:
+                srid = "4326"
+                spatial_extent = [-180, -90, 180, 90]
             self._set_spatial_extent(spatial_extent, collection, database, srid)
         else:
             # reformat what we got from metadata table

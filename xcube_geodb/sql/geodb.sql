@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS public."geodb_version_info"
 );
 GRANT SELECT ON TABLE geodb_version_info TO PUBLIC;
 INSERT INTO geodb_version_info
-VALUES (DEFAULT, '1.1.0', now());
+VALUES (DEFAULT, '1.1.0dev', now());
 -- if manually setting up the database, this might be necessary to clean up:
 DELETE
 FROM geodb_version_info
@@ -130,6 +130,10 @@ BEGIN
     IF NEW.user_name IS NOT NULL THEN
         EXECUTE format('SELECT geodb_register_user(''%s''::text, ''bla''::text)', NEW.user_name);
     END IF;
+
+    EXECUTE format(
+            'GRANT EXECUTE ON FUNCTION geodb_drop_collections(text, json, bool) TO "%s"',
+            NEW.user_name);
 
     RETURN NEW;
 END;
@@ -407,7 +411,7 @@ $BODY$;
 
 REVOKE EXECUTE ON FUNCTION geodb_create_collections(json) FROM PUBLIC;
 
-CREATE OR REPLACE FUNCTION public.geodb_drop_collections(collections json, "cascade" bool DEFAULT TRUE)
+CREATE OR REPLACE FUNCTION public.geodb_drop_collections(database text, collections json, "cascade" bool DEFAULT TRUE)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS
@@ -418,15 +422,18 @@ BEGIN
     FOR collection_row IN SELECT collection FROM json_array_elements_text(collections) as collection
         LOOP
             IF "cascade" THEN
-                EXECUTE format('DROP TABLE %I CASCADE', collection_row.collection);
+                EXECUTE format('DROP TABLE %I CASCADE', (database || '_' || collection_row.collection));
             ELSE
-                EXECUTE format('DROP TABLE %I', collection_row.collection);
+                EXECUTE format('DROP TABLE %I', (database || '_' || collection_row.collection));
             END IF;
+            EXECUTE format(
+                    'DELETE FROM geodb_collection_metadata.basic WHERE collection_name = ''%s'' AND database = ''%s''',
+                    collection_row.collection, database);
         END LOOP;
 END
 $BODY$;
 
-REVOKE EXECUTE ON FUNCTION geodb_drop_collections(json, bool) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION geodb_drop_collections(text, json, bool) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_grant_access_to_collection(
     collection text,
@@ -1551,18 +1558,19 @@ CREATE TABLE IF NOT EXISTS geodb_collection_metadata.link
     body            JSONB,
     collection_name TEXT                               NOT NULL,
     database        TEXT                               NOT NULL,
-    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database)
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS geodb_collection_metadata.provider
 (
-    name            TEXT PRIMARY KEY,
+    id              SERIAL PRIMARY KEY,
+    name            TEXT,
     description     TEXT                                      NULL,
     roles           geodb_collection_metadata.provider_role[] NULL DEFAULT ARRAY []::geodb_collection_metadata.provider_role[],
     url             TEXT                                      NULL,
     collection_name TEXT                                      NOT NULL,
     database        TEXT                                      NOT NULL,
-    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database)
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS geodb_collection_metadata.asset
@@ -1575,7 +1583,7 @@ CREATE TABLE IF NOT EXISTS geodb_collection_metadata.asset
     roles           TEXT[] NULL DEFAULT ARRAY []::TEXT[],
     collection_name TEXT   NOT NULL,
     database        TEXT   NOT NULL,
-    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database)
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS geodb_collection_metadata."item_asset"
@@ -1587,7 +1595,7 @@ CREATE TABLE IF NOT EXISTS geodb_collection_metadata."item_asset"
     roles           TEXT[] NULL DEFAULT ARRAY []::TEXT[],
     collection_name TEXT   NOT NULL,
     database        TEXT   NOT NULL,
-    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database)
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database) ON DELETE CASCADE
 );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA geodb_collection_metadata TO PUBLIC;
