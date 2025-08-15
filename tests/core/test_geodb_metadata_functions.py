@@ -158,6 +158,20 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         self.assertEqual(len(metadata.summaries), 4)
         self.assertEqual(len(metadata.item_assets), 1)
 
+        self.assertEqual(
+            "Sir Collection [my_test_collection]\n"
+            + "  Description: No description available\n"
+            + "  License: proprietary\n"
+            + "  Providers: I am a provider, I am another provider\n"
+            + "  Keywords: super, mega, awesome\n"
+            + "  Links: [{href = https://wurst.brot, rel = item, type = None, title = None, method = GET, headers = {'header-1': 'schnuffel', 'header-2': ['schnaffel', 'schnoffel']}, body = None}]\n"
+            + "  Assets: [{href = https://my-images.bc/image.png, description = some description, title = title of my image, type = None, roles = ['thumbnail', 'overview']}]\n"
+            + "  Item Assets: [{description = None, title = None, type = None, roles = None}]\n"
+            + "  Spatial extent: [[-180, -90, 0, 0], [-170, -80, -30, -20]]\n"
+            + "  Temporal extent: [['2019-01-01T00:00:00Z', None], ['2019-01-01T00:00:00Z', '2020-01-01T00:00:00Z']]",
+            str(metadata),
+        )
+
     def test_get_metadata_everything_none(self, m: requests_mock.mocker.Mocker):
         self.base_test.set_global_mocks(m)
         url = f"{self.base_test._base_url}/rpc/geodb_get_metadata"
@@ -193,6 +207,20 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         self.assertListEqual(metadata.links, [])
         self.assertDictEqual(metadata.summaries, {})
         self.assertListEqual(metadata.item_assets, [])
+
+        self.assertEqual(
+            " [my_collection]\n"
+            + "  Description: No description available\n"
+            + "  License: proprietary\n"
+            + "  Providers: None\n"
+            + "  Keywords: None\n"
+            + "  Links: []\n"
+            + "  Assets: []\n"
+            + "  Item Assets: []\n"
+            + "  Spatial extent: [[-180, -90, 180, 90]]\n"
+            + "  Temporal extent: [[None, None]]",
+            str(metadata),
+        )
 
     def test_set_metadata_field(self, m: requests_mock.mocker.Mocker):
         self.base_test.set_global_mocks(m)

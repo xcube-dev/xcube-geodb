@@ -493,6 +493,42 @@ class Metadata:
         self._assets = assets if assets else []
         self._item_assets = item_assets if item_assets else []
 
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self._id}, "
+            f"title={self._title}, "
+            f"links={self._links} links, "
+            f"spatial_extent={self._spatial_extent}, "
+            f"temporal_extent={self._temporal_extent}, "
+            f"description={self._description}, "
+            f"license={self._license}, "
+            f"providers={self._providers} providers, "
+            f"keywords={self._keywords}, "
+            f"assets={self._assets} assets, "
+            f"item_assets={self._item_assets} item assets)"
+        )
+
+    def __str__(self) -> str:
+        return "\n".join(
+            [
+                f"{self._title} [{self._id}]",
+                f"  Description: {self._description}",
+                f"  License: {self._license}",
+                f"  Providers: {', '.join(p.name for p in self._providers) if self._providers else 'None'}",
+                f"  Keywords: {', '.join(self._keywords) if self._keywords else 'None'}",
+                f"  Links: {self._links}",
+                f"  Assets: {self._assets}",
+                f"  Item Assets: {self._item_assets}",
+                f"  Spatial extent: {self._spatial_extent}"
+                if self._spatial_extent
+                else "  Spatial extent: None",
+                f"  Temporal extent: {self._temporal_extent}"
+                if self._temporal_extent
+                else "  Temporal extent: None",
+            ]
+        )
+
     @property
     def type(self) -> str:
         return "Collection"
