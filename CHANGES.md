@@ -6,6 +6,8 @@
 
 ### Fixes
 
+- removed and updated some values in `defaults.py` [#127]
+
 ## v1.0.10
 
 ### New Features
