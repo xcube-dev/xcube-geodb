@@ -2,9 +2,12 @@
 
 ### New Features
 
+- allow to store metadata for collections [#123]
+
 ### Fixes
 
 - renamed parameters [#128]
+- removed and updated some values in `defaults.py` [#127]
 
 ## v1.0.10
 
