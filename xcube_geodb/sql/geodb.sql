@@ -837,7 +837,7 @@ BEGIN
             'GRANT EXECUTE ON FUNCTION geodb_create_index TO "%s"',
             NEW.user_name);
     EXECUTE format(
-            'GRANT EXECUTE ON FUNCTION geodb_drop_collections(json, bool) TO "%s"',
+            'GRANT EXECUTE ON FUNCTION geodb_drop_collections(text, json, bool) TO "%s"',
             NEW.user_name);
     EXECUTE format(
             'GRANT EXECUTE ON FUNCTION geodb_drop_index TO "%s"',
