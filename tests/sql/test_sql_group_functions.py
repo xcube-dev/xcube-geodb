@@ -1,3 +1,24 @@
+# The MIT License (MIT)
+# Copyright (c) 2025 by the xcube team
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 import json
 import os
 import unittest
@@ -5,17 +26,16 @@ import unittest
 import pandas as pd
 import psycopg2
 
-from tests.sql.test_sql_functions import GeoDBSqlTest
-from tests.sql.test_sql_functions import get_app_dir
+from tests.sql.geodb_sql_test_base import GeoDBSqlTestBase, get_app_dir
 
 
 class GeoDBSQLGroupTest(unittest.TestCase):
     @classmethod
     def setUp(cls) -> None:
-        cls.base_test = GeoDBSqlTest()
+        cls.base_test = GeoDBSqlTestBase()
         cls.base_test.setUp()
         cls._cursor = cls.base_test._cursor
-        cls._set_role = cls.base_test._set_role
+        cls._set_role = cls.base_test.set_role
         cls._conn = cls.base_test._conn
 
         app_path = get_app_dir()

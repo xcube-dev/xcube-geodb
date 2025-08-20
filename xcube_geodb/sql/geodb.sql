@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS public."geodb_version_info"
 );
 GRANT SELECT ON TABLE geodb_version_info TO PUBLIC;
 INSERT INTO geodb_version_info
-VALUES (DEFAULT, '1.0.11dev', now());
+VALUES (DEFAULT, '1.1.0dev', now());
 -- if manually setting up the database, this might be necessary to clean up:
 DELETE
 FROM geodb_version_info
@@ -353,7 +353,7 @@ $BODY$;
 
 REVOKE EXECUTE ON FUNCTION geodb_create_collections(json) FROM PUBLIC;
 
-CREATE OR REPLACE FUNCTION public.geodb_drop_collections(collections json, "cascade" bool DEFAULT TRUE)
+CREATE OR REPLACE FUNCTION public.geodb_drop_collections(database text, collections json, "cascade" bool DEFAULT TRUE)
     RETURNS void
     LANGUAGE 'plpgsql'
 AS
@@ -364,15 +364,18 @@ BEGIN
     FOR collection_row IN SELECT collection FROM json_array_elements_text(collections) as collection
         LOOP
             IF "cascade" THEN
-                EXECUTE format('DROP TABLE %I CASCADE', collection_row.collection);
+                EXECUTE format('DROP TABLE %I CASCADE', (database || '_' || collection_row.collection));
             ELSE
-                EXECUTE format('DROP TABLE %I', collection_row.collection);
+                EXECUTE format('DROP TABLE %I', (database || '_' || collection_row.collection));
             END IF;
+            EXECUTE format(
+                    'DELETE FROM geodb_collection_metadata.basic WHERE collection_name = ''%s'' AND database = ''%s''',
+                    collection_row.collection, database);
         END LOOP;
 END
 $BODY$;
 
-REVOKE EXECUTE ON FUNCTION geodb_drop_collections(json, bool) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION geodb_drop_collections(text, json, bool) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.geodb_grant_access_to_collection(
     collection text,
@@ -1671,6 +1674,366 @@ END
 $BODY$;
 
 REVOKE EXECUTE ON FUNCTION geodb_get_grants(text) FROM PUBLIC;
+
+-- below: metadata support
+
+CREATE SCHEMA IF NOT EXISTS geodb_collection_metadata;
+GRANT USAGE ON SCHEMA geodb_collection_metadata to PUBLIC;
+
+DO
+$$
+    BEGIN
+        IF NOT EXISTS (SELECT 1
+                       FROM pg_type t
+                                JOIN pg_namespace n ON n.oid = t.typnamespace
+                       WHERE t.typname = 'provider_role'
+                         AND n.nspname = 'geodb_collection_metadata') THEN
+            CREATE TYPE geodb_collection_metadata.provider_role AS ENUM ('licensor', 'producer', 'processor', 'host');
+            CREATE TYPE geodb_collection_metadata.relation AS ENUM ('self', 'root', 'parent', 'child', 'collection', 'item');
+        END IF;
+    END
+$$;
+
+CREATE TABLE IF NOT EXISTS geodb_collection_metadata.basic
+(
+    collection_name TEXT            NOT NULL,
+    database        TEXT            NOT NULL,
+    title           CHARACTER VARYING(255),
+    description     TEXT            NOT NULL DEFAULT 'No description available',
+    license         TEXT            NOT NULL DEFAULT 'proprietary',
+    spatial_extent  GEOMETRY[]      NULL,
+    temporal_extent TIMESTAMPTZ[][] NOT NULL DEFAULT ARRAY [ ARRAY [NULL::TIMESTAMPTZ, NULL::TIMESTAMPTZ]],
+    stac_extensions TEXT[]          NULL     DEFAULT ARRAY []::TEXT[],
+    keywords        TEXT[]          NULL     DEFAULT ARRAY []::TEXT[],
+    summaries       JSONB           NULL,
+    CONSTRAINT basic_unique_collection_name_database UNIQUE ("collection_name", database)
+);
+
+CREATE TABLE IF NOT EXISTS geodb_collection_metadata.link
+(
+    id              SERIAL PRIMARY KEY,
+    href            TEXT                               NOT NULL,
+    rel             geodb_collection_metadata.relation NOT NULL,
+    type            TEXT,
+    title           TEXT,
+    method          TEXT,
+    headers         JSONB,
+    body            JSONB,
+    collection_name TEXT                               NOT NULL,
+    database        TEXT                               NOT NULL,
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS geodb_collection_metadata.provider
+(
+    id              SERIAL PRIMARY KEY,
+    name            TEXT,
+    description     TEXT                                      NULL,
+    roles           geodb_collection_metadata.provider_role[] NULL DEFAULT ARRAY []::geodb_collection_metadata.provider_role[],
+    url             TEXT                                      NULL,
+    collection_name TEXT                                      NOT NULL,
+    database        TEXT                                      NOT NULL,
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS geodb_collection_metadata.asset
+(
+    id              SERIAL PRIMARY KEY,
+    href            TEXT   NOT NULL,
+    title           TEXT   NULL,
+    description     TEXT   NULL,
+    type            TEXT   NULL,
+    roles           TEXT[] NULL DEFAULT ARRAY []::TEXT[],
+    collection_name TEXT   NOT NULL,
+    database        TEXT   NOT NULL,
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS geodb_collection_metadata."item_asset"
+(
+    id              SERIAL PRIMARY KEY,
+    title           TEXT   NULL,
+    description     TEXT   NULL,
+    type            TEXT   NULL,
+    roles           TEXT[] NULL DEFAULT ARRAY []::TEXT[],
+    collection_name TEXT   NOT NULL,
+    database        TEXT   NOT NULL,
+    FOREIGN KEY (collection_name, database) REFERENCES geodb_collection_metadata.basic (collection_name, database) ON DELETE CASCADE
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA geodb_collection_metadata TO PUBLIC;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA geodb_collection_metadata TO PUBLIC;
+
+CREATE OR REPLACE FUNCTION public.geodb_get_metadata(collection text, db text)
+    RETURNS JSONB
+    LANGUAGE 'plpgsql'
+AS
+$$
+DECLARE
+    mp              RECORD;
+    result          JSONB;
+    link_data       JSONB := '[]';
+    provider_data   JSONB := '[]';
+    asset_data      JSONB := '[]';
+    item_asset_data JSONB := '[]';
+    usr             TEXT;
+    ct              INT;
+BEGIN
+    usr := (SELECT geodb_whoami());
+    SELECT geodb_user_allowed(db || '_' || collection, usr) INTO ct;
+
+    IF ct = 0 then
+        RAISE EXCEPTION 'No access to collection % for user %.', db || '_' || collection, usr;
+    end if;
+
+    SELECT md.*,
+           ARRAY(
+                   SELECT jsonb_build_object(
+                                  'minx', ST_XMin(g),
+                                  'miny', ST_YMin(g),
+                                  'maxx', ST_XMax(g),
+                                  'maxy', ST_YMax(g)
+                          )
+                   FROM unnest(md.spatial_extent) AS g
+           ) AS spatial_extent
+    INTO mp
+    FROM geodb_collection_metadata.basic md
+    WHERE md.collection_name = collection
+      AND md.database = db;
+
+    SELECT COALESCE(jsonb_agg(to_jsonb(li)), '[]'::jsonb)
+    INTO link_data
+    FROM geodb_collection_metadata.link li
+    WHERE li.collection_name = mp.collection_name
+      AND li.database = mp.database;
+
+    SELECT COALESCE(jsonb_agg(to_jsonb(pr)), '[]'::jsonb)
+    INTO provider_data
+    FROM geodb_collection_metadata.provider pr
+    WHERE pr.collection_name = mp.collection_name
+      AND pr.database = mp.database;
+
+    SELECT COALESCE(jsonb_agg(to_jsonb(a)), '[]'::jsonb)
+    INTO asset_data
+    FROM geodb_collection_metadata.asset a
+    WHERE a.collection_name = mp.collection_name
+      AND a.database = mp.database;
+
+    SELECT COALESCE(jsonb_agg(to_jsonb(ia)), '[]'::jsonb)
+    INTO item_asset_data
+    FROM geodb_collection_metadata.item_asset ia
+    WHERE ia.collection_name = mp.collection_name
+      AND ia.database = mp.database;
+
+    -- Construct final JSON
+    result := jsonb_build_object(
+            'basic', to_jsonb(mp),
+            'links', link_data,
+            'providers', provider_data,
+            'assets', asset_data,
+            'item_assets', item_asset_data
+              );
+    return result;
+END
+$$;
+
+CREATE OR REPLACE FUNCTION public.geodb_set_spatial_extent(collection text, db text, se float8[][], srid int)
+    RETURNS SETOF jsonb
+    LANGUAGE 'plpgsql'
+AS
+$$
+DECLARE
+    bbox   float8[];
+    result geometry[];
+BEGIN
+
+    FOREACH bbox SLICE 1 IN ARRAY se
+        LOOP
+            IF array_length(bbox, 1) = 4 THEN
+                result := result || ST_Transform(ST_MakeEnvelope(
+                                                         bbox[1], -- minx
+                                                         bbox[2], -- miny
+                                                         bbox[3], -- maxx
+                                                         bbox[4], -- maxy
+                                                         srid), 4326);
+            END IF;
+        END LOOP;
+
+    UPDATE geodb_collection_metadata.basic md
+    SET spatial_extent = result
+    WHERE md.collection_name = collection
+      and md.database = db;
+END
+$$;
+
+CREATE OR REPLACE FUNCTION public.geodb_set_metadata_field(field text, value json, collection text, db text)
+    RETURNS void
+    LANGUAGE 'plpgsql'
+AS
+$$
+DECLARE
+    link       JSON;
+    asset      JSON;
+    roles      TEXT[];
+    item_asset JSON;
+    ts_array   TIMESTAMPTZ[][];
+    usr        TEXT;
+    ct         INT;
+BEGIN
+
+    usr := (SELECT geodb_whoami());
+    SELECT geodb_user_allowed(db || '_' || collection, usr) INTO ct;
+
+    IF ct = 0 then
+        RAISE EXCEPTION 'No access to collection % for user %.', db || '_' || collection, usr;
+    end if;
+
+    RAISE NOTICE 'Setting metadata field % to % for %_%', field, value, collection, db;
+    IF field IN ('title', 'description', 'license') THEN
+        SELECT COUNT(*)
+        FROM geodb_collection_metadata.basic
+        WHERE collection_name = collection
+          and database = db
+        INTO ct;
+        IF ct = 0 THEN
+            EXECUTE format('
+            INSERT INTO geodb_collection_metadata.basic (%s, collection_name, database)
+            VALUES (''%s'', ''%s'', ''%s'');', field, replace(value #>> '{}', '"', ''), collection, db);
+        ELSE
+            EXECUTE format('
+            UPDATE geodb_collection_metadata.basic md
+            SET %s = ''%s''
+            WHERE md.collection_name = ''%s''
+              and md.database = ''%s'';'
+                , field, replace(value #>> '{}', '"', ''), collection, db);
+        END IF;
+    ELSIF field IN ('keywords', 'stac_extensions') THEN
+        EXECUTE format('
+            UPDATE geodb_collection_metadata.basic md
+            SET %s = ''%s''
+            WHERE md.collection_name = ''%s''
+              and md.database = ''%s'';'
+            , field, ARRAY(SELECT json_array_elements_text(value)), collection, db);
+    ELSIF field = 'links' THEN
+        DELETE
+        FROM geodb_collection_metadata.link li
+        WHERE li.collection_name = collection
+          AND li.database = db;
+        FOR link in SELECT json_array_elements(value)
+            LOOP
+                EXECUTE format('
+                INSERT INTO geodb_collection_metadata.link (href, rel, type, title, method, headers, body, collection_name, database)
+                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', %L, %L, ''%s'', ''%s'');',
+                               link ->> 'href',
+                               link ->> 'rel',
+                               link ->> 'type',
+                               link ->> 'title',
+                               link ->> 'method',
+                               (link ->> 'headers')::JSONB,
+                               (link ->> 'body')::JSONB,
+                               collection,
+                               db);
+            END LOOP;
+    ELSIF field = 'providers' THEN
+        DELETE
+        FROM geodb_collection_metadata.provider pr
+        WHERE pr.collection_name = collection
+          AND pr.database = db;
+        FOR asset in SELECT json_array_elements(value)
+            LOOP
+                IF asset -> 'roles' IS NOT NULL THEN
+                    SELECT ARRAY(SELECT json_array_elements_text(asset -> 'roles'))
+                    INTO roles;
+                ELSE
+                    roles := '{}'::TEXT[];
+                END IF;
+                EXECUTE format('
+                INSERT INTO geodb_collection_metadata.provider (name, description, roles, url, collection_name, database)
+                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'');',
+                               asset ->> 'name',
+                               asset ->> 'description',
+                               roles,
+                               asset ->> 'url',
+                               collection,
+                               db);
+            END LOOP;
+    ELSIF field = 'assets' THEN
+        DELETE
+        FROM geodb_collection_metadata.asset a
+        WHERE a.collection_name = collection
+          AND a.database = db;
+        FOR asset in SELECT json_array_elements(value)
+            LOOP
+                IF asset -> 'roles' IS NOT NULL AND asset ->> 'roles' != 'null' THEN
+                    SELECT ARRAY(SELECT json_array_elements_text(asset -> 'roles'))
+                    INTO roles;
+                ELSE
+                    roles := '{}'::TEXT[];
+                END IF;
+                EXECUTE format('
+                INSERT INTO geodb_collection_metadata.asset (href, title, description, type, roles, collection_name, database)
+                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'');',
+                               asset ->> 'href',
+                               asset ->> 'title',
+                               asset ->> 'description',
+                               asset ->> 'type',
+                               roles,
+                               collection,
+                               db);
+            END LOOP;
+    ELSIF field = 'item_assets' THEN
+        DELETE
+        FROM geodb_collection_metadata.item_asset a
+        WHERE a.collection_name = collection
+          AND a.database = db;
+        FOR item_asset in SELECT json_array_elements(value)
+            LOOP
+                IF item_asset -> 'roles' IS NOT NULL AND item_asset ->> 'roles' != 'null' THEN
+                    SELECT ARRAY(SELECT json_array_elements_text(item_asset -> 'roles'))
+                    INTO roles;
+                ELSE
+                    roles := '{}'::TEXT[];
+                END IF;
+                EXECUTE format('
+                INSERT INTO geodb_collection_metadata."item_asset" (title, description, type, roles, collection_name, database)
+                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'');',
+                               item_asset ->> 'title',
+                               item_asset ->> 'description',
+                               item_asset ->> 'type',
+                               roles,
+                               collection,
+                               db);
+            END LOOP;
+    ELSIF field = 'temporal_extent' THEN
+        SELECT ARRAY(
+                       SELECT ARRAY(
+                                      SELECT CASE
+                                                 WHEN elem IS NULL OR elem::text = 'null' THEN NULL
+                                                 ELSE elem::text::TIMESTAMPTZ
+                                                 END
+                                      FROM json_array_elements(outer_elem::json) AS elem
+                              )
+                       FROM json_array_elements(value::json) AS outer_elem
+               )
+        INTO ts_array;
+        EXECUTE format('
+            UPDATE geodb_collection_metadata.basic md
+            SET %s = ''%s''
+            WHERE md.collection_name = ''%s''
+              and md.database = ''%s'';'
+            , field, ts_array, collection, db);
+    ELSIF field = 'summaries' THEN
+        EXECUTE format('
+            UPDATE geodb_collection_metadata.basic md
+            SET %s = ''%s''
+            WHERE md.collection_name = ''%s''
+              and md.database = ''%s'';'
+            , field, value, collection, db);
+    ELSE
+        RAISE EXCEPTION 'Invalid field; must be one of "title", "description", "license", "keywords", "stac_extensions", "links", "providers", "assets", "item_assets", "temporal_extent", "summaries"';
+    END IF;
+END
+$$;
 
 -- Below: watching PostGREST schema cache changes to the database, and trigger a
 -- reload.

@@ -1,8 +1,11 @@
-## v1.0.11 (in development)
+## v1.1.0 (in development)
 
 ### New Features
 
+- allow to store metadata for collections [#123]
+
 ### Fixes
+
 
 - geodb.sql does not capture all requirements [#117]:
     - added missing role `anonymous`
@@ -11,6 +14,8 @@
     - ensured that `geodb_admin` can grant newly registered users the execution rights on necessary functions
     - ensure that newly registered users are granted the execution rights on necessary functions
     - ensure that `geodb_admin` can execute the function `geodb_create_role`
+- renamed parameters [#128]
+- removed and updated some values in `defaults.py` [#127]
 
 ## v1.0.10
 

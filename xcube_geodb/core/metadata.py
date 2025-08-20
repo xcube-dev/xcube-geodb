@@ -1,0 +1,590 @@
+# The MIT License (MIT)
+# Copyright (c) 2025 by the xcube team
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+from typing import (
+    List,
+    Optional,
+    Dict,
+    Any,
+    Union,
+    TypeAlias,
+    Literal,
+    Sequence,
+    TYPE_CHECKING,
+)
+
+from xcube_geodb.core.db_interface import DbInterface
+
+if TYPE_CHECKING:
+    from xcube_geodb.core.geodb import GeoDBClient
+
+
+# noinspection PyShadowingBuiltins
+class Range(dict):  # inheriting from dict to make it JSON serializable
+    def __init__(self, min: Union[float, str], max: Union[float, str]):
+        dict.__init__(self)
+        self["min"] = min
+        self["min"] = max
+
+
+JSONSchema: TypeAlias = str
+SpatialExtent: TypeAlias = List[List[float]]
+TemporalExtent: TypeAlias = List[List[Optional[str]]]
+Summary: TypeAlias = List[Any] | Range | JSONSchema
+Relation = Literal["self", "root", "parent", "child", "collection", "item"]
+valid_roles = ["licensor", "producer", "processor", "host"]
+
+
+class Provider:
+    def __init__(
+        self, name: str, description: str = "", roles: List[str] = None, url: str = None
+    ):
+        self._name = name
+        self._description = description
+        self._roles = roles if roles else []
+        if not set(self._roles).issubset(valid_roles):
+            raise ValueError(
+                f"Invalid set of roles provided: {roles}; valid roles are: {valid_roles}."
+            )
+        self._url = url
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def description(self) -> str:
+        return self._description
+
+    @property
+    def roles(self) -> List[str]:
+        return self._roles
+
+    @property
+    def url(self) -> str:
+        return self._url
+
+    @description.setter
+    def description(self, value):
+        self._description = value
+
+    @url.setter
+    def url(self, value):
+        self._url = value
+
+    @roles.setter
+    def roles(self, value):
+        if not set(value).issubset(valid_roles):
+            raise ValueError(
+                f"Invalid set of roles provided: {value}; valid roles are: {valid_roles}."
+            )
+        self._roles = value
+
+    @staticmethod
+    def from_json(provider_spec: Dict[str, Union[str, List[str]]]):
+        p = Provider(
+            provider_spec["name"],
+        )
+        if "description" in provider_spec:
+            p.description = provider_spec["description"]
+
+        if "url" in provider_spec:
+            p.url = provider_spec["url"]
+
+        if "roles" in provider_spec:
+            p.roles = provider_spec["roles"]
+
+        return p
+
+    def __repr__(self):
+        return (
+            f"{{name = {self._name}, description = {self._description}, url = {self._url}, "
+            f"roles = {self._roles}}}"
+        )
+
+
+# noinspection PyShadowingBuiltins
+class Link:
+    def __init__(
+        self,
+        href: str,
+        rel: Relation,
+        type: Optional[str],
+        title: Optional[str],
+        method: Optional[str],
+        headers: Optional[Dict[str, Union[str, List[str]]]],
+        body: Optional[Any],
+    ):
+        self._href = href
+        self._rel = rel
+        self._type = type
+        self._title = title
+        self._method = method
+        self._headers = headers
+        self._body = body
+
+    @staticmethod
+    def from_json(link_spec):
+        return Link(
+            link_spec["href"],
+            link_spec["rel"],
+            link_spec["type"] if "type" in link_spec else None,
+            link_spec["title"] if "title" in link_spec else None,
+            link_spec["method"] if "method" in link_spec else None,
+            link_spec["headers"] if "headers" in link_spec else None,
+            link_spec["body"] if "body" in link_spec else None,
+        )
+
+    @property
+    def href(self) -> str:
+        return self._href
+
+    @property
+    def rel(self) -> Relation:
+        return self._rel
+
+    @property
+    def type(self) -> Optional[str]:
+        return self._type
+
+    @property
+    def title(self) -> Optional[str]:
+        return self._title
+
+    @property
+    def method(self) -> Optional[str]:
+        return self._method
+
+    @property
+    def body(self) -> Optional[Any]:
+        return self._body
+
+    @property
+    def headers(self) -> Optional[Dict[str, Union[str, List[str]]]]:
+        return self._headers
+
+    def __repr__(self):
+        return (
+            f"{{href = {self._href}, rel = {self._rel}, type = {self._type}, "
+            f"title = {self._title}, method = {self._method}, "
+            f"headers = {self._headers}, body = {self._body}}}"
+        )
+
+
+# noinspection PyShadowingBuiltins
+class Asset:
+    def __init__(
+        self,
+        href: str,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        type: Optional[str] = None,
+        roles: Optional[List[str]] = None,
+    ):
+        self._href = href
+        self._title = title
+        self._description = description
+        self._type = type
+        self._roles = roles
+
+    @property
+    def href(self) -> str:
+        return self._href
+
+    @property
+    def title(self) -> Optional[str]:
+        return self._title
+
+    @property
+    def description(self) -> Optional[str]:
+        return self._description
+
+    @description.setter
+    def description(self, value):
+        self._description = value
+
+    @property
+    def type(self) -> Optional[str]:
+        return self._type
+
+    @property
+    def roles(self) -> Optional[List[str]]:
+        return self._roles
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+
+    @type.setter
+    def type(self, value):
+        self._type = value
+
+    @roles.setter
+    def roles(self, value):
+        self._roles = value
+
+    @staticmethod
+    def from_json(asset_spec: Dict[str, Union[str, List[str]]]):
+        asset = Asset(
+            asset_spec["href"],
+        )
+        if "description" in asset_spec and asset_spec["description"]:
+            asset.description = asset_spec["description"]
+        if "title" in asset_spec and asset_spec["title"]:
+            asset.title = asset_spec["title"]
+        if "type" in asset_spec and asset_spec["type"]:
+            asset.type = asset_spec["type"]
+        if "roles" in asset_spec and asset_spec["roles"]:
+            asset.roles = asset_spec["roles"]
+
+        return asset
+
+    def __repr__(self):
+        return (
+            f"{{href = {self.href}, description = {self._description}, title = {self._title}, "
+            f"type = {self._type}, roles = {self._roles}}}"
+        )
+
+
+# noinspection PyShadowingBuiltins
+class ItemAsset:
+    def __init__(
+        self,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        type: Optional[str] = None,
+        roles: Optional[List[str]] = None,
+    ):
+        self._title = title
+        self._description = description
+        self._type = type
+        self._roles = roles
+
+    @property
+    def title(self) -> Optional[str]:
+        return self._title
+
+    @property
+    def description(self) -> Optional[str]:
+        return self._description
+
+    @description.setter
+    def description(self, value):
+        self._description = value
+
+    @property
+    def type(self) -> Optional[str]:
+        return self._type
+
+    @property
+    def roles(self) -> Optional[List[str]]:
+        return self._roles
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+
+    @type.setter
+    def type(self, value):
+        self._type = value
+
+    @roles.setter
+    def roles(self, value):
+        self._roles = value
+
+    @staticmethod
+    def from_json(asset_spec: Dict[str, Union[str, List[str]]]):
+        item_asset = ItemAsset()
+        if "description" in asset_spec:
+            item_asset.description = asset_spec["description"]
+        if "title" in asset_spec:
+            item_asset.title = asset_spec["title"]
+        if "type" in asset_spec:
+            item_asset.type = asset_spec["type"]
+        if "roles" in asset_spec:
+            item_asset.roles = asset_spec["roles"]
+
+        return item_asset
+
+    def __repr__(self):
+        return (
+            f"{{description = {self._description}, title = {self._title}, "
+            f"type = {self._type}, roles = {self._roles}}}"
+        )
+
+
+class MetadataManager:
+    def __init__(self, geodb: "GeoDBClient", db_interface: DbInterface):
+        self._geodb = geodb
+        self._db_interface = db_interface
+
+    def from_json(self, json: Dict[str, Any], collection: str, database: str):
+        providers = self._get_providers(json)
+        assets = self._get_assets(json)
+        item_assets = self._get_item_assets(json)
+        links = self._get_links(json)
+        summaries = (
+            json["basic"]["summaries"]
+            if "summaries" in json["basic"] and json["basic"]["summaries"] is not None
+            else {}
+        )
+        stac_extensions = (
+            json["basic"]["stac_extensions"]
+            if "stac_extensions" in json["basic"]
+            and json["basic"]["stac_extensions"] is not None
+            else []
+        )
+        title = (
+            json["basic"]["title"]
+            if "title" in json["basic"] and json["basic"]["title"] is not None
+            else ""
+        )
+        keywords = (
+            json["basic"]["keywords"]
+            if "keywords" in json["basic"] and json["basic"]["keywords"] is not None
+            else []
+        )
+        spatial_extent = (
+            json["basic"]["spatial_extent"]
+            if "spatial_extent" in json["basic"]
+            and json["basic"]["spatial_extent"] is not None
+            and not json["basic"]["spatial_extent"] == []
+            else None
+        )
+        if not spatial_extent:
+            # get from database
+            bbox = self._geodb.get_collection_bbox(collection, database)
+            if bbox:
+                srid = self._geodb.get_collection_srid(collection, database)
+                spatial_extent = [[bbox[0], bbox[1], bbox[2], bbox[3]]]
+            else:
+                srid = "4326"
+                spatial_extent = [-180, -90, 180, 90]
+            self._set_spatial_extent(spatial_extent, collection, database, srid)
+        else:
+            # reformat what we got from metadata table
+            spatial_extent = [
+                [se["minx"], se["miny"], se["maxx"], se["maxy"]]
+                for se in spatial_extent
+            ]
+        return Metadata(
+            id=collection,
+            title=title,
+            links=links,
+            spatial_extent=spatial_extent,
+            temporal_extent=json["basic"]["temporal_extent"],
+            description=json["basic"]["description"],
+            license=json["basic"]["license"],
+            providers=providers,
+            stac_extensions=stac_extensions,
+            keywords=keywords,
+            summaries=summaries,
+            assets=assets,
+            item_assets=item_assets,
+        )
+
+    def _set_spatial_extent(
+        self, spatial_extent: Sequence, collection: str, database: str, srid: str
+    ):
+        path = "/rpc/geodb_set_spatial_extent"
+        self._db_interface.post(
+            path,
+            payload={
+                "collection": collection,
+                "db": database,
+                "se": spatial_extent,
+                "srid": int(srid),
+            },
+        )
+
+    @staticmethod
+    def _get_providers(json: Dict[str, Any]) -> Optional[List[Provider]]:
+        if "providers" not in json:
+            return None
+        result = []
+        for provider_spec in json["providers"]:
+            result.append(Provider.from_json(provider_spec))
+        return result
+
+    @staticmethod
+    def _get_assets(json: Dict[str, Any]) -> Optional[List[Asset]]:
+        if "assets" not in json:
+            return None
+        result: List[Asset] = []
+        for asset_spec in json["assets"]:
+            result.append(Asset.from_json(asset_spec))
+        return result
+
+    @staticmethod
+    def _get_item_assets(json: Dict[str, Any]) -> Optional[List[ItemAsset]]:
+        if "item_assets" not in json:
+            return None
+        result: List[ItemAsset] = []
+        for item_asset_spec in json["item_assets"]:
+            result.append(ItemAsset.from_json(item_asset_spec))
+        return result
+
+    @staticmethod
+    def _get_links(json: Dict[str, Any]) -> List[Link]:
+        if "links" not in json:
+            return []
+        result = []
+        for link_spec in json["links"]:
+            result.append(Link.from_json(link_spec))
+        return result
+
+
+# noinspection PyShadowingBuiltins
+class Metadata:
+    """
+    This class stores properties for the metadata fields that are specified by the
+    STAC collection specification (https://github.com/radiantearth/stac-spec/blob/master/collection-spec/collection
+    -spec.md).
+
+    Changes in result objects are never reflected in the database. Rather, there is the
+    method `set_metadata_field` in the geoDB client. Using that method, changes are
+    directly reflected in the database.
+    """
+
+    def __init__(
+        self,
+        id: str,
+        title: str,
+        links: List[Link],
+        spatial_extent: Optional[SpatialExtent],
+        temporal_extent: Optional[TemporalExtent],
+        description: Optional[str] = None,
+        license: Optional[str] = None,
+        providers: Optional[List[Provider]] = None,
+        stac_extensions: Optional[List[str]] = None,
+        keywords: Optional[List[str]] = None,
+        summaries: Optional[Dict[str, Summary]] = None,
+        assets: Optional[List[Asset]] = None,
+        item_assets: Optional[Dict[str, ItemAsset]] = None,
+    ):
+        self._id = id
+        self._title = title
+        self._links = links
+        self._spatial_extent = spatial_extent
+        self._temporal_extent = temporal_extent
+        self._description = description if description else "No description available"
+        self._stac_extensions = stac_extensions
+        self._keywords = keywords if keywords else []
+        self._providers = providers if providers else []
+        self._license = license if license else "proprietary"
+        self._summaries = summaries if summaries else {}
+        self._assets = assets if assets else []
+        self._item_assets = item_assets if item_assets else []
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"id={self._id}, "
+            f"title={self._title}, "
+            f"links={self._links} links, "
+            f"spatial_extent={self._spatial_extent}, "
+            f"temporal_extent={self._temporal_extent}, "
+            f"description={self._description}, "
+            f"license={self._license}, "
+            f"providers={self._providers} providers, "
+            f"keywords={self._keywords}, "
+            f"assets={self._assets} assets, "
+            f"item_assets={self._item_assets} item assets)"
+        )
+
+    def __str__(self) -> str:
+        return "\n".join(
+            [
+                f"{self._title} [{self._id}]",
+                f"  Description: {self._description}",
+                f"  License: {self._license}",
+                f"  Providers: {', '.join(p.name for p in self._providers) if self._providers else 'None'}",
+                f"  Keywords: {', '.join(self._keywords) if self._keywords else 'None'}",
+                f"  Links: {self._links}",
+                f"  Assets: {self._assets}",
+                f"  Item Assets: {self._item_assets}",
+                f"  Spatial extent: {self._spatial_extent}"
+                if self._spatial_extent
+                else "  Spatial extent: None",
+                f"  Temporal extent: {self._temporal_extent}"
+                if self._temporal_extent
+                else "  Temporal extent: None",
+            ]
+        )
+
+    @property
+    def type(self) -> str:
+        return "Collection"
+
+    @property
+    def title(self) -> str:
+        return self._title
+
+    @property
+    def stac_version(self) -> str:
+        return "1.1.0"
+
+    @property
+    def stac_extensions(self) -> Optional[Sequence[str]]:
+        return self._stac_extensions
+
+    @property
+    def id(self) -> str:
+        return self._id
+
+    @property
+    def description(self) -> str:
+        return self._description
+
+    @property
+    def keywords(self) -> Optional[List[str]]:
+        return self._keywords
+
+    @property
+    def license(self) -> str:
+        return self._license
+
+    @property
+    def providers(self) -> Optional[List[Provider]]:
+        return self._providers
+
+    @property
+    def links(self) -> List[Link]:
+        return self._links
+
+    @property
+    def summaries(self) -> Optional[Dict[str, List[Any] | Range | JSONSchema]]:
+        return self._summaries
+
+    @property
+    def spatial_extent(self) -> SpatialExtent:
+        return self._spatial_extent
+
+    @property
+    def temporal_extent(self) -> TemporalExtent:
+        return self._temporal_extent
+
+    @property
+    def assets(self) -> Optional[List[Asset]]:
+        return self._assets
+
+    @property
+    def item_assets(self) -> Optional[List[ItemAsset]]:
+        return self._item_assets
