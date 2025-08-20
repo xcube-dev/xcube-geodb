@@ -640,14 +640,14 @@ class GeoDBClient(object):
         return self.create_collections(collections=res, database=database)
 
     def create_collections(
-        self, collections: Dict, database: Optional[str] = None, clear: bool = False
+        self, collections: Dict, database: Optional[str] = None, force: bool = False
     ) -> Union[Dict, Message]:
         """
         Create collections from a dictionary
         Args:
-            clear (bool): Delete collections prioer to creation
-            collections (Dict): A dictionalry of collections
+            collections (Dict): A dictionary of collections
             database (str): Database to use for creating the collection
+            force (bool): If True, remove already existing collections with identical names
 
         Returns:
             bool: Success
@@ -664,7 +664,7 @@ class GeoDBClient(object):
                 collections[collection]["crs"] = check_crs(
                     collections[collection]["crs"]
                 )
-            if clear:
+            if force:
                 try:
                     self.drop_collection(collection=collection, database=database)
                 except GeoDBError:
@@ -697,17 +697,17 @@ class GeoDBClient(object):
         properties: Dict,
         crs: Union[int, str] = 4326,
         database: Optional[str] = None,
-        clear: bool = False,
+        force: bool = False,
     ) -> Dict:
         """
         Create collections from a dictionary
 
         Args:
             collection (str): Name of the collection to be created
-            clear (bool): Whether to delete existing collections
             properties (Dict): Property definitions for the collection
+            crs (Union[int, str]): The CRS for the collection
             database (str): Database to use for creating the collection
-            crs: sfdv
+            force (bool): If True, remove already existing collection with identical name
 
         Returns:
             bool: Success
@@ -721,7 +721,7 @@ class GeoDBClient(object):
         collections = {collection: {"properties": properties, "crs": str(crs)}}
 
         return self.create_collections(
-            collections=collections, database=database, clear=clear
+            collections=collections, database=database, force=force
         )
 
     def drop_collection(

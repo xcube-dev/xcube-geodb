@@ -865,11 +865,10 @@ class GeoDBClientBaseTest(unittest.TestCase):
         self._check_message(res, expected)
 
         self.test_base._api.database_exists = MagicMock(
-            name="database_exists", return_value=True
-        )
+          name="database_exists", return_value=True)
         self.test_base._api.drop_collections = MagicMock(name="drop_collections")
         res = self.test_base._api.create_collections(
-            collections=collections, database="helge", clear=True
+            collections=collections, database="helge", force=True
         )
         self.test_base._api.drop_collections.assert_called_once()
 
@@ -878,7 +877,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
 
         with self.assertRaises(GeoDBError) as e:
             self.test_base._api.create_collections(
-                collections=collections, database="helge", clear=True
+                collections=collections, database="helge", force=True
             )
 
         expected = {

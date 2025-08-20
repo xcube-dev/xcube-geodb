@@ -1,4 +1,4 @@
-## v1.1.0
+## v1.1.0 (in development)
 
 ### New Features
 
@@ -6,6 +6,7 @@
 
 ### Fixes
 
+- renamed parameters [#128]
 - removed and updated some values in `defaults.py` [#127]
 
 ## v1.0.10
