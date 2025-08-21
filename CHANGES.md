@@ -1,11 +1,10 @@
-## v1.1.0 (in development)
+## v1.1.0
 
 ### New Features
 
-- allow to store metadata for collections [#123]
+- the geoDB now allows to store metadata for collections in a STAC-compliant way [#123]
 
 ### Fixes
-
 
 - geodb.sql does not capture all requirements [#117]:
     - added missing role `anonymous`
