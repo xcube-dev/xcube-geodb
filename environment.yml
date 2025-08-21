@@ -3,15 +3,16 @@ channels:
   - conda-forge
 
 dependencies:
-  - python >=3.9
-  - ipyleaflet
+  - python >=3.10
   - geopandas
-  - matplotlib-base
   - pip
   - psycopg2
   - python-dotenv
   - requests
   - requests-mock
   - shapely
+  # testing:
+  - ipyleaflet
+  - matplotlib-base
   - pip:
       - testing.postgresql  # not available from conda
