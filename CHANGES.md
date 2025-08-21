@@ -6,6 +6,14 @@
 
 ### Fixes
 
+
+- geodb.sql does not capture all requirements [#117]:
+    - added missing role `anonymous`
+    - aligned table definition of `geodb_user_info` with deployed version
+    - fixed `authenticator` role creation
+    - ensured that `geodb_admin` can grant newly registered users the execution rights on necessary functions
+    - ensure that newly registered users are granted the execution rights on necessary functions
+    - ensure that `geodb_admin` can execute the function `geodb_create_role`
 - renamed parameters [#128]
 - removed and updated some values in `defaults.py` [#127]
 

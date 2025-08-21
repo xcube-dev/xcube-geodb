@@ -2,12 +2,13 @@
 
 -- noinspection SqlNoDataSourceInspectionForFile
 
--- Table: public.land_use
+-- inserting triggers 'geodb_register_user_trg_func', which grants execution rights on the geoDB functions
+INSERT INTO geodb_user_info ("user_name", "start_date", subscription)
+VALUES ('geodb_user', '2020-01-01', 'freetrial');
+INSERT INTO geodb_user_info ("user_name", "start_date", subscription)
+VALUES ('geodb_user-with-hyphens', '2020-01-01', 'freetrial');
 
--- DROP TABLE public.land_use;
-
-SELECT geodb_register_user('geodb_user', 'geodb_user');
-SELECT geodb_register_user('geodb_user-with-hyphens', 'geodb_user-with-hyphens');
+-- registering adds the user but does not grant execution rights
 SELECT geodb_register_user('geodb_user_read_only', 'geodb_user_read_only');
 
 REVOKE EXECUTE ON FUNCTION geodb_show_indexes(text) FROM geodb_user_read_only;

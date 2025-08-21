@@ -483,7 +483,7 @@ class GeoDBSqlBaseTest(unittest.TestCase):
         user_name = "geodb_user"
         self._set_role(user_name)
 
-        with self.assertRaises(psycopg2.errors.RaiseException):
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
             self.execute(f"SELECT geodb_create_role('{user_name}', 'some_group')")
 
         self._conn.commit()
@@ -496,6 +496,19 @@ class GeoDBSqlBaseTest(unittest.TestCase):
 
         self._set_role(user_name)
         self.execute(f"SELECT geodb_create_role('{user_name}', 'some_group')")
+
+    def test_check_geodb_user_info_structure(self):
+        self.execute(
+            "INSERT INTO geodb_user_info ("
+            "   user_name,start_date, subscription, "
+            "   cunits)"
+            "   VALUES("
+            "       'user', "
+            "       '2020-12-08', "
+            "       'superpower',"
+            "       4"
+            ")"
+        )
 
     def execute(self, sql):
         self._cursor.execute(sql)

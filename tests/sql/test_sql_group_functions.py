@@ -135,7 +135,7 @@ class GeoDBSQLGroupTest(unittest.TestCase):
 
     def test_create_role_fails(self):
         self._set_role(self.noadmin)
-        with self.assertRaises(psycopg2.errors.RaiseException):
+        with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
             self.execute(f"SELECT geodb_create_role('{self.noadmin}', 'any_group')")
 
     def test_get_group_users(self):
