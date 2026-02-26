@@ -54,7 +54,7 @@ valid_roles = ["licensor", "producer", "processor", "host"]
 
 class Provider:
     def __init__(
-        self, name: str, description: str = "", roles: List[str] = None, url: str = None
+            self, name: str, description: str = "", roles: List[str] = None, url: str = None
     ):
         self._name = name
         self._description = description
@@ -123,14 +123,14 @@ class Provider:
 # noinspection PyShadowingBuiltins
 class Link:
     def __init__(
-        self,
-        href: str,
-        rel: Relation,
-        type: Optional[str],
-        title: Optional[str],
-        method: Optional[str],
-        headers: Optional[Dict[str, Union[str, List[str]]]],
-        body: Optional[Any],
+            self,
+            href: str,
+            rel: Relation,
+            type: Optional[str],
+            title: Optional[str],
+            method: Optional[str],
+            headers: Optional[Dict[str, Union[str, List[str]]]],
+            body: Optional[Any],
     ):
         self._href = href
         self._rel = rel
@@ -191,12 +191,12 @@ class Link:
 # noinspection PyShadowingBuiltins
 class Asset:
     def __init__(
-        self,
-        href: str,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        type: Optional[str] = None,
-        roles: Optional[List[str]] = None,
+            self,
+            href: str,
+            title: Optional[str] = None,
+            description: Optional[str] = None,
+            type: Optional[str] = None,
+            roles: Optional[List[str]] = None,
     ):
         self._href = href
         self._title = title
@@ -266,11 +266,11 @@ class Asset:
 # noinspection PyShadowingBuiltins
 class ItemAsset:
     def __init__(
-        self,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        type: Optional[str] = None,
-        roles: Optional[List[str]] = None,
+            self,
+            title: Optional[str] = None,
+            description: Optional[str] = None,
+            type: Optional[str] = None,
+            roles: Optional[List[str]] = None,
     ):
         self._title = title
         self._description = description
@@ -348,7 +348,7 @@ class MetadataManager:
         stac_extensions = (
             json["basic"]["stac_extensions"]
             if "stac_extensions" in json["basic"]
-            and json["basic"]["stac_extensions"] is not None
+               and json["basic"]["stac_extensions"] is not None
             else []
         )
         title = (
@@ -364,8 +364,8 @@ class MetadataManager:
         spatial_extent = (
             json["basic"]["spatial_extent"]
             if "spatial_extent" in json["basic"]
-            and json["basic"]["spatial_extent"] is not None
-            and not json["basic"]["spatial_extent"] == []
+               and json["basic"]["spatial_extent"] is not None
+               and not json["basic"]["spatial_extent"] == []
             else None
         )
         if not spatial_extent:
@@ -376,7 +376,7 @@ class MetadataManager:
                 spatial_extent = [[bbox[0], bbox[1], bbox[2], bbox[3]]]
             else:
                 srid = "4326"
-                spatial_extent = [-180, -90, 180, 90]
+                spatial_extent = [[-180, -90, 180, 90]]
             self._set_spatial_extent(spatial_extent, collection, database, srid)
         else:
             # reformat what we got from metadata table
@@ -401,7 +401,7 @@ class MetadataManager:
         )
 
     def _set_spatial_extent(
-        self, spatial_extent: Sequence, collection: str, database: str, srid: str
+            self, spatial_extent: Sequence, collection: str, database: str, srid: str
     ):
         path = "/rpc/geodb_set_spatial_extent"
         self._db_interface.post(
@@ -464,20 +464,20 @@ class Metadata:
     """
 
     def __init__(
-        self,
-        id: str,
-        title: str,
-        links: List[Link],
-        spatial_extent: Optional[SpatialExtent],
-        temporal_extent: Optional[TemporalExtent],
-        description: Optional[str] = None,
-        license: Optional[str] = None,
-        providers: Optional[List[Provider]] = None,
-        stac_extensions: Optional[List[str]] = None,
-        keywords: Optional[List[str]] = None,
-        summaries: Optional[Dict[str, Summary]] = None,
-        assets: Optional[List[Asset]] = None,
-        item_assets: Optional[Dict[str, ItemAsset]] = None,
+            self,
+            id: str,
+            title: str,
+            links: List[Link],
+            spatial_extent: Optional[SpatialExtent],
+            temporal_extent: Optional[TemporalExtent],
+            description: Optional[str] = None,
+            license: Optional[str] = None,
+            providers: Optional[List[Provider]] = None,
+            stac_extensions: Optional[List[str]] = None,
+            keywords: Optional[List[str]] = None,
+            summaries: Optional[Dict[str, Summary]] = None,
+            assets: Optional[List[Asset]] = None,
+            item_assets: Optional[Dict[str, ItemAsset]] = None,
     ):
         self._id = id
         self._title = title

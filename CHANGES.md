@@ -4,6 +4,8 @@
 
 ### Fixes
 
+- fixed wrong default spatial extent [#131]
+
 ## v1.1.0
 
 ### New Features
