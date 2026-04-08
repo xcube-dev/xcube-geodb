@@ -22,28 +22,50 @@
 # SOFTWARE.
 
 
-from setuptools import setup, find_packages
+from pathlib import Path
+
+from setuptools import find_packages, setup
 from xcube_geodb.version import version
 
 requirements = [
-    # Use ./environment.yml for deps.
+    "geopandas",
+    "python-dotenv",
+    "requests",
+    "shapely",
 ]
 
 packages = find_packages(exclude=["test", "test.*"])
+readme = Path(__file__).parent.joinpath("README.md").read_text(encoding="utf-8")
 
 
 setup(
     name="xcube_geodb",
     version=version,
-    description='An xcube plug-in that implements a data cube generation service',
-    license='MIT',
-    author='xcube Development Team',
+    description="Python client for the xcube geoDB service",
+    long_description=readme,
+    long_description_content_type="text/markdown",
+    license="MIT",
+    author="xcube Development Team",
+    url="https://github.com/xcube-dev/xcube-geodb",
+    project_urls={
+        "Source": "https://github.com/xcube-dev/xcube-geodb",
+        "Documentation": "https://xcube-dev.github.io/xcube-geodb",
+        "Issues": "https://github.com/xcube-dev/xcube-geodb/issues",
+    },
+    python_requires=">=3.10",
     packages=packages,
     install_requires=requirements,
-    entry_points={
-        'console_scripts': [
-            # xcube's CLI
-            'geodb = xcube_geodb.cli.main:main',
-        ]
-    }
+    include_package_data=False,
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Topic :: Database",
+        "Topic :: Scientific/Engineering :: GIS",
+    ],
 )
