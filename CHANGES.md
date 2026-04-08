@@ -1,8 +1,11 @@
-## v1.1.1 (in development)
+## v1.1.1
 
 ### New Features
 
 ### Fixes
+
+- fixed wrong default spatial extent [#131]
+- prepared Python-only PyPI packaging for the `xcube_geodb` client [#133]
 
 ## v1.1.0
 
