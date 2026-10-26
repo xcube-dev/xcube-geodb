@@ -397,7 +397,7 @@ class GeoDBClient(object):
             if bbox == "null":
                 return None
             bbox = literal_eval(bbox)
-            return bbox[1], bbox[0], bbox[3], bbox[2]
+            return bbox[0], bbox[1], bbox[2], bbox[3]
         except GeoDBError as e:
             self._maybe_raise(e)
 

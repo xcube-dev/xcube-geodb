@@ -3,6 +3,7 @@
 ### New Features
 
 ### Fixes
+- preserve X/Y order in collection bounding boxes [#136]
 - send event logs using the named `event` RPC argument to allow the client
   to work with PostgREST 13+, keeping compatibility with PostgREST 12. [#134]
 - fixed wrong default spatial extent [#131]
