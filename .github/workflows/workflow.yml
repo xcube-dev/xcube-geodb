@@ -67,6 +67,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
   # Testing notebooks that come with the xcube-geodb repo
   nb-test:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     env:
       GEODB_API_SERVER_URL: ${{ secrets.GEODB_API_SERVER_URL }}

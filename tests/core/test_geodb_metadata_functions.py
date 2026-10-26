@@ -182,7 +182,7 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         url = f"{self.base_test._base_url}/rpc/geodb_estimate_collection_bbox"
         m.post(
             url,
-            text="BOX(-90 -180 90 180)",
+            text="BOX(-180 -90,180 90)",
         )
         url = f"{self.base_test._base_url}/rpc/geodb_set_spatial_extent"
         m.post(
@@ -245,6 +245,40 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         )
         self.assertEqual(len(metadata.spatial_extent), 1)
         self.assertListEqual(metadata.spatial_extent[0], [-180, -90, 180, 90])
+
+    def test_get_metadata_preserves_longitude_latitude_order(self, m):
+        self.base_test.set_global_mocks(m)
+        m.post(
+            f"{self.base_test._base_url}/rpc/geodb_get_metadata",
+            json={
+                "basic": {
+                    "description": "Coordinate order probe",
+                    "license": "proprietary",
+                    "temporal_extent": [[None, None]],
+                }
+            },
+        )
+        m.post(
+            f"{self.base_test._base_url}/rpc/geodb_estimate_collection_bbox",
+            json="BOX(10 53,11 54)",
+        )
+        endpoint = m.post(
+            f"{self.base_test._base_url}/rpc/geodb_set_spatial_extent", text=""
+        )
+
+        metadata = self.base_test._api.get_metadata("probe", database="database")
+
+        self.assertEqual([[10, 53, 11, 54]], metadata.spatial_extent)
+        self.assertEqual(1, endpoint.call_count)
+        self.assertEqual(
+            {
+                "collection": "probe",
+                "db": "database",
+                "se": [[10, 53, 11, 54]],
+                "srid": 4326,
+            },
+            endpoint.last_request.json(),
+        )
 
     def test_set_metadata_field(self, m: requests_mock.mocker.Mocker):
         self.base_test.set_global_mocks(m)

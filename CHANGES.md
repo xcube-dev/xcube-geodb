@@ -4,6 +4,7 @@
 
 ### Fixes
 
+- preserve X/Y order in collection bounding boxes [#136]
 - fixed wrong default spatial extent [#131]
 - prepared Python-only PyPI packaging for the `xcube_geodb` client [#133]
 

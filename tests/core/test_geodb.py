@@ -281,8 +281,8 @@ class GeoDBClientBaseTest(unittest.TestCase):
         )
         m.post(url, json="BOX(-6 9,5 11)")
 
-        bbox = json.dumps(self.test_base._api.get_collection_bbox("any", exact=True))
-        self.assertEqual(str([9, -6, 11, 5]), str(bbox))
+        bbox = self.test_base._api.get_collection_bbox("any", exact=True)
+        self.assertEqual((-6, 9, 5, 11), bbox)
 
         url = (
             f"{self.test_base._server_test_url}:"
@@ -290,8 +290,8 @@ class GeoDBClientBaseTest(unittest.TestCase):
         )
         m.post(url, json="BOX(-5 8,2 10)")
 
-        bbox = json.dumps(self.test_base._api.get_collection_bbox("any"))
-        self.assertEqual(str([8, -5, 10, 2]), str(bbox))
+        bbox = self.test_base._api.get_collection_bbox("any")
+        self.assertEqual((-5, 8, 2, 10), bbox)
 
         m.post(url, text="null")
         bbox = self.test_base._api.get_collection_bbox("any")
