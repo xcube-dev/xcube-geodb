@@ -46,6 +46,25 @@ class GeoDBClientBaseTest(unittest.TestCase):
             self.test_base._api._server_url, self.test_base._api.server_url
         )
 
+    def test_log_event_uses_named_json_argument(self, m):
+        self.test_base.set_global_mocks(m)
+        url = f"{self.test_base._base_url}/rpc/geodb_log_event"
+        endpoint = m.post(url, status_code=204)
+        message = 'Inserted rows into "instrument_01"'
+
+        response = self.test_base._api._log_event(EventType.ROWS_ADDED, message)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(endpoint.call_count, 1)
+        self.assertEqual(
+            endpoint.last_request.json(),
+            {"event": {"event_type": EventType.ROWS_ADDED,
+                       "message": message, "user": "helge"}},
+        )
+        self.assertNotIn(
+            "params=single-object", endpoint.last_request.headers.get("Prefer", "")
+        )
+
     def test_my_usage(self, m):
         # self.test_base.set_global_mocks(m)
 
@@ -354,7 +373,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "collection None_test to None_test_new",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         url = f"{self.test_base._base_url}/rpc/geodb_rename_collection"
@@ -386,7 +405,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "collection db_old_test to db_new_test",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         m.post(url, text="error", status_code=400)
@@ -416,7 +435,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "collection None_col to db_new_col_new",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         m.post(url, text="error", status_code=400)
@@ -775,7 +794,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "collection helge_test",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
     # noinspection DuplicatedCode
@@ -960,7 +979,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "collection helge_test",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
     def test_add_properties(self, m):
@@ -983,7 +1002,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "collection helge_test_collection",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
         self._check_message(res, {"Message": "Properties added"})
 
@@ -1180,7 +1199,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "from collection helge_tt where id=eq.1",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         expected = {"Message": "Data from tt deleted"}
@@ -1267,7 +1286,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "11002 rows inserted into helge_tt",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         r = self.test_base._api.insert_into_collection("tt", values, upsert=True)
@@ -1612,7 +1631,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "collection helge_test",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         expected = {"Message": "Access granted on helge_test to public."}
@@ -1650,7 +1669,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "collection helge_test",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         expected = {"Message": "Access revoked from public on helge_test"}
@@ -1690,7 +1709,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "collection geodb_admin_land_use",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         self.assertDictEqual({"name": "land_use"}, res)
@@ -1740,7 +1759,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "collection geodb_admin_land_use",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         self.assertDictEqual({"name": "land_use"}, res)
@@ -1919,7 +1938,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "collection geodb_admin_land_use",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         self.assertTrue(res)
@@ -1969,7 +1988,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "collection geodb_admin_land_use",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         self.assertTrue(res)
@@ -2012,7 +2031,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "{name: prop, type: INT} to collection helge_col",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         self._check_message(res, {"Message": "Properties added"})
@@ -2040,7 +2059,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "test_prop2 from collection helge_test_col",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         expected = {"Message": "Properties ['test_prop'] dropped from helge_test_col"}
@@ -2066,7 +2085,7 @@ class GeoDBClientBaseTest(unittest.TestCase):
                 "message": "allet from collection helge_test",
                 "user": "helge",
             },
-            json.loads(log_event_endpoint.last_request.text),
+            log_event_endpoint.last_request.json()["event"],
         )
 
         expected = {

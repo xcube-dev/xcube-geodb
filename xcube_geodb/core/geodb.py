@@ -2811,6 +2811,5 @@ class GeoDBClient(object):
         event = {"event_type": event_type, "message": message, "user": self.whoami}
         return self._db_interface.post(
             path="/rpc/geodb_log_event",
-            payload=event,
-            headers={"Prefer": "params=single-object"},
+            payload={"event": event},
         )
