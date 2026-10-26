@@ -222,6 +222,30 @@ class GeoDBClientMetadataTest(unittest.TestCase):
             str(metadata),
         )
 
+    def test_get_metadata_default_spatial_extent_issue131(self, m: requests_mock.mocker.Mocker):
+        self.base_test.set_global_mocks(m)
+        url = f"{self.base_test._base_url}/rpc/geodb_get_metadata"
+        m.post(
+            url,
+            json=self.default_json,
+        )
+        url = f"{self.base_test._base_url}/rpc/geodb_estimate_collection_bbox"
+        m.post(
+            url,
+            text="null",
+        )
+        url = f"{self.base_test._base_url}/rpc/geodb_set_spatial_extent"
+        m.post(
+            url,
+            text="",
+        )
+
+        metadata = self.base_test._api.get_metadata(
+            collection="my_collection", database="database"
+        )
+        self.assertEqual(len(metadata.spatial_extent), 1)
+        self.assertListEqual(metadata.spatial_extent[0], [-180, -90, 180, 90])
+
     def test_set_metadata_field(self, m: requests_mock.mocker.Mocker):
         self.base_test.set_global_mocks(m)
 
