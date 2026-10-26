@@ -3,7 +3,8 @@
 ### New Features
 
 ### Fixes
-
+- send event logs using the named `event` RPC argument to allow the client
+  to work with PostgREST 13+, keeping compatibility with PostgREST 12. [#134]
 - fixed wrong default spatial extent [#131]
 - prepared Python-only PyPI packaging for the `xcube_geodb` client [#133]
 
