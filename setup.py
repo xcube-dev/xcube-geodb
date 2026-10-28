@@ -23,19 +23,24 @@
 
 
 from pathlib import Path
+from runpy import run_path
 
 from setuptools import find_packages, setup
-from xcube_geodb.version import version
+
+ROOT = Path(__file__).resolve().parent
+version = run_path(str(ROOT / "xcube_geodb" / "version.py"))["version"]
 
 requirements = [
     "geopandas",
+    "pandas",
+    "pyproj",
     "python-dotenv",
+    "pystac-core>=1.15,<2",
     "requests",
     "shapely",
 ]
 
-packages = find_packages(exclude=["test", "test.*"])
-readme = Path(__file__).parent.joinpath("README.md").read_text(encoding="utf-8")
+readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
 
 setup(
@@ -53,7 +58,7 @@ setup(
         "Issues": "https://github.com/xcube-dev/xcube-geodb/issues",
     },
     python_requires=">=3.10",
-    packages=packages,
+    packages=find_packages(include=["xcube_geodb", "xcube_geodb.*"]),
     install_requires=requirements,
     include_package_data=False,
     classifiers=[

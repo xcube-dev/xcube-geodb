@@ -25,6 +25,8 @@ import sys
 import psycopg2
 import signal
 from time import sleep
+from pathlib import Path
+from shutil import which
 
 import xcube_geodb.version as version
 
@@ -35,6 +37,23 @@ def get_app_dir():
     # noinspection PyTypeChecker
     version_path = inspect.getfile(version)
     return os.path.dirname(version_path)
+
+
+def find_postgresql_programs():
+    """Find a matching server/initdb pair in PATH, then the Python environment."""
+    directories = [
+        *map(Path, os.get_exec_path()),
+        Path(sys.prefix) / "Library" / "bin",
+        Path(sys.prefix) / "bin",
+    ]
+    for directory in directories:
+        programs = tuple(which(str(directory / name)) for name in ("initdb", "postgres"))
+        if all(programs):
+            return programs
+    raise RuntimeError(
+        f"PostgreSQL server programs initdb and postgres were not found together in PATH or {sys.prefix}. "
+        "The SQL-test environment needs PostgreSQL and PostGIS."
+    )
 
 
 class GeoDBSqlTestBase:
@@ -50,37 +69,17 @@ class GeoDBSqlTestBase:
         import psycopg2
         import testing.postgresql
 
-        # for Windows, in case there are multiple installations of Postgres
-        # which makes psycopg find initdb like this:
-        # c:\path\to\installation-1\initdb.exe\r\nc:\path\to\installation-2\initdb.exe
-        # therefore, we split, and use the first installation that has "PostgreSQL" in its path
-        # because the PostGIS extension cannot be installed via conda nor pip in a compatible way
-
-        # Also, if you are using Docker Desktop for Windows, you have to do the
-        # following (only once, not everytime you are running the tests):
+        # Windows/Docker Desktop can reserve the fixed test port 50777 even
+        # when no process is listening. Check excluded ranges if binding fails:
+        # netsh interface ipv4 show excludedportrange protocol=tcp
+        # Historical workaround for a confirmed conflict:
         # dism.exe /Online /Disable-Feature:Microsoft-Hyper-V
         # netsh int ipv4 add excludedportrange protocol=tcp startport=50777 numberofports=1
         # dism.exe /Online /Enable-Feature:Microsoft-Hyper-V /All
-        #
-        # (copied from
-        # https://github.com/docker/for-win/issues/3171#issuecomment-459205576)
+        # This workaround requires administrator rights and Windows restarts.
+        # https://github.com/docker/for-win/issues/3171#issuecomment-459205576
 
-        def find_program(name: str) -> str:
-            program = testing.postgresql.find_program(name, [])
-            return program.split("\r\n")[0]
-
-        if os.name == "nt":
-            path = os.environ["PATH"].split(os.pathsep)
-            dirs = [directory for directory in path if "PostgreSQL" in directory]
-            dirs.extend(
-                [directory for directory in path if "PostgreSQL" not in directory]
-            )
-            os.environ["PATH"] = os.pathsep.join(dirs)
-
-        initdb = find_program("initdb")
-        postgres = find_program("postgres")
-
-        # special windows treatment end
+        initdb, postgres = find_postgresql_programs()
 
         postgresql = testing.postgresql.PostgresqlFactory(
             cache_initialized_db=False,

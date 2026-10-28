@@ -165,7 +165,7 @@ class GeoDBSQLMDTest(unittest.TestCase):
         self.assertEqual(1, len(md.assets))
         self.assertEqual("https://best-assets.bc", md.assets[0].href)
         self.assertEqual(1, len(md.item_assets))
-        self.assertEqual("I have a type", md.item_assets[0].type)
+        self.assertEqual("I have a type", md.item_assets[0].media_type)
         self.assertEqual(3, len(md.providers))
         self.assertEqual("i am the worst provider!", md.providers[1].description)
         self.assertEqual("i am an ok provider!", md.providers[2].description)
@@ -271,7 +271,7 @@ class GeoDBSQLMDTest(unittest.TestCase):
         self.assertEqual("https://asset.bc", md.assets[0].href)
         self.assertEqual("assettitle", md.assets[0].title)
         self.assertListEqual(["canbe", "anything"], md.assets[0].roles)
-        self.assertIsNone(md.assets[0].type)
+        self.assertIsNone(md.assets[0].media_type)
         self.assertIsNone(md.assets[0].description)
 
         sql = 'SELECT geodb_set_metadata_field(\'item_assets\', \'[{"description": "I am an item asset", "title": "itemassettitle", "roles": ["or", "canit?"]}]\', \'land_use\', \'geodb_user\')'
@@ -281,7 +281,7 @@ class GeoDBSQLMDTest(unittest.TestCase):
         self.assertEqual("itemassettitle", md.item_assets[0].title)
         self.assertEqual("I am an item asset", md.item_assets[0].description)
         self.assertListEqual(["or", "canit?"], md.item_assets[0].roles)
-        self.assertIsNone(md.assets[0].type)
+        self.assertIsNone(md.item_assets[0].media_type)
 
         ts = [["2025-01-01", "2025-12-31"], ["2025-02-05", "2025-02-26"]]
         timestamps_json = json.dumps(ts)

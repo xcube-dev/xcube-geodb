@@ -2,6 +2,8 @@
 
 ### New Features
 
+- replace custom implementations of Provider, Link, Asset and ItemAsset [#138]
+
 ### Fixes
 - preserve X/Y order in collection bounding boxes [#136]
 - send event logs using the named `event` RPC argument to allow the client
