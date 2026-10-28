@@ -1,16 +1,11 @@
 import unittest
 
 import requests_mock
+from pystac import Asset, ItemAssetDefinition, Link, Provider
 
 from tests.core.geodb_test_base import GeoDBClientTestBase
 from xcube_geodb.core.error import GeoDBError
-from xcube_geodb.core.metadata import (
-    Range,
-    Link,
-    Provider,
-    Asset,
-    ItemAsset,
-)
+from xcube_geodb.core.metadata import Range
 
 
 @requests_mock.mock(real_http=False)
@@ -88,13 +83,13 @@ class GeoDBClientMetadataTest(unittest.TestCase):
             "epoch_valid_range": Range("barocque", "modern"),
             "schema": "json_schema_as_string",
         }
-        json["item_assets"] = {
-            "item_asset_0": {
+        json["item_assets"] = [
+            {
                 "title": "some_title",
                 "description": "some_description",
                 "roles": ["any value allowed", "including this"],
             }
-        }
+        ]
         m.post(
             url,
             json=json,
@@ -126,7 +121,7 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         self.assertEqual(metadata.assets[0].description, "some description")
         self.assertEqual(metadata.assets[0].roles[0], "thumbnail")
         self.assertEqual(metadata.assets[0].roles[1], "overview")
-        self.assertIsNone(metadata.assets[0].type)
+        self.assertIsNone(metadata.assets[0].media_type)
 
         self.assertEqual(
             metadata.temporal_extent,
@@ -145,11 +140,11 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         self.assertListEqual(metadata.keywords, ["super", "mega", "awesome"])
         self.assertEqual(len(metadata.links), 1)
         self.assertEqual(metadata.links[0].href, "https://wurst.brot")
-        self.assertEqual(metadata.links[0].method, "GET")
+        self.assertEqual(metadata.links[0].extra_fields["method"], "GET")
         self.assertEqual(metadata.links[0].rel, "item")
         self.assertIsNone(metadata.links[0].title)
         self.assertDictEqual(
-            metadata.links[0].headers,
+            metadata.links[0].extra_fields["headers"],
             {
                 "header-1": "schnuffel",
                 "header-2": ["schnaffel", "schnoffel"],
@@ -157,6 +152,11 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         )
         self.assertEqual(len(metadata.summaries), 4)
         self.assertEqual(len(metadata.item_assets), 1)
+        self.assertEqual("some_title", metadata.item_assets[0].title)
+        self.assertEqual("some_description", metadata.item_assets[0].description)
+        self.assertEqual(
+            ["any value allowed", "including this"], metadata.item_assets[0].roles
+        )
 
         self.assertEqual(
             "Sir Collection [my_test_collection]\n"
@@ -164,9 +164,9 @@ class GeoDBClientMetadataTest(unittest.TestCase):
             + "  License: proprietary\n"
             + "  Providers: I am a provider, I am another provider\n"
             + "  Keywords: super, mega, awesome\n"
-            + "  Links: [{href = https://wurst.brot, rel = item, type = None, title = None, method = GET, headers = {'header-1': 'schnuffel', 'header-2': ['schnaffel', 'schnoffel']}, body = None}]\n"
-            + "  Assets: [{href = https://my-images.bc/image.png, description = some description, title = title of my image, type = None, roles = ['thumbnail', 'overview']}]\n"
-            + "  Item Assets: [{description = None, title = None, type = None, roles = None}]\n"
+            + f"  Links: {metadata.links}\n"
+            + f"  Assets: {metadata.assets}\n"
+            + f"  Item Assets: {metadata.item_assets}\n"
             + "  Spatial extent: [[-180, -90, 0, 0], [-170, -80, -30, -20]]\n"
             + "  Temporal extent: [['2019-01-01T00:00:00Z', None], ['2019-01-01T00:00:00Z', '2020-01-01T00:00:00Z']]",
             str(metadata),
@@ -337,14 +337,14 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         )
         self.base_test._api.set_metadata_field(
             "links",
-            [Link.from_json({"href": "https://link2.bc", "rel": "root"})],
+            [Link.from_dict({"href": "https://link2.bc", "rel": "root"})],
             collection="my_collection",
             database="database",
         )
         self.base_test._api.set_metadata_field(
             "providers",
             [
-                Provider.from_json(
+                Provider.from_dict(
                     {
                         "name": "provider 1",
                         "description": "some provider",
@@ -358,7 +358,7 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         self.base_test._api.set_metadata_field(
             "assets",
             [
-                Asset.from_json(
+                Asset.from_dict(
                     {
                         "href": "https://asset.org",
                         "title": "some title",
@@ -372,7 +372,7 @@ class GeoDBClientMetadataTest(unittest.TestCase):
         self.base_test._api.set_metadata_field(
             "item_assets",
             [
-                ItemAsset.from_json(
+                ItemAssetDefinition(
                     {
                         "type": "some_type",
                         "title": "some title",
@@ -417,49 +417,160 @@ class GeoDBClientMetadataTest(unittest.TestCase):
                 database="database",
             )
 
-    def test_print_metadata(self, m: requests_mock.mocker.Mocker):
-        p = Provider.from_json({"name": "some_name", "roles": ["licensor"]})
+    def test_provider_roles_are_validated_by_server(self, m: requests_mock.mocker.Mocker):
+        self.base_test.set_global_mocks(m)
+        endpoint = m.post(
+            f"{self.base_test._base_url}/rpc/geodb_set_metadata_field",
+            status_code=400,
+            json={"code": "22P02", "message": "invalid input value for enum provider_role"},
+        )
+        provider = Provider.from_dict({"name": "some_name", "roles": ["kaputtnick"]})
+        with self.assertRaises(GeoDBError):
+            self.base_test._api.set_metadata_field(
+                "providers", [provider], "probe", database="database"
+            )
+        self.assertEqual([provider.to_dict()], endpoint.last_request.json()["value"])
+
+    def test_provider_metadata_roundtrip(self, m: requests_mock.mocker.Mocker):
+        self.base_test.set_global_mocks(m)
+        expected = [
+            {"name": "minimal provider"},
+            {"name": "full provider", "description": "Processing center",
+             "roles": ["processor"], "url": "https://provider.example"},
+        ]
+        m.post(
+            f"{self.base_test._base_url}/rpc/geodb_get_metadata",
+            json={
+                "basic": {**self.default_json["basic"], "spatial_extent": [
+                    {"minx": 10, "miny": 53, "maxx": 11, "maxy": 54}
+                ]},
+                "providers": [
+                    {**p, "id": i, "collection_name": "probe", "database": "database"}
+                    for i, p in enumerate(expected)
+                ],
+            },
+        )
+        endpoint = m.post(
+            f"{self.base_test._base_url}/rpc/geodb_set_metadata_field", text=""
+        )
+        metadata = self.base_test._api.get_metadata("probe", database="database")
+        self.assertTrue(all(type(p) is Provider for p in metadata.providers))
+        self.assertEqual(expected, [p.to_dict() for p in metadata.providers])
+        self.base_test._api.set_metadata_field(
+            "providers", metadata.providers, "probe", database="database"
+        )
         self.assertEqual(
-            "{name = some_name, description = , url = None, roles = ['licensor']}",
-            str(p),
-        )
-        l = Link.from_json(
-            {
-                "href": "https://link",
-                "rel": "rel",
-                "type": "some_type",
-                "body": "some request body",
-            }
-        )
-        self.assertEqual(
-            "{href = https://link, rel = rel, type = some_type, title = None, method = None, headers = None, body = some request body}",
-            str(l),
-        )
-        a = Asset.from_json(
-            {
-                "href": "https://link",
-                "type": "some_type",
-                "title": "some asset title",
-                "roles": ["any", "will", "do"],
-            }
-        )
-        self.assertEqual(
-            "{href = https://link, description = None, title = some asset title, type = some_type, roles = ['any', 'will', 'do']}",
-            str(a),
-        )
-        ia = ItemAsset.from_json(
-            {
-                "type": "some_type",
-                "description": "description",
-                "title": "some item asset title",
-                "roles": ["any", "will", "do"],
-            }
-        )
-        self.assertEqual(
-            "{description = description, title = some item asset title, type = some_type, roles = ['any', 'will', 'do']}",
-            str(ia),
+            {"field": "providers", "value": expected,
+             "collection": "probe", "db": "database"},
+            endpoint.last_request.json(),
         )
 
-    def test_set_wrong_metadata(self, m: requests_mock.mocker.Mocker):
-        with self.assertRaises(ValueError):
-            Provider.from_json({"name": "some_name", "roles": ["kaputtnick"]})
+    def test_link_metadata_roundtrip(self, m):
+        self.base_test.set_global_mocks(m)
+        expected = [
+            {"href": "../catalog.json", "rel": "root"},
+            {
+                "href": "https://example.com/search",
+                "rel": "item",
+                "type": "application/geo+json",
+                "title": "Search",
+                "method": "POST",
+                "headers": {"X-Test": ["first", "second"]},
+                "body": {"filter": {"instrument": ["A", "B"]}},
+            },
+            {
+                "href": "https://example.com/parent",
+                "rel": "parent",
+                "method": None,
+                "headers": None,
+                "body": None,
+            },
+        ]
+        m.post(
+            f"{self.base_test._base_url}/rpc/geodb_get_metadata",
+            json={
+                "basic": {
+                    **self.default_json["basic"],
+                    "spatial_extent": [
+                        {"minx": 10, "miny": 53, "maxx": 11, "maxy": 54}
+                    ],
+                },
+                "links": [
+                    {"type": None, "title": None, **link, "id": i,
+                     "collection_name": "probe", "database": "database"}
+                    for i, link in enumerate(expected)
+                ],
+            },
+        )
+        endpoint = m.post(
+            f"{self.base_test._base_url}/rpc/geodb_set_metadata_field", text=""
+        )
+        metadata = self.base_test._api.get_metadata("probe", database="database")
+        self.assertTrue(all(type(link) is Link for link in metadata.links))
+        self.assertEqual(expected, [link.to_dict() for link in metadata.links])
+        self.assertEqual("application/geo+json", metadata.links[1].media_type)
+        self.base_test._api.set_metadata_field(
+            "links", metadata.links, "probe", database="database"
+        )
+        self.assertEqual(
+            {"field": "links", "value": expected,
+             "collection": "probe", "db": "database"},
+            endpoint.last_request.json(),
+        )
+
+    def test_asset_metadata_roundtrip(self, m):
+        self._check_asset_roundtrip(m, "assets", Asset, [
+            {"href": "../data.tif"},
+            {
+                "href": "https://example.com/data.tif", "title": "Data",
+                "description": "Measurements", "type": "image/tiff",
+                "roles": ["data", "custom-role"],
+            },
+            {"href": "https://example.com/empty", "title": "", "description": "", "roles": []},
+        ])
+
+    def test_item_asset_metadata_roundtrip(self, m):
+        self._check_asset_roundtrip(m, "item_assets", ItemAssetDefinition, [
+            {},
+            {
+                "title": "Data", "description": "Measurements", "type": "image/tiff",
+                "roles": ["data", "custom-role"],
+            },
+            {"title": "", "description": "", "roles": []},
+            {"title": None, "description": None, "type": None, "roles": None},
+        ])
+
+    def _check_asset_roundtrip(self, m, field, cls, expected):
+        self.base_test.set_global_mocks(m)
+        m.post(
+            f"{self.base_test._base_url}/rpc/geodb_get_metadata",
+            json={
+                "basic": {
+                    **self.default_json["basic"],
+                    "spatial_extent": [
+                        {"minx": 10, "miny": 53, "maxx": 11, "maxy": 54}
+                    ],
+                },
+                field: [
+                    {**({"title": None, "description": None, "type": None, "roles": None}
+                        if field == "assets" else {}), **asset, "id": i,
+                     "collection_name": "probe", "database": "database"}
+                    for i, asset in enumerate(expected)
+                ],
+            },
+        )
+        endpoint = m.post(
+            f"{self.base_test._base_url}/rpc/geodb_set_metadata_field", text=""
+        )
+        metadata = self.base_test._api.get_metadata("probe", database="database")
+        assets = getattr(metadata, field)
+        self.assertTrue(all(type(asset) is cls for asset in assets))
+        self.assertEqual(expected, [asset.to_dict() for asset in assets])
+        self.assertEqual("image/tiff", assets[1].media_type)
+        self.base_test._api.set_metadata_field(field, assets, "probe", database="database")
+        self.assertEqual(
+            {"field": field, "value": expected, "collection": "probe", "db": "database"},
+            endpoint.last_request.json(),
+        )
+        self.base_test._api.set_metadata_field(field, [], "probe", database="database")
+        self.assertEqual([], endpoint.last_request.json()["value"])

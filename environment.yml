@@ -7,6 +7,7 @@ dependencies:
   - geopandas
   - pip
   - psycopg2
+  - pystac-core>=1.15,<2
   - python-dotenv
   - requests
   - requests-mock
