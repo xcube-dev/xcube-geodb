@@ -1,0 +1,11 @@
+# Compare the same client-code scope in both the base and head reports.
+coverage:
+  status:
+    project:
+      default:
+        paths:
+          - "xcube_geodb/"
+    patch:
+      default:
+        paths:
+          - "xcube_geodb/"
