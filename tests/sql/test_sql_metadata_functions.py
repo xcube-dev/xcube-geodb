@@ -182,6 +182,8 @@ class GeoDBSQLMDTest(unittest.TestCase):
     @patch("xcube_geodb.core.geodb.GeoDBClient")
     @patch("xcube_geodb.core.db_interface.DbInterface")
     def test_set_metadata_field(self, geodb: GeoDBClient, mockdb: DbInterface):
+        self._cursor.execute("SET TIME ZONE 'UTC'")  # ensure UTC
+
         sql = "SELECT geodb_set_metadata_field('title', '\"sausage\"', 'land_use', 'geodb_user')"
         self._cursor.execute(sql)
         md = self._fetch_md(geodb, mockdb)

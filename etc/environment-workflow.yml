@@ -4,7 +4,7 @@ channels:
 
 dependencies:
   # Python
-  - python >=3.6
+  - python >=3.10
   # Required
 #  - pip:
 #      - gsconfig-py3
