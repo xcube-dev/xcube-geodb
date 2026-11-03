@@ -14,16 +14,17 @@ dependencies:
   # Exploring
 #  - jupyterlab
 
-  - pytest >=4.4
-  - pytest-cov >=2.6
-  - postgresql
-  - postgis
   - geopandas
+  - ipyleaflet
+  - nbconvert
+  - pip
+  - postgis
+  - postgresql
   - psycopg2
   - pystac-core>=1.15,<2
-  - nbconvert
-  - requests
-  - ipyleaflet
-  - python-fastjsonschema
+  - pytest >=4.4
+  - pytest-cov >=2.6
   - python-dotenv
-  - pip
+  - python-fastjsonschema
+  - requests
+  - setuptools
