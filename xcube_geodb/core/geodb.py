@@ -24,7 +24,8 @@ import functools
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from xcube_geodb.core.metadata import Metadata, Link, Provider, Asset, ItemAsset
+    from xcube_geodb.core.metadata import Metadata
+    from pystac import Link, Provider, Asset, ItemAssetDefinition
 
 
 def warn(msg: str):
@@ -2610,7 +2611,7 @@ class GeoDBClient(object):
                          keywords (List[str]), providers (List[Provider]),
                          stac_extensions (List[str]), links (List[Link]),
                          summaries (Dict[str, Summary]), assets (List[Asset]),
-                         item_assets(Dict[str, ItemAsset]),
+                         item_assets (List[ItemAssetDefinition]),
                          temporal_extent (TemporalExtent)
             value (Any): The value to set, provided in the type that the field expects
                          (see above documentation for 'field'-parameter for the
@@ -2620,13 +2621,13 @@ class GeoDBClient(object):
             >>> GeoDBClient.set_metadata_field("title", "my title", "my_collection")
             >>> GeoDBClient.set_metadata_field("description", "my description", "my_collection")
             >>> GeoDBClient.set_metadata_field("license", "my license", "my_collection")
-            >>> GeoDBClient.set_metadata_field("links", [Link.from_json({'href': 'https://link2.bc', 'rel': 'root'})], "my_collection")
+            >>> GeoDBClient.set_metadata_field("links", [Link.from_dict({'href': 'https://link2.bc', 'rel': 'root'})], "my_collection")
             >>> GeoDBClient.set_metadata_field("keywords", ['crops', 'europe', 'rural'], "my_collection")
             >>> GeoDBClient.set_metadata_field("stac_extensions", ['https://stac-extensions.github.io/authentication/v1.1.0/schema.json'], "my_collection")
-            >>> GeoDBClient.set_metadata_field("providers", [Provider.from_json({'name': 'provider 1', 'description': 'some provider', 'roles': ['licensor', 'producer']})], "my_collection")
+            >>> GeoDBClient.set_metadata_field("providers", [Provider.from_dict({'name': 'provider 1', 'description': 'some provider', 'roles': ['licensor', 'producer']})], "my_collection")
             >>> GeoDBClient.set_metadata_field("summaries", {'columns': ['id', 'geometry'], 'x_range': {'min': '-170', 'max': '170'}, 'y_range': {'min': '-80', 'max': '80'}, 'schema': 'some JSON schema'}, "my_collection")
-            >>> GeoDBClient.set_metadata_field("assets", [Asset.from_json({'href': 'https://asset.org', 'title': 'some title', 'roles': ['image', 'ql']})], "my_collection")
-            >>> GeoDBClient.set_metadata_field("item_assets", [ItemAsset.from_json({'href': 'https://asset.org', 'type': 'some type'})], "my_collection")
+            >>> GeoDBClient.set_metadata_field("assets", [Asset.from_dict({'href': 'https://asset.org', 'title': 'some title', 'roles': ['image', 'ql']})], "my_collection")
+            >>> GeoDBClient.set_metadata_field("item_assets", [ItemAssetDefinition({'type': 'image/tiff', 'title': 'Data'})], "my_collection")
             >>> GeoDBClient.set_metadata_field("temporal_extent", [['2018-01-01T00:00:00Z', None], "my_collection")
         """
         database = database or self.database
@@ -2635,54 +2636,8 @@ class GeoDBClient(object):
         elif field == "keywords" or field == "stac_extensions":
             value: List[str]
             jsonified_value = [f"{v}" for v in value]
-        elif field == "links":
-            value: List["Link"]
-            jsonified_value = [
-                {
-                    "href": v.href,
-                    "rel": v.rel,
-                    "type": v.type,
-                    "title": v.title,
-                    "method": v.method,
-                    "body": v.body,
-                    "headers": v.headers,
-                }
-                for v in value
-            ]
-        elif field == "providers":
-            value: List["Provider"]
-            jsonified_value = [
-                {
-                    "description": v.description,
-                    "url": v.url,
-                    "name": v.name,
-                    "roles": v.roles,
-                }
-                for v in value
-            ]
-        elif field == "assets":
-            value: List["Asset"]
-            jsonified_value = [
-                {
-                    "description": v.description,
-                    "title": v.title,
-                    "href": v.href,
-                    "type": v.type,
-                    "roles": v.roles,
-                }
-                for v in value
-            ]
-        elif field == "item_assets":
-            value: List["ItemAsset"]
-            jsonified_value = [
-                {
-                    "description": v.description,
-                    "title": v.title,
-                    "type": v.type,
-                    "roles": v.roles,
-                }
-                for v in value
-            ]
+        elif field in ("links", "providers", "assets", "item_assets"):
+            jsonified_value = [v.to_dict() for v in value]
         elif field == "summaries" or field == "temporal_extent":
             jsonified_value = value
         else:

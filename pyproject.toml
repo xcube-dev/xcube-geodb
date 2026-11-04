@@ -1,3 +1,11 @@
 [build-system]
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.coverage.run]
+source = ["xcube_geodb"]
+
+[tool.coverage.report]
+# Keep the default pragma exclusion and omit imports used only by type checkers.
+# exclude_lines also works with coverage 7.1 from the CI environment lockfile.
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:"]

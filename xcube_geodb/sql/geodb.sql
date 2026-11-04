@@ -1970,16 +1970,15 @@ BEGIN
                 ELSE
                     roles := '{}'::TEXT[];
                 END IF;
-                EXECUTE format('
                 INSERT INTO geodb_collection_metadata.asset (href, title, description, type, roles, collection_name, database)
-                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'');',
-                               asset ->> 'href',
-                               asset ->> 'title',
-                               asset ->> 'description',
-                               asset ->> 'type',
-                               roles,
-                               collection,
-                               db);
+                VALUES (
+                    asset ->> 'href',
+                    asset ->> 'title',
+                    asset ->> 'description',
+                    asset ->> 'type',
+                    roles,
+                    collection,
+                    db);
             END LOOP;
     ELSIF field = 'item_assets' THEN
         DELETE
@@ -1994,15 +1993,14 @@ BEGIN
                 ELSE
                     roles := '{}'::TEXT[];
                 END IF;
-                EXECUTE format('
                 INSERT INTO geodb_collection_metadata."item_asset" (title, description, type, roles, collection_name, database)
-                VALUES (''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'');',
-                               item_asset ->> 'title',
-                               item_asset ->> 'description',
-                               item_asset ->> 'type',
-                               roles,
-                               collection,
-                               db);
+                VALUES (
+                    item_asset ->> 'title',
+                    item_asset ->> 'description',
+                    item_asset ->> 'type',
+                    roles,
+                    collection,
+                    db);
             END LOOP;
     ELSIF field = 'temporal_extent' THEN
         SELECT ARRAY(

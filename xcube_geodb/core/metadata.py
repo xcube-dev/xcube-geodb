@@ -25,10 +25,11 @@ from typing import (
     Any,
     Union,
     TypeAlias,
-    Literal,
     Sequence,
     TYPE_CHECKING,
 )
+
+from pystac import Asset, ItemAssetDefinition, Link, Provider
 
 from xcube_geodb.core.db_interface import DbInterface
 
@@ -48,286 +49,6 @@ JSONSchema: TypeAlias = str
 SpatialExtent: TypeAlias = List[List[float]]
 TemporalExtent: TypeAlias = List[List[Optional[str]]]
 Summary: TypeAlias = List[Any] | Range | JSONSchema
-Relation = Literal["self", "root", "parent", "child", "collection", "item"]
-valid_roles = ["licensor", "producer", "processor", "host"]
-
-
-class Provider:
-    def __init__(
-            self, name: str, description: str = "", roles: List[str] = None, url: str = None
-    ):
-        self._name = name
-        self._description = description
-        self._roles = roles if roles else []
-        if not set(self._roles).issubset(valid_roles):
-            raise ValueError(
-                f"Invalid set of roles provided: {roles}; valid roles are: {valid_roles}."
-            )
-        self._url = url
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def description(self) -> str:
-        return self._description
-
-    @property
-    def roles(self) -> List[str]:
-        return self._roles
-
-    @property
-    def url(self) -> str:
-        return self._url
-
-    @description.setter
-    def description(self, value):
-        self._description = value
-
-    @url.setter
-    def url(self, value):
-        self._url = value
-
-    @roles.setter
-    def roles(self, value):
-        if not set(value).issubset(valid_roles):
-            raise ValueError(
-                f"Invalid set of roles provided: {value}; valid roles are: {valid_roles}."
-            )
-        self._roles = value
-
-    @staticmethod
-    def from_json(provider_spec: Dict[str, Union[str, List[str]]]):
-        p = Provider(
-            provider_spec["name"],
-        )
-        if "description" in provider_spec:
-            p.description = provider_spec["description"]
-
-        if "url" in provider_spec:
-            p.url = provider_spec["url"]
-
-        if "roles" in provider_spec:
-            p.roles = provider_spec["roles"]
-
-        return p
-
-    def __repr__(self):
-        return (
-            f"{{name = {self._name}, description = {self._description}, url = {self._url}, "
-            f"roles = {self._roles}}}"
-        )
-
-
-# noinspection PyShadowingBuiltins
-class Link:
-    def __init__(
-            self,
-            href: str,
-            rel: Relation,
-            type: Optional[str],
-            title: Optional[str],
-            method: Optional[str],
-            headers: Optional[Dict[str, Union[str, List[str]]]],
-            body: Optional[Any],
-    ):
-        self._href = href
-        self._rel = rel
-        self._type = type
-        self._title = title
-        self._method = method
-        self._headers = headers
-        self._body = body
-
-    @staticmethod
-    def from_json(link_spec):
-        return Link(
-            link_spec["href"],
-            link_spec["rel"],
-            link_spec["type"] if "type" in link_spec else None,
-            link_spec["title"] if "title" in link_spec else None,
-            link_spec["method"] if "method" in link_spec else None,
-            link_spec["headers"] if "headers" in link_spec else None,
-            link_spec["body"] if "body" in link_spec else None,
-        )
-
-    @property
-    def href(self) -> str:
-        return self._href
-
-    @property
-    def rel(self) -> Relation:
-        return self._rel
-
-    @property
-    def type(self) -> Optional[str]:
-        return self._type
-
-    @property
-    def title(self) -> Optional[str]:
-        return self._title
-
-    @property
-    def method(self) -> Optional[str]:
-        return self._method
-
-    @property
-    def body(self) -> Optional[Any]:
-        return self._body
-
-    @property
-    def headers(self) -> Optional[Dict[str, Union[str, List[str]]]]:
-        return self._headers
-
-    def __repr__(self):
-        return (
-            f"{{href = {self._href}, rel = {self._rel}, type = {self._type}, "
-            f"title = {self._title}, method = {self._method}, "
-            f"headers = {self._headers}, body = {self._body}}}"
-        )
-
-
-# noinspection PyShadowingBuiltins
-class Asset:
-    def __init__(
-            self,
-            href: str,
-            title: Optional[str] = None,
-            description: Optional[str] = None,
-            type: Optional[str] = None,
-            roles: Optional[List[str]] = None,
-    ):
-        self._href = href
-        self._title = title
-        self._description = description
-        self._type = type
-        self._roles = roles
-
-    @property
-    def href(self) -> str:
-        return self._href
-
-    @property
-    def title(self) -> Optional[str]:
-        return self._title
-
-    @property
-    def description(self) -> Optional[str]:
-        return self._description
-
-    @description.setter
-    def description(self, value):
-        self._description = value
-
-    @property
-    def type(self) -> Optional[str]:
-        return self._type
-
-    @property
-    def roles(self) -> Optional[List[str]]:
-        return self._roles
-
-    @title.setter
-    def title(self, value):
-        self._title = value
-
-    @type.setter
-    def type(self, value):
-        self._type = value
-
-    @roles.setter
-    def roles(self, value):
-        self._roles = value
-
-    @staticmethod
-    def from_json(asset_spec: Dict[str, Union[str, List[str]]]):
-        asset = Asset(
-            asset_spec["href"],
-        )
-        if "description" in asset_spec and asset_spec["description"]:
-            asset.description = asset_spec["description"]
-        if "title" in asset_spec and asset_spec["title"]:
-            asset.title = asset_spec["title"]
-        if "type" in asset_spec and asset_spec["type"]:
-            asset.type = asset_spec["type"]
-        if "roles" in asset_spec and asset_spec["roles"]:
-            asset.roles = asset_spec["roles"]
-
-        return asset
-
-    def __repr__(self):
-        return (
-            f"{{href = {self.href}, description = {self._description}, title = {self._title}, "
-            f"type = {self._type}, roles = {self._roles}}}"
-        )
-
-
-# noinspection PyShadowingBuiltins
-class ItemAsset:
-    def __init__(
-            self,
-            title: Optional[str] = None,
-            description: Optional[str] = None,
-            type: Optional[str] = None,
-            roles: Optional[List[str]] = None,
-    ):
-        self._title = title
-        self._description = description
-        self._type = type
-        self._roles = roles
-
-    @property
-    def title(self) -> Optional[str]:
-        return self._title
-
-    @property
-    def description(self) -> Optional[str]:
-        return self._description
-
-    @description.setter
-    def description(self, value):
-        self._description = value
-
-    @property
-    def type(self) -> Optional[str]:
-        return self._type
-
-    @property
-    def roles(self) -> Optional[List[str]]:
-        return self._roles
-
-    @title.setter
-    def title(self, value):
-        self._title = value
-
-    @type.setter
-    def type(self, value):
-        self._type = value
-
-    @roles.setter
-    def roles(self, value):
-        self._roles = value
-
-    @staticmethod
-    def from_json(asset_spec: Dict[str, Union[str, List[str]]]):
-        item_asset = ItemAsset()
-        if "description" in asset_spec:
-            item_asset.description = asset_spec["description"]
-        if "title" in asset_spec:
-            item_asset.title = asset_spec["title"]
-        if "type" in asset_spec:
-            item_asset.type = asset_spec["type"]
-        if "roles" in asset_spec:
-            item_asset.roles = asset_spec["roles"]
-
-        return item_asset
-
-    def __repr__(self):
-        return (
-            f"{{description = {self._description}, title = {self._title}, "
-            f"type = {self._type}, roles = {self._roles}}}"
-        )
 
 
 class MetadataManager:
@@ -418,37 +139,49 @@ class MetadataManager:
     def _get_providers(json: Dict[str, Any]) -> Optional[List[Provider]]:
         if "providers" not in json:
             return None
-        result = []
-        for provider_spec in json["providers"]:
-            result.append(Provider.from_json(provider_spec))
-        return result
+        return [
+            Provider.from_dict({
+                k: v for k, v in provider_spec.items()
+                if k not in {"id", "collection_name", "database"}
+            })
+            for provider_spec in json["providers"]
+        ]
 
     @staticmethod
     def _get_assets(json: Dict[str, Any]) -> Optional[List[Asset]]:
         if "assets" not in json:
             return None
-        result: List[Asset] = []
-        for asset_spec in json["assets"]:
-            result.append(Asset.from_json(asset_spec))
-        return result
+        return [
+            Asset.from_dict({
+                k: v for k, v in asset_spec.items()
+                if k not in {"id", "collection_name", "database"}
+            })
+            for asset_spec in json["assets"]
+        ]
 
     @staticmethod
-    def _get_item_assets(json: Dict[str, Any]) -> Optional[List[ItemAsset]]:
+    def _get_item_assets(json: Dict[str, Any]) -> Optional[List[ItemAssetDefinition]]:
         if "item_assets" not in json:
             return None
-        result: List[ItemAsset] = []
-        for item_asset_spec in json["item_assets"]:
-            result.append(ItemAsset.from_json(item_asset_spec))
-        return result
+        return [
+            ItemAssetDefinition({
+                k: v for k, v in item_asset_spec.items()
+                if k not in {"id", "collection_name", "database"}
+            })
+            for item_asset_spec in json["item_assets"]
+        ]
 
     @staticmethod
     def _get_links(json: Dict[str, Any]) -> List[Link]:
         if "links" not in json:
             return []
-        result = []
-        for link_spec in json["links"]:
-            result.append(Link.from_json(link_spec))
-        return result
+        return [
+            Link.from_dict({
+                k: v for k, v in link_spec.items()
+                if k not in {"id", "collection_name", "database"}
+            })
+            for link_spec in json["links"]
+        ]
 
 
 # noinspection PyShadowingBuiltins
@@ -477,7 +210,7 @@ class Metadata:
             keywords: Optional[List[str]] = None,
             summaries: Optional[Dict[str, Summary]] = None,
             assets: Optional[List[Asset]] = None,
-            item_assets: Optional[Dict[str, ItemAsset]] = None,
+            item_assets: Optional[List[ItemAssetDefinition]] = None,
     ):
         self._id = id
         self._title = title
@@ -586,5 +319,5 @@ class Metadata:
         return self._assets
 
     @property
-    def item_assets(self) -> Optional[List[ItemAsset]]:
+    def item_assets(self) -> Optional[List[ItemAssetDefinition]]:
         return self._item_assets

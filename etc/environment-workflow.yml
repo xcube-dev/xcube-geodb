@@ -4,7 +4,7 @@ channels:
 
 dependencies:
   # Python
-  - python >=3.6
+  - python >=3.10
   # Required
 #  - pip:
 #      - gsconfig-py3
@@ -14,14 +14,17 @@ dependencies:
   # Exploring
 #  - jupyterlab
 
-  # Testing
+  - geopandas
+  - ipyleaflet
+  - nbconvert
+  - pip
+  - postgis
+  - postgresql
+  - psycopg2
+  - pystac-core>=1.15,<2
   - pytest >=4.4
   - pytest-cov >=2.6
-  - postgis
-  - geopandas
-  - psycopg2
-  - nbconvert
-  - requests
-  - ipyleaflet
-  - python-fastjsonschema
   - python-dotenv
+  - python-fastjsonschema
+  - requests
+  - setuptools
