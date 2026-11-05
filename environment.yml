@@ -6,7 +6,7 @@ dependencies:
   - python >=3.10
   - geopandas
   - pip
-  - psycopg2
+  - pyproj
   - pystac-core>=1.15,<2
   - python-dotenv
   - requests
@@ -15,5 +15,6 @@ dependencies:
   # testing:
   - ipyleaflet
   - matplotlib-base
+  - psycopg2
   - pip:
       - testing.postgresql  # not available from conda

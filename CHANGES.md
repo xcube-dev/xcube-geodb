@@ -1,8 +1,12 @@
-## v1.1.1
+## v1.1.2dev
 
 ### New Features
 
-- replace custom implementations of Provider, Link, Asset and ItemAsset [#138]
+### Fixes
+
+### New Features
+
+- updated environment.yml: moved `psycopg2` dependency into #testing section, and added `pyproj` package
 
 ### Fixes
 - preserve X/Y order in collection bounding boxes [#136]
